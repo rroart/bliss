@@ -1,0 +1,213 @@
+File SPEC
+The Unknown Scandinavian was here
+
+Spec for a compiler for a subset of BLISS.
+
+
+	Usage
+
+(like cc(1) and most UNIX compilers)
+-s for asm out perhaps only that.
+BLISS files are *.b
+
+	outline
+
+lex --> parse --> ...
+
+Some lexemes like ")%" require a little look-ahead.
+
+read-one-char-skip-comments	looks ahead after % and )
+				treats quote quote ??
+
+read-one-lexeme
+
+	Lexical analysis
+
+DESIGN DECISIONS
+ - Vtab and formfeed be treated as blanks, not as Linemarks. (Really?)
+ - All names are mapped to lower case.
+ - The lexical analyzer should handle all parts of BLISS.
+ - Quoted strings have a max length of 255 chars.
+
+The scanner scans and counts characters from the source file. The
+existing categories of source file characters are defined in table 1.
+Categories control and other do not include those characters included
+in the rest of the categories. The scanner contains a routine for
+putting back (unreading) at most one character.
+
+The lexical analyzer uses the scanner and the Deterministic Finite
+Automat (DFA) in table 2 to read tokens.
+
+The scanner and the lexical analyzer reside in one file. The interface
+to that file is described in "lexical.h". Upon returning a token, the
+variables byte, line, and col are set to the position in the source
+file where the token starts. The lexical analyzer comes in the
+following compatible version(s):
+
+	"proclex.c"	Procedural implementation
+
+
+	   Table 1. Lexical DFA: Input Character Categories
+	------------------------------------------------------
+	Category	Contains
+	Name	 Number
+	------------------------------------------------------
+	eof	   -1	EOF
+	alpha	    1	{ $ | A | --- | Z | a | --- | z | _ }
+	bang	    2	!
+	blank	    3	{ SPACE | HTAB }
+	digit	    4	{ 0 | --- | 9 }
+	linebreak   5	{ LINEFEED | FORMFEED | VTAB }
+	lparen	    6	(
+	percent	    7	%
+	quote	    8	'
+	rparen	    9	)
+	special	   10	{ . | ^ | * | / | + | - | = |
+			  , | ; | : | [ | ] | < | > }
+	control    11	{ \0 | --- | \31 | \127 }
+	other	   12	{ \34 | --- | 126 }
+	------------------------------------------------------
+
+
+		     Table 2. Lexical DFA: States
+	------------------------------------------------------
+	State name	Number	Description
+	------------------------------------------------------
+	start		1	Initial state
+	tcomm		2	Trailing comment
+	digits		3	Sequence of decimal digits
+	name		4	Variable name or keyword
+	string		5	Quoted string
+	str2		6	Last or internal quote char
+	percent		7	Percent character found
+	ecomm		8	Embedded comment
+	ecomm2		9	Trailing or internal rparen
+	------------------------------------------------------
+
+
+	       Table 3. Lexical DFA: Informal notation
+	------------------------------------------------------
+	State	Input		Action
+	------------------------------------------------------
+	start	blank		Skip, stay
+		linebreak	ditto
+		special		Store, accept
+		eof		Skip, accept
+		lparen		ditto
+		rparen		ditto
+		bang		Skip, goto state tcomm
+		digit		Store, Goto state digits
+		alpha		Store, warn if $, goto state name
+		quote		Skip, goto state string
+		percent		Skip, goto state percent
+		-otherwise-	Error
+	tcomm	eof		Skip, accept
+		linebreak	ditto
+		-otherwise-	Skip, stay
+	digits	digit		Store, stay
+		alpha		Unread, accept, collision warning
+		percent		Unread, accept, collision warning
+		-otherwise-	Unread, accept, Warn if overflow
+	name	alpha		Store, stay (Warn if $ or >31 chars)
+		digit		ditto
+		-otherwise-	Unread, accept
+	string	quote		Goto state str2 (skip)
+		eof		Accept, warn for collision
+		linebreak	Store SPACE, stay, warn for collision
+		cntrl		ditto
+		-otherwise-	Store, stay (Warn if >255 chars)
+	str2	quote		Goto state string (store)
+		-otherwise-	Unread, accept
+	percent	lparen		Goto state ecomm
+		-otherwise-	Unread, accept
+	ecomm	rparen		Skip, goto state ecomm2
+		eof		Accept, collision warning
+		-otherwise-	Skip, stay
+	ecomm2	percent		Skip, accept
+		eof		Accept, collision warning
+		-otherwise-	Skip, goto state ecomm
+	------------------------------------------------------
+
+
+	     Table 3. Lexical DFA: State transition table
+	------------------------------------------------------
+	Input	State
+		  1    2    3    4    5    6    7    8    9
+	------------------------------------------------------
+	  -1	  a    a   ua   ua    a!  ua   ua    a!   a!
+	   1	 s4    2   ua!  s4   s5   ua   ua    8    8
+	   2	  2    2   ua   ua   s5   ua   ua    8    8
+	   3	  1    2   ua   ua   s5   ua   ua    8    8
+	   4	 s3    2   s3   s4   s5   ua   ua    8    8
+	   5	  1    a   ua   ua   s5!  ua   ua    8    8
+	   6	  a    2   ua   ua   s5   ua    8    8    8
+	   7	  7    2   ua!  ua   s5   ua   ua    8    a
+	   8	  5    2   ua   ua    6   s5   ua    8    8
+	   9	  a    2   ua   ua   s5   ua   ua    9    8
+	  10	 sa    2   ua   ua   s5   ua   ua    8    8
+	  11	  e    2   ua   ua   s5!  ua   ua    8    8
+	  12	  e    2   ua   ua   s5   ua   ua    8    8
+	------------------------------------------------------
+	Notes:	1. s = store; u = unread; blank = skip
+		2. a = accept; 0-9 = goto; e = error
+		3. ! = token collision warning
+		4. Fold cases when storing a name.
+		5. Store SPACE for linebreak or control
+		   in state 5 (quoted string).
+		6. This table does not describe what to
+		   return, when to warn for dollars, overflow.
+	------------------------------------------------------
+
+
+			     SYMBOL TABLE
+
+State diagram for lexically analyzing BLISS
+
+state spaces
+	digit		digits
+	letter | $ | _	name
+	!		trailing-comment
+	%(		embedded-comment
+	%		percent
+	quote		quoted-string
+
+state embedded-comment
+	)%		RETURN
+
+state trailing-comment
+	newline		RETURN
+
+state quoted-string
+	quote-quote	(continue)
+	quote		RETURN
+
+state digits
+	digit		(continue)
+	letter | $ | _	ERROR (quote separation rule 1)
+	otherwise	RETURN
+
+state name				RETURNS
+	letter | digit	(continue)
+	$ | _		(continue)
+
+Before returning a name to the parser (syntactic analyzer), map it to
+lower case and check whether it is a keyword. Check for occurances of
+$.
+----------------------------------------------------------------------
+
+	Parse
+
+The decision is taken here to consider upper case letters equal to
+lower case letters for integer-digits.
+
+Decision to treat Percent (%) as a syntactical element. This is the
+easiest when considering Embedded Comments and Macros, but allows a
+few odd things, e.g. % %( howdy )% O %( yeah )% '177654'.
+
+	Semantics
+
+expressions, one single (?) module, 
+
+	Code gen
+
+SPARC asm (?), no optimize, 

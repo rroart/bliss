@@ -1,0 +1,1169 @@
+File BLISS
+The Unknown Scandinavian was here
+11-OCT-1990
+
+
+
+	   ########   ####       ####     #####     #####
+	    ##     #   ##         ##     #    #    #    #
+	    ##     ##  ##         ##    #         #      
+	    ##     #   ##         ##    #         #       
+	    #######    ##         ##    #####     #####   
+	    ##    ##   ##         ##      #####     ##### 
+	    ##     ##  ##         ##         ###       ###
+	    ##     ##  ##         ##          ##        ##
+	    ##    ##   ##      #  ##   ##    ##  ##    ## 
+	   #######    ########## ####  # ####    # ####   
+				   
+	   T H E   P R O G R A M M I N G   L A N G U A G E
+
+
+				   
+		    A Comprehensive Language Guide
+		      compiled by The Unknown Scandinavian
+		      from the following sources
+
+
+BLISS Pocket Guide (for BLISS version 4), (c) Digital Equipment
+Corporation 1979, 1981, 1983. DEC order No. AV-AT45A-TK
+
+BLISS-36 User's Guide (for BLISS version 4), (c) Digital Equipment
+Corporation 1979, 1980, 1982, 1984. DEC order No. AA-H712D-TK.
+
+BLISS-36 Language Guide (for BLISS version 4), (c) Digital Equipment
+Corporation 1978, 1980, 1982, 1983. DEC order No. AA-H275C-TK.
+
+BLISS-36 Compiler Installation Notes (for BLISS version 4), (c)
+Digital Equipment Corporation 1980, 1981, 1982, 1983, 1984. DEC order
+No. AA-J937E-TK.
+
+
+	Introduction
+
+This text is a specification of BLISS the programming language. It is
+supposed to contain all information needed to write a BLISS compiler.
+
+Much of the variant syntax has been left out.  Section numbers in the
+SYNTAX AND SEMANTICS part of this text correspond to those in the
+Pocket Guide.  Presentation conventions are almost the same. When
+different, more YACC-like conventions have been adopted.
+
+			  LEXICAL DEFINITION
+
+	Characters
+
+letter		:   { A | --- | Z | a | --- | z }
+digit		:   { 0 | --- | 9 }
+delimiter	:   .  ^  *  /  +  -  =  ,  ;  :  (  )  [  ]  <  >
+special-character:  dollar underline % ! quote
+dollar		:   $
+underline	:   _
+quote		:   '
+free-character	:   "  #  &  ?  @  \  `  {  |  }  ~
+nonprinting-character:	blank  tab  vtab  formfeed linemark
+linemark	:   newline  vtab  formfeed
+
+
+	Spaces
+
+trailing-comment: bang text... linemark
+embedded-comment: %( text... )%
+space		: newline blank tab vtab formfeed
+
+A BLISS comment is simply a special form of a space from the lexical
+viewpoint. Embedded comments must not be nested.
+
+
+	Names and keywords
+
+Keywords and names follow the same lexical definition. In keywords and
+names, upper and lower case letters are considered equal.
+
+Names must not be longer than 31 chars. Reserved words must not be
+used as names. The dollar is reserved for use in software supplied by
+Digital. Upper and lower case letters are considered equal. The same
+goes for keywords.
+
+name		: { letter | dollar | underline}
+		  { { letter | digit | dollar | underline } ...
+		    | nothing }
+
+
+	Quoted strings
+
+quoted-string	: ' { quoted-character | nothing } '
+
+quoted-character: { blank | tab | printing-character-except-quote
+		    | quote quote }
+
+Note that double occurances of the quote character (') inside a quoted
+string should be translated to one single quote character being part
+of the quoted string. The example below should result in one quoted
+string containing: "He said, 'Go!'".
+
+Also note that a quoted-strings may contain nothing. This is written as
+two consecutive quote characters and nothing more.
+
+A quoted-string may contain no other spaces than blank and tab.
+Especially, newlines cannot be part of quoted-strings.
+
+
+	Separation rules
+
+1. One or more spaces must appear between two lexemes if each lexeme
+is any one of the following: a name, a keyword, or a decimal literal.
+
+2. One or more spaces may appear between any two lexemes.
+
+3. A space must not be inserted into a lexeme. Some apperant
+exceptions arise in the case of a quoted string lexeme, as described
+above.
+
+	Examples of lexemes
+
+keyword		ROUTINE %ASCIZ AND
+name		VECTOR MAX X BETA26 INITIAL_SIZE
+decimal-literal	0 23000 -47
+quoted-string	'ABC'    'He said, ''Go!'''    '77700'
+operator	.  ^  *  /  +  -  =
+punctuation	,  ;  :  (  )  [  ]  <  >
+
+			 SYNTAX AND SEMANTICS
+
+
+1.0	MODULES
+
+The routines of a BLISS program are grouped into modules for the
+purpose of compilation.  Each module is a text file that is called a
+BLISS source file.  Each module can be compiled individually, and this
+is one practical advantage of dividing a large program into several
+modules. When all modules of a program have been compiled, the
+resulting object files are linked for execution.
+
+module		: MODULE module-head = module-body ELUDOM
+
+module-head	: name { ( module-switch ,... ) }
+
+module-body	: { BEGIN declaration ... END
+		    | ( declaration ... ) }
+
+1.1	Module Switches
+
+module-switch	: { on-off-switch | special-switch }
+
+on-off-switch	: { CODE | NOCODE | DEBUG | NODEBUG | ERRS | NOERRS
+		    | OPTIMIZE | NOOPTIMIZE | UNAMES | NOUNAMES
+		    | SAFE | NOSAFE | ZIP | NOZIP }
+
+The default on-off-switchs are CODE, NODEBUG, ERRS, OPTIMIZE,
+NOUNAMES, SAFE, and NOZIP. Below, optimization level 2 is default.
+
+special-switch	: { IDENT = quoted-string
+		    | LANGUAGE ( language-list )
+		    | LINKAGE ( linkage-name )
+		    | LIST ( list-option ,... )
+		    | STRUCTURE ( { structure-attribute } )
+		    | MAIN = routine-name
+		    | OPTLEVEL = { 0 | 1 | 2 | 3 }
+		    | VERSION = quoted-string }
+
+language-list	: { COMMON | language-name ,... | nothing }
+
+language-name	: { BLISS16 | BLISS32 | BLISS36 }
+
+The effective default for language-list is `no checking'.
+
+list-option	: { SOURCE | NOSOURCE | REQUIRE | NOREQUIRE
+		    | EXPAND | NOEXPAND | TRACE | NOTRACE
+		    | LIBRARY | NOLIBRARY | OBJECT | NOOBJECT
+		    | ASSEMBLY | NOASSEMBLY | SYMBOLIC | NOSYMBOLIC
+		    | BINARY | NOBINARY | COMMENTARY | NOCOMMENTARY }
+
+The default list-options are SOURCE, NOREQUIRE, NOEXPAND, NOTRACE,
+NOLIBRARY, OBJECT, NOASSEMBLY, SYMBOLIC, BINARY, and COMMENTARY.
+
+2.0	EXPRESSIONS
+
+All BLISS calculations are performed on values that correspond, in
+size, to the largest efficiently-accessible unit of memory in each
+target system. This value, called the BLISS fullword, is 16 bits long
+for BLISS-16 (PDP-11 word), 32 bits long for BLISS-32 (VAX-11
+longword), and 36 bits long for BLISS-36 (DECSYSTEM-10/20 word). A
+fullword can be viewed as a sequence of single-bit logical values
+(true or false), as a sequence of ASCII character codes, or as a
+unitary value. As a unitary value, it can be interpreted as a signed
+integer, an unsigned integer, or a memory address. No "type"
+interpretation is associated with a variable. Instead, the
+interpretation of the value is specified by the operator that is
+applied to it. For example, BLISS has three operators for equality:
+EQL, EQLU, and EQLA for signed integers, unsigned integers, and memory
+addresses, respectively.
+
+In both BLISS-16 and BLISS-32, the basic addressable unit is the byte.
+That is to say, if a memory address is incremented by 1 in either of
+these dialects, the location pointed to by the resulting address value
+is the next byte, not the next fullword.
+
+expression	: { primary | operator-expression
+		    | executable-function | control-expression }
+
+2.1	Primaries
+
+primary		: { numeric-literal | string-literal | plit
+		    | name | block | structure-reference
+		    | routine-call | field-reference
+		    | codecomment }
+
+BLISS literals have a complex form and are therefore treated as
+syntactic, not lexical, elements of the language. They are described
+among primaries and expressions in chapter 4 of the BLISS Language
+Guide. Note that decimal literals and quoted strings are lexical
+items, however.
+
+2.1.1	Numeric Literals
+
+Most of the numeric literals are composed of two lexemes: A %-prefixed
+keyword and a quoted string. Spaces (including comments) are allowed
+between two such lexemes.
+
+numeric-literal	: { decimal-literal | integer-literal
+		    | character-code-literal | float-literal }
+
+decimal-literal	: opt-sign digits
+
+opt-sign	: { + | - | nothing }
+
+integer-literal	: { %B | %O | %DECIMAL | %X }
+		  ' opt-sign integer-digit ... '
+
+The integer-literal prefixes indicate binary, octal, decimal and
+hexadecimal literals respectively. Only binary digits (0, 1) must
+appear in a binary literal etc, and the value of each literal must fit
+in a fullword.
+
+integer-digit	: { digit | A | --- | F }
+
+character-code-literal : %C ' quoted-character '
+
+The quoted-character is defined in the LEXICAL DEFINITION part of this
+text. Here, only one quoted-character must appear.
+
+float-literal: { single-precision-float-literal
+		| double-precision-float-literal
+		| extended-exponent-double-precision-float-literal
+		| extended-exponent-extended-precision-float-literal }
+
+The value of a float-literal must always fit in the target system's
+machine representation of a floating-point value.
+
+Float-literals might result in values that occupy more than one
+fullword. If so, they must only appear in either a plit (below) or a
+initail-attribute.
+
+single-precision-float-literal :
+		%E ' mantissa {E exponent | nothing } '
+
+double-precision-float-literal :
+		%D ' mantissa { D exponent | nothing } '
+
+extended-exponent-double-precision-float-literal :
+		%G ' mantissa { { G | Q } exponent | nothing } '
+
+extended-exponent-extended-precision-float-literal :
+		%H ' mantissa { Q exponent | nothing } '
+
+Note: "G exponent" can only be used with BLISS-36. "Q exponent" and
+"%H" can only be used with BLISS-32.
+
+mantissa	: opt-sign
+		  { digits | digits . | . digits | digits . digits }
+
+digits		: digit ...
+
+2.1.2	String Literals
+
+Most of the string literals are composed of two lexemes: A %-prefixed
+keyword and a quoted string. Spaces are allowed between two such
+lexemes.
+
+string-literal	: { string-type | nothing } quoted-string
+
+string-type	: { %ASCII | %ASCIZ | %ASCIC | %ASCID | %RAD50_11
+		    | %RAD50_10 | %SIXBIT | %P }
+
+Note: Types ASCIC, RAD50_11, and P are BLISS-16 and BLISS-32 only.
+Types RAD50_10 and SIXBIT are BLISS-36 only. The default type is
+ASCII.
+
+A string-literal that is not a plit-string in a plit or
+initial-attribute must fit in one fullword. With %ASCID excepted,
+specific limitations on string lentgh are given in according to the
+target system's word length.
+
+	      Table: Max. number of chars in a fullword
+	------------------------------------------------------
+		ASCII ASCIZ ASCIC RAD50_11 SIXBIT RAD50_10 P
+	------------------------------------------------------
+	BLISS-16  2     1     1     3        -      -      3*
+	BLISS-32  4     3     3     6        -      -      7*
+	BLISS-36  5     4     -     -        6      6      -
+	------------------------------------------------------
+	* Plus optional sign character
+
+ASCIC strings must contain no more than 255 characters. RAD50 strings
+must contain only A-Z, 0-9, blank, period (.), and dollar ($). Type P
+strings must contain only 0-9 except for one optional sign (+ or -).
+The default sign is +. There must be no more than 31 digits in the
+string.  SIXBIT strings may contain any ASCII char numbered 32-95.
+Lower case leters in RAD_50 and SIXBIT strings are mapped to upper
+case.
+
+ASCID strings are encoded as a length+pointer string description. The
+value of %ASCID is the address of the descriptor. ASCIZ strings are
+null-terminated, as in the C language. ASCIC strings are prepended
+with the length (in eight bits) of the rest of the string. Encoding
+and decoding of RAD50 strings is complicated. SIXBIT strings are
+stored six in each 36-bit fullword. Type P strings use the VAX-11
+packed decimal string encoding.
+
+The decision is taken to omit every string type except ASCIZ. This
+decision does not only effect string literals.
+
+
+2.1.3		Plits - pointers to literals
+
+A constant value that requires more than one fullword of storage must
+be represented by a plit. Plit means pointer to literal. Plits are
+used in expressions just like literals.
+
+Normally, plits contain a counted number of fullwords. The storage
+then begins with an extra fullword that contains the count for the
+plit.  Uncounted plits are declared UPLIT. Their stroage contains no
+such extra fullword.
+
+Notes: Allocation-unit applies to BLISS-16 and BLISS-32 only.
+Psect-allocation attributes must be preceded by an appropriate
+psect-declaration (Section 18.1 of the BLISS Language Guide). The
+value of a replicator must not be less then zero.
+
+plit		: { PLIT | UPLIT }
+		  { allocation-unit
+		    | psect-allocation
+		    | psect-allocation allocation-unit
+		    | nothing } ( plit-item ,... )
+
+psect-allocation: PSECT (psect-name)
+
+plit-item	: { plit-group | plit-expression | plit-string }
+
+plit-group	: { allocation-unit | REP replicator OF
+		    | REP replicator OF allocation-unit }
+
+allocation-unit : { LONG | WORD | BYTE }
+
+replicator	: ctce
+
+plit-expression : ltce
+
+plit-string	: string-literal
+
+
+2.1.5	Blocks
+
+Note that BEGIN x = y; z = 2 END (no semicolon after 2) yields the
+value 2, while the value of BEGIN x = y; z = 2; END (semicolon after
+2) is discarded.
+
+block		: { labeled-block | unlabeled-block }
+
+labeled-block	: attached-label ... unlabeled-block
+
+attached-label	: label-name :
+
+unlabaled-block	: { BEGIN block-body END | ( block-body ) }
+
+block-body	: { declaration ... } { block-action ... }
+		  { block-value }
+
+The block-body must not be null.
+
+block-action	: expression ;
+
+block-value	: expression
+
+2.1.6	Structure References
+
+structure-reference:
+		{ ordinary-structure-reference
+		  | default-structure-reference
+		  | general-structure-reference }
+
+ordinary-structure-reference:
+		segment-name [ { access-actual ,... } ]
+
+segment-name	: name
+
+	Note: This should be the name of a data-segment declared
+	with a structre attribute, see Section 4.2.
+
+access-actual	: { expression | field-name | nothing }
+
+field-name	Note: See field-attribute, Section 4.1
+
+default-structure-reference :
+		{ primary | executable-function }
+		[ access-actual ,... ]
+
+general-structure-reference :
+		structure-name [ access-part { ; alloc-actual ,... } ]
+
+Structure-name is a name of a user-declared or predeclared structure.
+See Sections 4.3 and 4.6
+
+access-part	: { segment-expression } { , access-actual ,... }
+
+For definition of alloc-actual, see structure-attribute, Section 4.1.
+
+2.1.7	Routine Calls
+
+routine-call	: { ordinay-routine-call | general-routine-call }
+
+ordinary-routine-call :
+		routine-designator (
+		{ input-actual-parameter ,... }
+		{ ; output-actual-parameter ,... } )
+
+routine-designator :
+		{ primary | executable-function }
+
+actual-parameter: expression
+
+general-routine-call:
+		linkage-name ( routine-address
+		{ , input-actual-parameter ,... }
+		{ ; ouput-actual-parameter ,... } )
+
+See Sections 4.6 and 6.4 for a summary of linkage names.
+
+routine-address	: expression
+
+2.1.8	Field References
+
+Fields are units of data that are less than a fullword in length. One
+field of special importance in all BLISS dialects is the bit, which
+can be used to store a single logical value. No matter what field size
+is involved, a field value is always extended to a fullword whenever
+it is fetched from memory.
+
+field-reference	: address { field-selector }
+
+address		: { primary | executable-function }
+
+field-selector	: < position-exp , size-exp { , sign-ext-flag } >
+
+sign-ext-flag	: ctce
+
+The value of sign-ext-flag must be 0 or 1.
+
+The permissible value range for position-exp (p) and sign-exp (s) in
+an assignment or fetch context is as follows:
+
+	BLISS-16: 0 <= p, p + s <= 16, 0 <= s <= 16
+	BLISS-32: 0 <= s <= 32
+	BLISS-36: 0 <= p, p + s <= 36, 0 <= s <= 36
+
+
+2.1.9	Codecomments
+
+A codecomment places a comment in the object code. Also, the compiler
+won't optimize across a codecomment.
+
+codecomment	: CODECOMMENT quoted-string ,... : block
+
+2.2	Operator Expressions
+
+In BLISS, the name of a variable always represents the address of the
+storage location. Thus the name should be on the left hand side of the
+assignment operator. To fetch the value of a variable, prefix the name
+with the fetch operator (a dot).
+
+An operator expression must not have an operand that is a
+control-expression.  A prefix operator must not immediately follow an
+infox or prefix operator that has higher priority.  Parenthesis can be
+used to avoid these restrictions.
+
+The result of an arithmetic operation ("*", "/", "MOD", "+", "-") is
+undefined if it exceeds the capacity of a fullword. The value of the
+right hand operand of "/" and "MOD" must not be zero.
+
+operator-expression:
+		{ fetch-expression | prefix-expression
+		| infix-expression | assign-expression }
+
+op-exp		: { primary | operator-expression |
+		    executable-function }
+
+fetch-expression: . op-exp
+
+See Section 2.3 for executable-function.
+
+prefix-expression: { + | - | NOT } op-exp
+
+infix-expression: op-exp infix-operator op-exp
+
+infix-operator	: { + | - | * | / | MOD | ^ | EQL | EQLA | EQLU
+		  | NEQ | NEQA | NEQU | LSS | LSSA | LSSU | LEQ
+		  | LEQA | LEQU | GTR | GTRA | GTRU | GEQ | GEQA
+		  | GEQU | AND | OR | EQV | XOR }
+
+assign-expression: op-exp = op-exp
+
+An assignment returns its right hand side value. Thus, multiple
+assigments are possible.
+
+2.2.1	Operator Precedence
+
+The operator-expressions are listed in the following table in order of
+decreasing priority level, with an associativity for the operators at
+each level. (Abbreviations: exp1 and exp2 represent any op-exp as
+defined in Section 2.2; "R" stands for right and "L" for left.)
+
+	--------------------------------------------------------
+	Priority Operator Expression		Associates from
+	--------------------------------------------------------
+	highest	fetch-expression			R to L
+		unary  +, -				R to L
+		^					L to R
+		MOD * /					L to R
+		binary +, -				L to R
+		EQLx, NEQx, LSSx, LEQx, GTRx, GEQx	L to R
+		unary NOT				R to L
+		AND					L to R
+		OR					L to R
+		EQV, XOR				L to R
+	lowest	assign-expression			R to L
+	--------------------------------------------------------
+
+The following is an attempt at formulating the priority table as
+syntax rules.
+
+op-exp1		: op-exp
+
+op-exp2		: { . op-exp2 | op-exp }
+
+op-exp3		: { + op-exp3 | - op-exp3 | op-exp2 }
+
+op-exp4		: { op-exp4 ^ op-exp3 | op-exp3 }
+
+op-exp5		: { op-exp5 MOD op-exp4 | op-exp5 / op-exp4
+		  | op-exp5 * op-exp4 | op-exp4 }
+
+op-exp6		: { op-exp6 + op-exp5 | op-exp6 - op-exp5  | op-exp5 }
+
+op-exp7		: { op-exp7 op7 op-exp6 | op-exp6 }
+
+op7		: { EQL | EQLA | EQLU | NEQ | NEQA | NEQU
+		  | LSS | LSSA | LSSU | LEQ | LEQA | LEQU
+		  | GTR | GTRA | GTRU | GEQ | GEQA | GEQU }
+
+op-exp8		: { NOT op-exp8 | op-exp7 }
+
+op-exp9		: { op-exp9 AND op-exp8 | op-exp8 }
+
+op-exp10	: { op-exp10 OR op-exp9 | op-exp9 }
+
+op-exp11	: { op-exp11 EQV op-exp10
+		  | op-exp11 XOR op-exp10 | op-exp10 }
+
+op-exp12	: { op-exp11 = op-exp12 | op-exp11 }
+
+operator-expression : op-exp12
+
+
+2.3	Executable Functions
+
+They are called executable to distinguish them from lexical functions.
+Executable functions are syntactically equivalent to routine calls,
+but the former are compiled to in-line code.
+
+executable-function :
+		executable-function-name ( { actual-parameter ,... } )
+
+executable-function-name:
+		{ standard-function-name | linkage-function-name
+		  | character-handling-function-name
+		  | machine-specific-function-name
+		  | cond-handling-function-name }
+
+executable-function-name:
+		{ name | % name }
+
+See Section 6.4 for a summary of the linkage functions.
+See Section 6.5 for a summary of character-handling-functions.
+See Section 7.0 for a summary of machine-specific-functions.
+
+actual-parameter: expression
+
+standard-function-name:
+
+The names of the standard functions, plus brief semantic descriptions
+of each, are as follows.
+
+	ABS (e1)	Absolute value of signed integer
+	MAX (e1, e2 ,... )	Maximum of signed int set
+	MAXA (e1, e2 ,... )	Max of addr-value set
+	MAXU (e1, e2 ,... )	Max of unsigned int set
+	MIN, MINA, MINU		Minimum ditto
+	SIGN (e1)		Sign of a signed int
+	%REF (e1)		temporary address of
+				actual parameter
+
+Note that %REF, despite the % sign, is an executable, not a lexical,
+function. The function is evaluated by allocating a fullword, putting
+the value of the e1 in that fullword, and using the address of that
+fullword as the value of the function.
+
+Condition handling functions are BLISS 16/32 only.
+
+cond-handling-function-name:
+		{ SIGNAL | SIGNAL_STOP | SETUNWIND }
+
+2.4	Control Expressions
+
+control-expression: { conditional-expression | case-expression
+		      | select-expression | loop-expression
+		      | exit-expression | return-expression }
+
+2.4.1	Conditional Expressions
+
+conditional-expression: IF exp THEN exp { ELSE exp }
+
+2.4.2	Case Expressions
+
+case-expression	: CASE exp FROM ctce TO ctce OF
+		SET case-line ... TES
+
+case-line	: [ case-label ,... ] : case-action ;
+
+case-label	: { ctce | ctce TO ctce | INRANGE | OUTRANGE }
+
+case-action	: expression
+
+2.4.3	Select Expressions
+
+select-expression: select-type select-index OF SET select-line ... TES
+
+select-type	: { SELECT | SELECTA | SELECTU
+		| SELECTONE | SELECTONEA | SELECTONEU }
+
+select-index	: expression
+
+select-line	: [select-label ,...] : select-action ;
+
+select-label	: { exp | exp TO exp | OTHERWISE | ALWAYS }
+
+select-action	: expression
+
+2.4.4	Loop Expressions
+
+loop-expression	: { indexed-loop-expression | tested-loop-expression }
+
+indexed-loop-expression:
+		indexed-loop-type name
+		{ FROM exp } { TO exp } { BY exp } DO exp
+
+indexed-loop-type:
+		{ INCR | INCRA | INCRU  | DECR | DECRA | DECRU }
+
+tested-loop-expression:
+		{ pre-tested-loop | post-tested-loop }
+
+pre-tested-loop	: { WHILE | UNTIL } exp DO exp
+
+post-tested-loop: { DO exp { WHILE | UNTIL } exp
+
+2.4.5	Exit Expressions
+
+exit-expression	: { leave-expression | exitloop-expression }
+
+leave-expression: LEAVE label-name { WITH exp }
+
+exitloop-expression: EXITLOOP { exp }
+
+2.4.6	Return Expressions
+
+return-expression: RETURN { exp }
+
+3.0	CONSTANT EXPRESSIONS
+
+3.1	Compile-Time Constant Expressions (ctce)
+
+A ctce is any constant expression that can be evaluated during
+compilation of the module in which it appears.
+
+3.2	Linkage-Time Constant Expressions (ltce)
+
+An ltce is any constant expression that can be evaluated by the time
+the module is bound into executable form by the linker.
+
+4.0	DECLARATIONS
+
+All names must be declared.
+
+declaration	: { data-declaration | structure-declaration
+		    | field-declaration | routine-declaration
+		    | linkage-declaration | enable-declaration
+		    | bound-declaration | compiletime-declaration
+		    | macro-declaration | require-declaration
+		    | library-declaration | psect-declaration
+		    | switches-declaration | label-declaration
+		    | builtin-declaration | undeclare-declaration }
+
+4.1	Declaration Attributes
+
+attribute	: { allocation-unit | extension-attribute
+		    | structure-attribute | field-attribute
+		    | alignment-attribute | initial-attribute
+		    | preset-attribute | psect-allocation
+		    | volatile-attribute | novalue-attribute
+		    | linkage-attribute | range-attribute
+		    | addressing-mode-attribute | weak-attribute }
+
+An "x" in the tabe below marks each attribute that can be used in each
+kind of declaration.
+
+	+-allocation-unit
+	| +-extension-attribute
+	| | +-structure-attribute
+	| | | +-field-attribute
+	| | | | +-alignment-attribute
+	| | | | | +-initial-attribute
+	| | | | | | +-preset-attribute
+	| | | | | | | +-psect-allocation
+	| | | | | | | | +-volatile-attribute
+	| | | | | | | | | +-novalue-attribute
+	| | | | | | | | | | +-linkage-attribute
+	| | | | | | | | | | | +-range-attribute
+	| | | | | | | | | | | | +-addressing-mode-attribute
+	| | | | | | | | | | | | | +-weak-attribute
+	| | | | | | | | | | | | | |
+        V V V V V V V V V V V V V V   
+				      
+	x x x x x x x x x . . . x .   OWN 
+	x x x x x x x x x . . . x x   GLOBAL 
+	x x x x . . . x x . . . x .   FORWARD 
+	x x x x . . . x x . . . x x   EXTERNAL 
+
+	x x x x x x x . x . . . . .   LOCAL 
+	x x x x x x x . x . . . . .   STACKLOCAL 
+	x x x x . x x . . . . . . .   REGISTER 
+	x x x x . x x . . . . . . .   GLOBAL REG. 
+	x x x x . x x . . . . . . .   EXTERNAL REG. 
+
+	x x x x . . . . x . . . . .   MAP 
+
+	x x x x . . . . x . . . . .   BIND 
+	x x x x . . . . x . . . . x   GLOBAL BIND 
+
+	. . . . . . . x . x x . x .   ROUTINE 
+	. . . . . . . x . x x . x x   GLOBAL RTN 
+	. . . . . . . x . x x . x .   FORWARD RTN 
+	. . . . . . . x . x x . x x   EXTERNAL RTN 
+
+	. . . . . . . . . x x . . .   BIND RTN 
+	. . . . . . . . . x x . . x   GLOBAL BIND RTN 
+
+	. . . . . . . . . . . x . .   LITERAL 
+	. . . . . . . . . . . x . x   GLOBAL LITERAL 
+	. . . . . . . . . . . x . x   EXTERNAL LITERAL
+
+
+4.1.1	The Allocation Unit (Not BLISS-36)
+
+allocation-unit	: { LONG | WORD | BYTE }
+
+The Allocation Units represent 32, 16, and 8 bits respectively. The
+default for BLISS-n is n bits.
+
+
+4.1.2	The Extension Attribute (Not BLISS-36)
+
+extension-attribute: { SIGNED | UNSIGNED }
+
+This attribute is incompatible with the Structure Attribute. The
+default is UNSIGNED. The use is for sign extension when fetching
+anything shorter than a fullword.
+
+
+4.1.3	The Structure Attribute
+
+The alloc-actual used in the Structure Attribute of a Data Declaration
+matches the alloc-formal in the Structure Declaration defining
+structure-name. Just like actual and formal parameters to a routine.
+
+structure-attribute:
+		{ REF } structure-name { [ alloc-actual ,... ] }
+
+A structure-name is either user-declared or predeclared.  See Sections
+4.3 and 6.3. VECTOR is a predeclared structure-name.
+
+alloc-actual	: { ctce | nothing }
+
+
+4.1.4	The Field Attribute
+
+field-attribute	: FIELD ( { field-name | field-set-name } ,... )
+
+See Section 4.4 for definition of field-name and field-set-name.
+
+4.1.5	The Alignment Attribute (Not BLISS-36)
+
+4.1.6	The Initial Attribute
+
+initial-attribute: INITIAL ( initial-item ,... )
+
+initial-item	: { initial-group | initial-expression
+		    | initial-string }
+
+initial-group	: { allocation-unit | REP replicator OF
+		    | REP replicator OF allocation-unit
+		    | ( initial-item ,... ) }
+
+replicator	: ctce
+
+initial-expression: expression
+
+An initial-expression must be an ltce for OWN and GLOBAL declarations.
+
+initial-string	: string-literal
+
+
+4.1.7	The Preset Attribute
+
+preset-attribute: PRESET ( preset-item ,... )
+
+preset-item	: [ ctce-access-actual ,... ] = preset-value
+
+ctce-access-actual: { ctce | field-name }
+
+preset-value	: expression
+
+A preset-value must be an ltce for OWN and GLOBAL declarations.
+
+4.1.8	The Psect-Allocation Attribute	
+
+psect-allocation: PSECT ( psect-name )
+
+See Section 4.13 for psect-name.
+
+4.1.9	The Volatile Attribute
+
+volatile-attribute: VOLATILE
+
+4.1.10	The Novalue Attribute
+
+4.1.11	The Linkage Attribute
+
+4.1.12	The Range Attribute
+
+4.1.13	The Addressing Mode Attribute (Not BLISS-36)
+
+4.1.14	The Weak Attribute (Only BLISS-32)
+
+4.2	Data Declarations
+
+There are three categories of Data Declarations: (1) A permanent
+declaration begins with OWN, GLOBAL, or EXTERNAL. Such data segments
+stay allocated throughout the execution. (2) A temporary declaration
+begins with LOCAL, STACKLOCAL, GLOBAL REGISTER, or EXTERNAL REGISTER.
+Such data segments exist only during each execution of a given block.
+(3) An overlay declaration begins with MAP.
+
+data-declaration: { own-declaration | global-declaration
+		    | external-declaration | forward-declaration
+		    | local-declaration | stackglocal-declaration
+		    | register-declaration
+		    | global-register-declaration
+		    | external-register-declaration
+		    | map-declaration }
+
+4.2.1	Own Declarations
+
+OWN data segments stay allocated, but the scope is limited to the
+block where they are declared, just like static variables in C.
+
+own-declaration	: OWN own-item ,... ;
+
+own-item	: own-name { : attribute ... }
+
+
+4.2.2	Global Declarations
+
+GLOBAL data segments stay allocated. Other blocks can refer them if
+declared EXTERNAL there.
+
+global-declaration: GLOBAL global-item ,... ;
+
+global-item	: global-name { : attribute ... }
+
+
+4.2.3	External Declarations
+
+external-declaration: EXTERNAL external-item ,... ;
+
+external-item	: external-name { : attribute ... }
+
+
+4.2.4	Forward Declarations
+
+forward-declaration: FORWARD forward-item ,... ;
+
+forward-item	: forward-name { : attribute ... }
+
+
+4.2.5	Local Declarations
+
+local-declaration: LOCAL local-item ,... ;
+
+local-item	: local-name { : attribute ... }
+
+
+4.2.6	Stackglocal Declarations
+
+stackglocal-declaration: STACKLOCAL local-item ,... ;
+
+4.2.7	Register Declarations
+
+register-declaration: REGISTER register-item ,... ;
+
+register-item	: reg-name { = ctce } { : attribute ... }
+
+
+4.2.8	Global Register Declarations
+
+global-register-declaration:
+		GLOBAL REGISTER global-reg-item ,... ;
+
+global-reg-item	: global-reg-name = ctce { : attribute ... }
+
+4.2.9	External Register Declarations
+
+external-register-declaration:
+		EXTERNAL REGISTER external-reg-item ,... ;
+
+external-reg-item: ext-reg-name { = ctce } { : attribute ... }
+
+4.2.10	Map Declarations
+
+map-declaration	: MAP map-item ,... ;
+
+map-item	: map-name : attribute ...
+
+
+4.3	Structure Declarations
+
+Example: "STRUCTURE VECTOR [I; N] = [N] (VECTOR+I)<0, 36> ;" This is
+the predeclared definition of the VECTOR structure in BLISS-36. I is
+the access-formal, N is the allocation-formal.
+
+structure-declaration:
+		STRUCTURE structure-definition ,... ;
+
+structure-definition:
+		stucture-name [ { access-formal ,... }
+		{ ; allocation-formal ,... } ]
+		= { [ structure-size ] } structure-body
+
+alloctaion-formal:
+		allocation-name { = allocation-default }
+
+structure-size	: expression
+
+structure-body	: expression
+
+access-formal	: name
+	Note: This is like a formal parameter.
+
+allocation-name	: name
+
+allocation-default: ctce
+
+4.4	Field Declarations
+field-declaration:
+
+4.5	Routine Declarations
+
+When declaring the routine, don't forget the extra fetch operator for
+the formal parameters!
+
+routine-declaration:
+
+4.6	Linkage Declarations
+linkage-declaration:
+4.7	Enable Declarations
+enable-declaration:
+4.8	Bound Declarations
+bound-declaration:
+4.9	Compiletime Declarations
+compiletime-declaration:
+4.10	Macro Declarations
+macro-declaration:
+4.11	Require Declarations
+require-declaration:
+4.12	Library Declarations
+library-declaration:
+4.13	Psect Declarations
+psect-declaration:
+4.14	Switches Declarations
+switches-declaration:
+4.15	Label Declarations
+label-declaration:
+4.16	Builtin Declarations
+builtin-declaration:
+4.17	Undeclare Declarations
+undeclare-declaration:
+
+5.0	LEXICAL PROCESSING FACILITIES
+
+6.0	PREDCLARED NAMES
+
+The predefined identifiers are classified as keywords and predefined
+names. Each keyword is either reserved or unreserved, and each
+predefined name is either predeclared or builtin. Thus there are four
+kinds of predefined identifiers.
+
+	Reserved Keywords
+
+A reserved keyword must not be used as an explicitly-declared name under any
+circumstances. The reserved keywords from all BLISS dialects are:
+
+ADDRESSING_MODE, ALIGN, ALWAYS, AND, BEGIN, BIND, BIT, BUILTIN, BY,
+BYTE, CASE, CODECOMMENT, COMPILETIME, DECR, DECRA, DECRU, DO, ELSE,
+ELUDOM, ENABLE, END, EQL, EQLA, EQLU, EQV, EXITLOOP, EXTERNAL, FIELD,
+FORWARD, FROM, GEQ, GEQA, GEQU, GLOBAL, GTR, GTRA, GTRU, IF, INCR,
+INCRA, INCRU, INITIAL, INRANGE, IOPAGE, KEYWORDMACRO, LABEL, LEAVE,
+LEQ, LEQA, LEQU, LIBRARY, LINKAGE, LITERAL, LOCAL, LONG, LSS, LSSA,
+LSSU, MACRO, MAP, MOD, MODULE, NEQ, NEQA, NEQU, NOT, NOVALUE, OF, OR,
+OTHERWISE, OUTRANGE, OWN, PLIT, PRESET, PSECT, RECORD, REF, REGISTER,
+REP, REQUIRE, RETURN, ROUTINE, SELECT, SELECTA, SELECTONE, SELECTONEA,
+SELECTONEU, SELECTU, SET, SHOW, SIGNED, STACKLOCAL, STRUCTURE,
+SWITCHES, TES, THEN, TO, UNDECLARE, UNSIGNED, UNTIL, UPLIT, VOLATILE,
+WEAK, WHILE, WITH, WORD, XOR, %ALLOCATION, %ASCIC, %ASCID, %ASCII,
+%ASCIZ, %ASSIGN, %B, %BLISS, %BLISS16, %BLISS32, %BLISS36, %BPADDR,
+%BPUNIT, %BPVAL, %C, %CHAR, %CHARCOUNT, %COUNT, %CTCE, %D, %DECIMAL,
+%DECLARED, %E, %ELSE, %ERROR, %ERRORMACRO, %EXACTSTRING,
+%EXITITERATION, %EXITMACRO, %EXPAND, %EXPLODE, %FI, %FIELDEXPAND, %G,
+%H, %IDENTICAL, %IF, %INFORM, %ISSTRING, %LENGTH, %LTCE, %MESSAGE,
+%NAME, %NBITS, %NBITSU, %NULL, %NUMBER, %O, %P, %PRINT, %QUOTE,
+%QUOTENAME, %RAD50_10, %RAD50_11, %REF, %REMAINING, %REMOVE, %REQUIRE,
+%SBTTL, %SIXBIT, %SIZE, %STRING, %SWITCHES, %THE, %TITLE, %UNQUOTE,
+%UPVAL, %VARIANT, %WARN, %X
+
+	Unreserved Keywords
+
+An unreserved keyword can be used freely as an explicitly-declared
+name, just as if it were not a predefined identifier. The only
+disadvantage is that a human reader may be confused to see a familiar
+BLISS keyword (such as MAIN, for example) being used as an
+explicitly-declared name. The unreserved keywords from all BLISS
+dialects are:
+
+ABSOLUTE, ASSEMBLY, BINARY, BLISS10_OTS, BLISS16, BLISS32, BLISS36,
+BLISS36C_OTS, CALL, CLEARSTACK, CODE, COMMENTARY, CONCATENATE, DEBUG,
+EMT, ENTRY, ENVIRONMENT, ERRS, EXECUTE, EXPAND, EXTENDED, GENERAL,
+IDENT, INDIRECT, INTERRUPT, IOT, JSB, JSR, JSYS, KA10, KI10, KL10,
+KS10, LANGUAGE, LINKAGE_REGS, LIST, LONG_RELATIVE, LSI11, MAIN,
+NOASSEMBLY, NOBINARY, NOCODE, NOCOMMENTARY, NODEBUG, NODEFAULT,
+NOERRS, NOEXECUTE, NOEXPAND, NOINDIRECT, NOLIBRARY, NONEXTERNAL,
+NOOBJECT, NOOPTIMIZE, NOPIC, NOPRESERVE, NOREAD, NOREQUIRE, NOSAFE,
+NOSHARE, NOSOURCE, NOSYMBOLIC, NOTRACE, NOTUSED, NOUNAMES, NOWRITE,
+NOZIP, OBJECT, OPTIMIZE, OPTLEVEL, ORIGIN, OTS, OTS_LINKAGE, OVERLAY,
+PIC, PORTAL, PRESERVE, PS_INTERRUPT, PUSHJ, READ, RELATIVE,
+RELOCATABLE, RSX_AST, RTT, SAFE, SHARE, SKIP, SOURCE, STACK, STANDARD,
+STANDARD_OTS, SYMBOLIC, T11, TOPS10, TOPS20, TRACE, TRAP, UNAMES,
+VALUECBIT, VERSION, WORD_RELATIVE, WRITE, ZIP
+
+	Predeclared Names
+
+A predeclared name can be used as an explicitly-declared name.
+However, such a use makes it impossible to use the name in its
+predefined sense within the scope of the explicit declaration.
+The predeclared names from all BLISS dialects are:
+
+ABS, BITVECTOR, BLISS, BLISS10, BLISS36C, BLOCK, BLOCKVECTOR,
+CH$A_RCHAR, CH$A_WCHAR, CH$ALLOCATION, CH$COMPARE, CH$COPY, CH$DIFF,
+CH$EQL, CH$FAIL, CH$FILL, CH$FIND_CH, CH$FIND_NOT_CH, CH$FIND_SUB,
+CH$GEQ, CH$GTR, CH$LEQ, CH$LSS, CH$MOVE, CH$NEQ, CH$PLUS, CH$PTR,
+CH$RCHAR, CH$RCHAR_A, CH$SIZE, CH$TRANSLATE, CH$TRANSTABLE, CH$WCHAR,
+CH$WCHAR_A, FORTRAN, FORTRAN_FUNC, FORTRAN_SUB, F10, MAX, MAXA, MAXU,
+MIN, MINA, MINU, SETUNWIND, SIGN, SIGNAL, SIGNAL_STOP, VECTOR, $CODE$,
+$GLOBAL$, $HIGH$, $LOW$, $OWN$, $PLIT$
+
+	Builtin Names
+
+A builtin name must always appear in an explicit declaration. If it is
+declared by a builtin-declaration, then it has its predefined meaning;
+otherwise, it has the meaning given it by the explicit declaration,
+just as if it were not a predefined identifier. The builtin names from
+all BLISS dialects are:
+
+ACTUALCOUNT, ACTUALPARAMETER, AP, ARGPTR, FP, NULLPARAMETER, PC, R0,
+R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, SP, TYPEPRESENT
+
+
+6.5	Character-Handling Functions
+
+The supplementary character-handling functions predeclared in every
+module are ("CS" stands for "character sequence"):
+
+CH$PTR (addr, i, chsize)	-- create a CS-pointer
+CH$PLUS (ptr, i)		-- Increment a CS-pointer
+CH$DIFF (ptr1, ptr2)		-- Take difference of two CS-pointers
+CH$RCHAR (ptr)			-- Fetch a character
+CH$WCHAR (char, ptr)		-- Assign a character
+CH$RCHAR_A (addr)		-- Fetch char, then advance CS-pointer
+CH$WCHAR_A (char, addr)		-- Assign char, then advance CS-pointer
+CH$A_RCHAR (addr)		-- Advance CS-pointer, then fetch char
+CH$A_WCHAR (char, addr)		-- Advance CS-pointer, then assign char
+CH$ALLOCATION (n, chsize)	-- Storage allocation for n chars
+CH$SIZE (ptr)			-- No of bits per char (returns chsize)
+CH$MOVE (n, sptr, dptr)		-- Move a CS
+CH$COPY (sn1, sptr1, sn2, sptr2, ..., fill, dn, dptr)
+				-- Move and concatenate a series of CSs
+CH$FILL (fill, dn, dptr)	-- Initialize CS with fill char
+CH$LSS (n1, ptr1, n2, ptr2, fill)- Compare CSs for less than
+CH$LEQ (n1, ptr1, n2, ptr2, fill)- Compare CSs for less than or equal
+CH$GTR (n1, ptr1, n2, ptr2, fill)- Compare CSs for greater than
+CH$GEQ (n1, ptr1, n2, ptr2, fill)- Compare CSs for greater than or equal
+CH$EQL (n1, ptr1, n2, ptr2, fill)- Compare CSs for equal
+CH$NEQ (n1, ptr1, n2, ptr2, fill)- Compare CSs for not equal
+CH$COMPARE (n1, ptr1, n2, ptr2, fill)
+				-- Compare CSs for less than, equal
+				 to, or greater than (The value
+				 returned is -1, 0, or 1 respectively)
+CH$FIND_SUB (cn, cptr, pn, pptr)-- Find given sub-sequence
+CH$FIND_CH (n, ptr, char)	-- Find given character
+CH$FIND_NOT_CH (n, ptr, char)	-- Find 1st char other then given char
+CH$TRANSLATE (???)		-- ???
+CH$TRANSTABLE (trans-string)	-- Create translation table
+CH$FAIL (ptr)			-- Test for failure to satisfy search
+
+
+7.0	MACHINE-SPECIFIC NAMES
+
+The following names may be declared by means of the BUILTIN
+declaration:
+
+builtin-name	: { register-name | machine-specific-function
+		    | linkage-function }
+
+7.1	Common Machine-Specific Names
+
+ADDD, ADDF, CMPD, CMPF, CVTDF, CVTDI, CVTFD, CVTFI, CVTID, CVTIF,
+DIVD, DIVF, MULD, MULF, SUBD, SUBF
+
+8.0	NAMES RESERVED FOR SPECIAL PURPOSES
+
+The following names are reserved for future extensions.
+
+For all dialects: BIT, IOPAGE, RECORD, SHOW
