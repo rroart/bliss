@@ -104,7 +104,7 @@
     {
       if ( --include_stack_ptr < 0 )
 	{
-//	  fprintf(stdout, "\nempty include stack\n");
+	  if (yy2debug) inform("\nempty include stack\n");
 	}
       else
 	{
@@ -149,11 +149,11 @@ hexdigit [0-9a-f]
   return T_DIGITS;
 }
 
-"%TITLE".{string} {  p_title=strdup(yytext); if (yy2debug) fprintf(stdout,"Title: %s\n\n",p_title); yyless(yyleng); }
+"%TITLE".{string} {  p_title=strdup(yytext); if (yy2debug) inform("Title: %s\n\n",p_title); yyless(yyleng); }
 
 "%SBTTL".{string} { yyless(yyleng); }
 
-"%TITLE"{string} { p_title=strdup(yytext); if (yy2debug) fprintf(stdout,"Title: %s\n\n",p_title); yyless(yyleng); }
+"%TITLE"{string} { p_title=strdup(yytext); if (yy2debug) inform("Title: %s\n\n",p_title); yyless(yyleng); }
 
 {name}				{
   int key=0;
@@ -230,7 +230,7 @@ hexdigit [0-9a-f]
 
 "%("([^\)]|")"[^\%])*")%"	/* ignore embedded comment */  ;
 
-"@" { if (yy2debug) fprintf(stdout,"%%lexical gone?\n"); }
+"@" { if (yy2debug) inform("%%lexical gone?\n"); }
 
 {others}			{
   yy2error ("not recognized");
@@ -239,7 +239,7 @@ hexdigit [0-9a-f]
 <<EOF>> { 
   if ( --include_stack_ptr < 0 )
     {
-//      fprintf(stdout, "\nempty include stack\n");
+      if (yy2debug) inform("\nempty include stack\n");
       return YY_NULL;
     }
   else
@@ -287,7 +287,7 @@ hexdigit [0-9a-f]
 
 <macro>{name}|{digit}+				{
   downcase (yytext);
-  if (macrocomma==0) fprintf(stdout, "\nmacrocomma missing %x\n",input_line);
+  if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
   macrocomma=1;
 }
@@ -620,7 +620,7 @@ static int keyword (cp)
 {
   int first, last, half, c;
 
-  if (yy2debug) fprintf(stdout, "key %x %s\n",(unsigned int)cp,cp);
+  if (yy2debug) inform("key %x %s\n",(unsigned int)cp,cp);
 
   first = 0;				/* inclusive */
   last = NKEYW;				/* exclusive */
@@ -635,7 +635,7 @@ static int keyword (cp)
       else
 	first = half + 1;
     }
-  if (yy2debug) fprintf(stdout, "keynot\n");
+  if (yy2debug) inform("keynot\n");
   return -1;				/* Not a keyword */
 }
 
@@ -644,7 +644,7 @@ static int ukeyword (cp)
 {
   int first, last, half, c;
 
-  if (yy2debug) fprintf(stdout, "ukey %x %s\n",(unsigned int)cp,cp);
+  if (yy2debug) inform("ukey %x %s\n",(unsigned int)cp,cp);
   first = 0;				/* inclusive */
   last = NUKEYW;				/* exclusive */
   while (first < last)
@@ -658,7 +658,7 @@ static int ukeyword (cp)
       else
 	first = half + 1;
     }
-  if (yy2debug) fprintf(stdout, "ukeynot\n");
+  if (yy2debug) inform("ukeynot\n");
   return -1;				/* Not a keyword */
 }
 

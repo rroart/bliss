@@ -512,7 +512,7 @@ save_location
  start_block K_ELUDOM
 {
   $$=$6;
-  //  fprintf (stdout, "\n%BLS-I-PARSED-OK-That's a module alright\n");
+  if (yydebug) inform ("\n%%BLS-I-PARSED-OK-That's a module alright\n");
   while (! global_bindings_p ())
     poplevel (0, 0, 0);
   finish_fname_decls ();
@@ -627,11 +627,11 @@ common_switch	:  U_IDENT '=' T_STRING  { $$ = 0; }
   |T_NAME "equal" T_NAME
   {
    $$->id=$1;
-  fprintf(stdout, "swit %x %x %x\n",$$,$1,$3);
+  if (yydebug) inform ("swit %x %x %x\n",$$,$1,$3);
   switch (ukeyword( $1 )) {
   case U_MAIN:
   ig_main  = $3;
-//  fprintf(stdout,"main= %d %s \n",switch_main,ig_main);
+  if (yydebug) inform ("main= %d %s \n",switch_main,ig_main);
   break;
   default:
   yyerror ("here3");
@@ -781,7 +781,7 @@ tname_list2: tname_list2  T_NAME
   {
   int i=ukeyword( $3 );
   
-  fprintf(stdout, "zzz $1 %s\n",$1);
+  if (yydebug) inform ("zzz $1 %s\n",$1);
   if (i>0)
   
   else {
@@ -1276,7 +1276,7 @@ field_reference:
     if (TREE_CODE(TREE_TYPE($1))==POINTER_TYPE) {
       i = build_indirect_ref ($1, "unary *");
     } else {
-		fprintf(stdout, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
+		if (yydebug) inform ("\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
       //i = build_indirect_ref (convert(build_pointer_type (integer_type_node), $1), "unary *");
       //i = build_indirect_ref ($1, "unary *");
       //goto fetch_end;
@@ -1295,7 +1295,7 @@ field_reference:
     if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
       d = build_indirect_ref (d, "unary *");
     } else {
-      fprintf(stdout , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
+      if (yydebug) inform("\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
       //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
       //d = build_indirect_ref (d, "unary *");
     }
@@ -1306,7 +1306,7 @@ field_reference:
    op2 = t;
   }
   if (context=='a') {
-    fprintf(stdout, "not implemented yet");
+    if (yydebug) inform("not implemented yet");
   }
   $$ = build_nt (BIT_FIELD_REFS, op0, op1, op2);
   if (op0) TREE_TYPE($$)=TREE_TYPE(op0);
@@ -1442,10 +1442,10 @@ operator_expression:
   //  if (tree_int_cst_sgn (d3) < 0) 
   if (!tree_expr_nonnegative_p(d3)) {
     $$ = parser_build_binary_op (RSHIFT_EXPR, $1, build_unary_op( NEGATE_EXPR, d3, 0)); 
-    fprintf (stdout, "\n%%BLS-I-NOTHING rshift %x\n", input_location.line);
+    if (yydebug) inform("\n%%BLS-I-NOTHING rshift %x\n", input_location.line);
   } else {
     $$ = parser_build_binary_op (LSHIFT_EXPR, $1, d3); 
-    fprintf (stdout, "\n%%BLS-I-NOTHING lshift %x\n", input_location.line);
+    if (yydebug) inform("\n%%BLS-I-NOTHING lshift %x\n", input_location.line);
   }
 }
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
@@ -1930,7 +1930,7 @@ attribute:  allocation_unit
 | novalue_attribute 
 | linkage_attribute  
 | range_attribute 
-| { undefmode=1; fprintf(stdout, "undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
+| { undefmode=1; if (yydebug) inform("undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
 | weak_attribute  
 ;
 /*
@@ -3170,8 +3170,8 @@ here
 
 yyerror (char *s)
 {
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",input_location.line);
+  if (s) error("\n\n%s\n",s); 
+  error("Nu b;lev det fel %d\n",input_location.line);
 }
 
 void 
@@ -3197,8 +3197,8 @@ parse_init ()
 
 void yy2error (const char *s)
 {
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",input_location.line);
+  if (s) error("\n\n%s\n",s); 
+  error("Nu b;lev det fel %d\n",input_location.line);
 }
 
 void
@@ -3804,7 +3804,7 @@ make_macro_string(m,r)
     
   }
   
-  fprintf(stdout, "\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
+  if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
   return s;
 }
