@@ -1,6 +1,19 @@
 module f1 (main=r)=
 begin
 own dd;
+routine dummy=
+begin
+own xyz;
+xyz=1;
+end;
+
+routine pppp(par1, par2)=
+begin
+external routine undecl;
+undecl(par1, par2);
+end;
+
+routine q=3;
 routine r=
 begin
 external routine undecl;
@@ -18,6 +31,7 @@ routine s=
 begin
 external routine undecl;
 own c,d;
+pppp(1,2);
 undecl(d,.d);
 d=2;
 undecl(d,.d);

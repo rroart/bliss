@@ -216,6 +216,7 @@ bli_parse PARAMS((void));
 %type <type_node_p> input_parameter_location_list input_parameter_location
 %type <type_node_p>  output_parameter_location_list output_parameter_location
 %type <type_node_p> linkage_type maybe_forward_routine_attribute_list
+%type <type_node_p> routine_attributes
 %type <type_node_p> control_expression language_list list_option_list
 %type <type_node_p> numeric_literal decimal_literal character_code_literal
 %type <type_node_p> float_literal integer_literal language_name_list
@@ -1761,7 +1762,7 @@ own_item_list: own_item_list ',' own_item {
   //$$ = chainon($1, $3);
   /* */
  }
-|declspecs_ts setspecs own_item { 
+| declspecs_ts setspecs own_item { 
   //  $$ = $1;
 }
 ;
@@ -1949,34 +1950,21 @@ routine_definition_list: routine_definition_list ',' routine_definition {  }
 |routine_definition { $$=$1; }
 ;
 
-routine_definition: declspecs_ts setspecs T_NAME io_list ':'
-{
-  //bli_start_function (current_declspecs, $2, all_prefix_attributes);
-}
- routine_attribute_list '=' 
-{
-  //store_parm_decls ();
-}
-save_filename save_lineno exp 
-{ /*  $$->middle=$4; $$->id=$1;  */
-  //DECL_SOURCE_FILE (current_function_decl) = $6;
-  //DECL_SOURCE_LINE (current_function_decl) = $7;
-  //bli_finish_function (0, 1); 
-  //POP_DECLSPEC_STACK;
-}
-|declspecs_ts setspecs T_NAME 
+routine_definition: declspecs_ts setspecs T_NAME 
 {
   //current_function_decl=$3;
   //void * ref = build_external_ref ($3, 1);
-  void * v = build_tree_list (NULL_TREE, NULL_TREE);
-  void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
-  start_function (current_declspecs, vo, all_prefix_attributes);
 }
 io_list 
 {
+  void * xyz = $5;
+  void * v = $5;
+  if (v==0) v=build_tree_list (NULL_TREE, NULL_TREE);
+  void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
+  start_function (current_declspecs, vo, all_prefix_attributes);
   store_parm_decls ();
 }
-'=' save_filename save_lineno exp 
+routine_attributes '=' save_filename save_lineno exp 
 { 
   /* $$->id=$1;  */
   //DECL_SOURCE_FILE (current_function_decl) = $6;
@@ -1989,6 +1977,10 @@ io_list
   //DECL_NAME(decl)=$3;
   //$$=decl;
 }
+;
+
+routine_attributes: { $$=0; }
+| ':' routine_attribute_list { $$=$2; }
 ;
 
 setspecs: /* empty */
@@ -2011,21 +2003,41 @@ io_list ':' routine_attribute_list {  }
 ;
 
 io_list: { $$=0; }
-|'(' formal_item_list ')' {  }
-|'(' formal_item_list ';' formal_item_list ')' {  }
-|'(' ';' formal_item_list ')' {  }
+| {
+  pushlevel (0);
+  clear_parm_order ();
+  declare_parm_level (1);
+}
+'(' formal_item_list ')'
+{ 
+  parmlist_tags_warning ();
+  poplevel (0, 0, 0);
+  $$ = $3;
+}
+/*  |'(' formal_item_list ';' formal_item_list ')' { }
+    |'(' ';' formal_item_list ')' {  }*/
 ;
 
 formal_item_list:
 /* empty */ { $$ = 0 ; } 
-|formal_item_list ','  formal_item
-|declspecs_ts setspecs formal_item  
+|formal_item_list ','  formal_item { $$ = get_parm_info (1); /* $$=chainon($1,build_tree_list(NULL_TREE,$3)); */ }
+|formal_item { $$ = get_parm_info (1); /* $$=build_tree_list(NULL_TREE,$1); */ }
 ;
 
-formal_item: T_NAME ':' formal_attribute_list 
-|T_NAME { tree d = start_decl ($1, current_declspecs, 0,
-			       chainon (NULL_TREE, all_prefix_attributes));
- finish_decl (d, NULL_TREE, NULL_TREE); 
+formal_item: /*T_NAME ':' formal_attribute_list 
+|*/declspecs_ts setspecs  T_NAME { 
+  tree d, p;
+  //TREE_TYPE($1)=integer_type_node;
+  //  tree p = make_pointer_declarator(0,$1);
+  //d = start_decl ($3, current_declspecs, 0,
+  //	       chainon (NULL_TREE, all_prefix_attributes));
+  //finish_decl (d, NULL_TREE, NULL_TREE); 
+
+ $$ = build_tree_list (build_tree_list (current_declspecs,$3),
+		       chainon (NULL, all_prefix_attributes));
+ POP_DECLSPEC_STACK;
+ push_parm_decl ($$);
+
 }
 ;
 routine_attribute_list:
