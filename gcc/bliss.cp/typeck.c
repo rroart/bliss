@@ -4604,10 +4604,13 @@ build_unary_op (code, xarg, noconvert)
 	;
       /* Anything not already handled and not a true memory reference
 	 is an error.  */
+#if 0
+      //testing without, like in bli-typeck.c
       else if (TREE_CODE (argtype) != FUNCTION_TYPE
 	       && TREE_CODE (argtype) != METHOD_TYPE
 	       && !lvalue_or_else (arg, "unary `&'"))
 	return error_mark_node;
+#endif
 
       if (argtype != error_mark_node)
 	argtype = build_pointer_type (argtype);
