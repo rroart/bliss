@@ -19,6 +19,7 @@ int yydebug=0;
 
  extern int undefmode;
  extern int tnamemode;
+ extern int macromode;
 
 #define malloc xmalloc
 
@@ -75,6 +76,15 @@ struct structure {
 };
 
 struct structure * mystructs = 0;
+
+struct mymacro {
+  struct mymacro * next;
+  char * name;
+  tree param;
+  tree body;
+};
+
+ struct mymacro * macros = 0;
 
 extern FILE *yyin;
 
@@ -149,7 +159,7 @@ int yyparse() {
 
 /*%token_table yacc*/
 %token <type_node_p> T_DIGITS
-%token <type_node_p> T_NAME T_STRING T_IDIGITS
+%token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME
 
 /*%light uplus uminus*/
 %right <type_node_code> '='
@@ -434,6 +444,11 @@ int yyparse() {
 %type <type_node_p> keyword_macro_definition
 %type <type_node_p> positional_macro_definition_list positional_macro_definition
 %type <type_int> U_ABSOLUTE U_RELATIVE U_GENERAL U_LONG_RELATIVE U_WORD_RELATIVE
+%type <type_node_p> macro_call positional_macro_call keyword_macro_call macro_name
+%type <type_node_p> macro_actuals macro_actual_parameter_list macro_actual_parameter
+%type <type_node_p> keyword_assignments keyword_assignment keyword_formal_name
+%type <type_node_p> macro_actual_parameter 
+%type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
 /*%type <type_node_p> test tok*/
 %type <filename> save_filename
 %type <lineno> save_lineno
@@ -743,7 +758,7 @@ list_option:  U_SOURCE    { $$ = 0; }
 | U_NOCOMMENTARY     { $$ = 0; }
 ;
 
-tname_list: tname_list ',' T_NAME 
+tname_list: tname_list ',' T_NAME { $$ = chainon ($1, $3); }
 |T_NAME 
 ;
 
@@ -814,6 +829,7 @@ numeric_literal
  }
 | field_reference 
 | codecomment 
+/* | macro_call error { yyerrok; } */
 ;
 numeric_literal: 
 decimal_literal  { /* TREE_TYPE($1)=integer_type_node;*/ }
@@ -825,7 +841,7 @@ decimal_literal  { /* TREE_TYPE($1)=integer_type_node;*/ }
 decimal_literal: 
 T_DIGITS { 
   tree t;
-  t = build_int_2(atoi($1->identifier.id.str),0);
+  t = build_int_2(atoi(IDENTIFIER_POINTER($1)),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
@@ -1121,12 +1137,7 @@ structure_reference:
 
 ordinary_structure_reference:
 T_NAME '[' access_actual_list ']' {
-  char * s=malloc($1->identifier.id.len+3);
-  strcpy(s,$1->identifier.id.str);
-  s[$1->identifier.id.len]='_';
-  s[$1->identifier.id.len+1]='_';
-  s[$1->identifier.id.len+2]=0;
-  tree c=get_identifier(s);
+  tree c=get_identifier(add_underscore($1,2));
   //tree t=build_external_ref ($1, 0);
   tree er=build_external_ref ($1, 0);
   //tree params = chainon(copy_node(er), $3);
@@ -1326,6 +1337,58 @@ quoted_string_list: quoted_string_list T_STRING
   | infix_expression  
   ;
 */
+
+macro_call:
+positional_macro_call
+/*|keyword_macro_call*/
+;
+
+positional_macro_call:
+macro_name
+{
+  struct mymacro * m = find_macro(0,IDENTIFIER_POINTER($1));
+  push_macro(make_macro_string(m,0));
+}
+| macro_name '[' { macromode=2; } macro_actuals ']'
+| macro_name '(' { macromode=2; } macro_actuals ')'
+{
+  struct mymacro * m = find_macro(0,IDENTIFIER_POINTER($1));
+  push_macro(make_macro_string(m,$4));
+}
+| macro_name '<' { macromode=2; } macro_actuals '>'
+;
+
+macro_actuals:
+{ $$ = 0; }
+| macro_actual_parameter_list
+;
+
+macro_actual_parameter_list:
+macro_actual_parameter_list ',' macro_actual_parameter { $$ = chainon($1,$3); }
+|macro_actual_parameter
+;
+
+keyword_macro_call:
+ macro_name '[' keyword_assignments ']'
+| macro_name '(' keyword_assignments  ')'
+| macro_name '<' keyword_assignments  '>'
+;
+
+keyword_assignments:
+keyword_assignments ',' keyword_assignment 
+| keyword_assignment ; 
+
+keyword_assignment:
+keyword_formal_name '=' macro_actual_parameter
+;
+
+macro_actual_parameter: { $$=0; }
+| LEXEME;
+  
+macro_name: M_NAME;
+
+keyword_formal_name: T_NAME;
+
 op_exp:
 primary  
 | operator_expression  
@@ -2016,22 +2079,13 @@ own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
   if ($2==0) type = integer_type_node;
 
   t = tree_cons (NULL_TREE, type, NULL_TREE); 
-  TREE_STATIC ($$) = 0;
+  //TREE_STATIC ($$) = 0;
 
-  s=malloc($1->identifier.id.len+2);
-  strcpy(s,$1->identifier.id.str);
-  s[$1->identifier.id.len]='_';
-  s[$1->identifier.id.len+1]=0;
-  c=get_identifier(s);
+  c=get_identifier(add_underscore($1,1));
   if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
     current_declspecs=0;
 
-    char * ss=malloc($1->identifier.id.len+3);
-    strcpy(ss,$1->identifier.id.str);
-    ss[$1->identifier.id.len]='_';
-    ss[$1->identifier.id.len+1]='_';
-    ss[$1->identifier.id.len+2]=0;
-    cc=get_identifier(ss);
+    cc=get_identifier(add_underscore($1,2));
 
     tree dd = start_structure (STRUCTURE_ATTR, cc, 0);
     myattr = finish_structure (dd, TREE_OPERAND(myattr, 0) , 0); 
@@ -2050,12 +2104,14 @@ own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
 
   d = start_decl (cc, current_declspecs, 0,
                        chainon (NULL_TREE, all_prefix_attributes));
+  TREE_STATIC(d)=1; // same as local, except for STATIC?
   //printf("xxx %x\n",d);
   finish_decl (d, 0, NULL_TREE);
   p = make_pointer_declarator(0,$1);
   tree d2 = start_decl (p, current_declspecs, 1,
                        chainon (NULL_TREE, all_prefix_attributes));
 
+  TREE_STATIC(d2)=1;
   start_init(d2,NULL,global_bindings_p());
   finish_init();
 
@@ -2126,12 +2182,85 @@ local_declaration: K_LOCAL local_item_list ';'  { $$ = 0; }
 ;
 
 local_item_list: local_item_list ',' local_item 
-|local_item 
+|declspecs_ts setspecs local_item 
 ;
 
+maybe_local_attribute_list: { $$ = 0; }
+| ':' local_attribute_list { $$ = $2; }
+;
+
+local_attribute_list:
+local_attribute_list local_attribute { 
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
+|local_attribute 
+;
+
+local_attribute: own_attribute /* temporary */
+
+/*
 local_item: 
 T_NAME ':' attribute_list 
 |T_NAME 
+;
+*/
+
+local_item: T_NAME maybe_local_attribute_list setspecs { //maybe... is a declspecs
+  tree c, cc, p , d, i, t;
+  char * s;
+  int e,f;
+
+  tree attr = current_declspecs;
+  tree type = $2;
+  tree myattr = $2;
+  
+  //current_declspecs=0;
+
+  if ($2==0) type = integer_type_node;
+
+  t = tree_cons (NULL_TREE, type, NULL_TREE); 
+  //TREE_STATIC ($$) = 0;
+
+  c=get_identifier(add_underscore($1,1));
+  if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    current_declspecs=0;
+
+    cc=get_identifier(add_underscore($1,2));
+
+    tree dd = start_structure (STRUCTURE_ATTR, cc, 0);
+    myattr = finish_structure (dd, TREE_OPERAND(myattr, 0) , 0); 
+
+    tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
+    tree decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+    tree type=char_array_type_node;
+    type = set_array_declarator_type (decl, c, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto local_end;
+    cc=decl;
+  } else {
+    TREE_TYPE(c)=integer_type_node;
+    cc=c;
+  }
+
+  d = start_decl (cc, current_declspecs, 0,
+                       chainon (NULL_TREE, all_prefix_attributes));
+  //printf("xxx %x\n",d);
+  finish_decl (d, 0, NULL_TREE);
+  p = make_pointer_declarator(0,$1);
+  tree d2 = start_decl (p, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+
+  start_init(d2,NULL,global_bindings_p());
+  finish_init();
+
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  i = build_unary_op (ADDR_EXPR, d/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (d2, i, NULL_TREE);
+ local_end:
+  current_declspecs=attr;
+}
 ;
 
 stackglocal_declaration: K_STACKLOCAL local_item_list ';' { $$ = 0; }
@@ -2210,12 +2339,7 @@ structure_definition:
   //push_parm_decl($<type_node_p>5);
   tree accessfn;
   tree accessid;
-  char *accessfnname=malloc($3->identifier.id.len+2);
-  strcpy(accessfnname,$3->identifier.id.str);
-  accessfnname[$3->identifier.id.len]='_';
-  accessfnname[$3->identifier.id.len+1]='_';
-  accessfnname[$3->identifier.id.len+2]=0;
-  accessid=get_identifier(accessfnname);
+  accessid=get_identifier(add_underscore($3,2));
 
   //PUSH_DECLSPEC_STACK;
   //mydeclares($6);
@@ -2233,11 +2357,7 @@ allocation_formal_list ']' '='
   //$12
   tree allocfn;
   tree allocid;
-  char *allocfnname=malloc($3->identifier.id.len+2);
-  strcpy(allocfnname,$3->identifier.id.str);
-  allocfnname[$3->identifier.id.len]='_';
-  allocfnname[$3->identifier.id.len+1]=0;
-  allocid=get_identifier(allocfnname);
+  allocid=get_identifier(add_underscore($3,1));
   tree v = build_tree_list (NULL_TREE, NULL_TREE);
   //mydeclares($9);
   v = $9;
@@ -2508,7 +2628,7 @@ setspecs: /* empty 5 */
 declspecs_ts:
 {
   $$ = tree_cons (NULL_TREE, NULL_TREE, NULL_TREE);
-  TREE_STATIC ($$) = 1;
+  //TREE_STATIC ($$) = 1;
 }
 ;
 
@@ -2680,7 +2800,7 @@ positional_macro_declaration
 require_declaration: K_REQUIRE T_STRING ';' {
   //push_srcloc($2,0);
   //pushfilestack();
-  char *new=strdup($2->identifier.id.str+1);
+  char *new=strdup(IDENTIFIER_POINTER($2)+1);
   new[strlen(new)-1]=0;
   push_req_stack(new);
 
@@ -2795,8 +2915,14 @@ simple_macro_definition
 ;
 
 simple_macro_definition: 
-T_NAME '(' tname_list ')'  '=' macro_body '%' 
-|T_NAME  '=' macro_body '%'
+T_NAME '(' tname_list ')'  '=' { macromode=1; } macro_body '%' 
+{ 
+  add_macro(IDENTIFIER_POINTER($1),$3,$7);
+}
+| T_NAME  '=' { macromode=1; } macro_body '%'
+{ 
+  add_macro(IDENTIFIER_POINTER($1),0,$4);
+}
 ;
 conditional_macro_definition:
 T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' 
@@ -2812,12 +2938,16 @@ default_actual: { $$=0; }
 ;
 
 macro_body: { $$=0; }
-| { tnamemode=0; } lexeme_list { tnamemode=0; $$=$2; }
+| { tnamemode=0; macromode=1; } lexeme_list { tnamemode=0; macromode=0; $$=$2; }
 ;
 /*| '<' { anymode=1; } lexeme_list { anymode=0; } '>' { $$=$3; }*/
 
 
-lexeme_list: expression { /*nonfin*/ }
+lexeme_list: lexeme_list LEXEME { 
+  //$$ = strcat(strdup($1), strdup($2));
+  $$ = chainon ($1, $2);
+} 
+|LEXEME
 ;
 /*
   lexeme_list:  tname_list2 { $$=$1; *nonfin* }
@@ -3433,3 +3563,66 @@ parm_first_to_last(mytree)
   return first;
 }
 
+void
+add_macro(char * name, tree param, tree body) {
+  struct mymacro * t=malloc(sizeof(*t));
+  struct mymacro **s=&macros;
+  t->next=macros;
+  t->name=name;
+  t->param=param;
+  t->body=body;
+  macros=t;
+}
+
+void *
+find_macro(struct mymacro * s,char * name) {
+  struct mymacro * t=s;
+  t=macros;
+  // funny bug, should not be t->name == 0, funny thing with next
+  while (t && t->name && strcmp(t->name,name)) t=t->next;
+  if (t==0 || t->name==0) return 0;
+  return t;
+}
+
+char *
+make_macro_string(m,r)
+     struct mymacro * m;
+     tree r;
+{
+  char * s=0;
+  tree b = m->body;
+  tree p = m->param;
+  tree t;
+  for(t=b;t;t=TREE_CHAIN(t)) {
+    tree old,new;
+    char * l = IDENTIFIER_POINTER(t);
+    for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
+      if (0==strcmp(l,IDENTIFIER_POINTER(old))) {
+	l=IDENTIFIER_POINTER(new);
+	goto subst_out;
+      }
+    }
+  subst_out:
+    if (s==0) s=strdup(l);
+    else
+      s=strcat(strdup(s),strdup(l));  
+    
+  }
+  
+  fprintf(stderr, "\n%BLS-I-NOTHING %x line macro expanded to %s\n",lineno,s);
+
+  return s;
+}
+
+char *
+add_underscore(t,n)
+     tree t;
+     int n;
+{
+    char * ss=malloc(IDENTIFIER_LENGTH(t)+n);
+    strcpy(ss,IDENTIFIER_POINTER(t));
+    ss[IDENTIFIER_LENGTH(t)+n]=0;
+    while (n--)
+      ss[IDENTIFIER_LENGTH(t)+n]='_';
+    return ss;
+}
