@@ -2067,14 +2067,18 @@ formal_item: /*T_NAME ':' formal_attribute_list
 |*/declspecs_ts setspecs  T_NAME { 
   tree d, p;
   //TREE_TYPE($1)=integer_type_node;
-  //  tree p = make_pointer_declarator(0,$1);
+  //tree p = make_pointer_declarator(0,$1);
   //d = start_decl ($3, current_declspecs, 0,
   //	       chainon (NULL_TREE, all_prefix_attributes));
   //finish_decl (d, NULL_TREE, NULL_TREE); 
 
- $$ = build_tree_list (build_tree_list (current_declspecs,$3),
+  $$ = build_tree_list (build_tree_list (current_declspecs,build_nt (ADDR_EXPR, $3)),
+//$$ = build_tree_list (build_tree_list (current_declspecs,build_unary_op (ADDR_EXPR, build_external_ref($3, 0), 0)),
+//$$ = build_tree_list (build_tree_list (current_declspecs,$3),
 		       chainon (NULL, all_prefix_attributes));
  POP_DECLSPEC_STACK;
+ //$$=make_pointer_declarator(0,$$);
+ //TREE_TYPE($$)=build_pointer_type(integer_type_node);
  push_parm_decl ($$);
 
 }

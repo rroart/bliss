@@ -11,12 +11,16 @@ xyz=1;
 abc=3;
 xyz+1=2;
 136000=3;
+!.136000=3;
 end;
 
 routine pppp(par1, par2)=
 begin
 external routine undecl;
+undecl(64,96);
 undecl(par1, par2);
+undecl(.par1,.par2);
+undecl(64,96);
 end;
 
 routine q=3;
@@ -40,9 +44,9 @@ external routine amalloc;
 own d,c;
 pppp(1,2);
 undecl(dd,44);
-undecl(c,d);
+undecl(c,.c);
 c=amalloc();
-undecl(c,d);
+undecl(c,.c);
 undecl(d,.d);
 d=2;
 undecl(d,.d);

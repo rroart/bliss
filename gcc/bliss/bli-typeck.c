@@ -1231,7 +1231,7 @@ build_indirect_ref (ptr, errorstring)
   tree pointer = default_conversion (ptr);
   tree type = TREE_TYPE (pointer);
 
-  if (TREE_CODE (type) == POINTER_TYPE)
+  if (TREE_CODE (type) == POINTER_TYPE || TREE_CODE (type) == REFERENCE_TYPE)
     {
       if (TREE_CODE (pointer) == ADDR_EXPR
 	  && !flag_volatile
