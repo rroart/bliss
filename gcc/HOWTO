@@ -202,9 +202,10 @@ NEWS:
 Strings and numeric literals
 PLIT
 More loop conditionals, and exitloop
-New basic addressing implementation
 Labeled blocks and leave
 Return with value
+New basic addressing implementation
+New and better(?) block value implementation
 
 0.003:
 mainly macros and require
