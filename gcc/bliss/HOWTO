@@ -21,3 +21,15 @@ link with gcc -g t.c f1.s
 TESTED ON:
 Sparc/Solaris
 FreeBSD (got some yet unexplained severe problems)
+
+FEATURES:
+routines with input-parameters
+routine calls with input-parameters
+own declarations and variables
+field references
+assignment
+if then
+while do
+
+IN THE WORKS:
+structure
