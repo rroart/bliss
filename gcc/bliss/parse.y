@@ -33,7 +33,7 @@
 
 #include "tree.h"
 
-#include "bliclex.h"
+#include "blilex.h"
 #include "blicsyt.h"
 
 #include "c-common.h"

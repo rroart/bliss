@@ -71,7 +71,7 @@ GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
 	    echo $(CC) ; \
 	 fi`
 
-BLI_GENERATED = $(blibld)/blicprs.c $(blibld)/bliclex.c
+BLI_GENERATED = $(blibld)/parse.c $(blibld)/blilex.c
 
 BLI_EXES = bliss/blif2v$(exeext)
 
@@ -99,12 +99,12 @@ bliss.done: bliss/bli1$(exeext)
 	${STAMP} bliss.done
 
 # core compiler 
-bliss/bli1$(exeext): bliss/bliclex.o attribs.o tree.o \
-	 bliss/blicprs.o $(BLI_NEW_UTILS) \
+bliss/bli1$(exeext): bliss/blilex.o attribs.o tree.o \
+	 bliss/parse.o $(BLI_NEW_UTILS) \
 	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o $(BLI_BE_LIBS)
 	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
-	 bliss/bliclex.o attribs.o tree.o \
-	 bliss/blicprs.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o  \
+	 bliss/blilex.o attribs.o tree.o \
+	 bliss/parse.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o  \
 	 $(BLI_BE_LIBS)
 #c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
 
@@ -123,28 +123,28 @@ bliss.check.drivers.done: $(BLISS_TEST_DRIVERS)
 
 # object file makes
 
-bliss/bliclex.o: $(blibld)/bliclex.c $(blibld)/bliclex.h bliss/blicprs.h \
+bliss/blilex.o: $(blibld)/blilex.c $(blibld)/blilex.h bliss/parse.h \
 	 $(BLI_UTIL_H) \
 	 $(BLI_NEW_UTIL_H)
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
-bliss/blicprs.h: bliss/blicprs.c
-bliss/blicprs.c: $(blisrc)/blicprs.y
+bliss/parse.h: bliss/parse.c
+bliss/parse.c: $(blisrc)/parse.y
 	@echo "Expect 33 shift/reduce conflicts and 58 reduce/reduce conflicts."
 	cd bliss && \
-	if $(BISON) $(BISONFLAGS) -d -o p$$$$.c ../$(srcdir)/bliss/blicprs.y; then \
+	if $(BISON) $(BISONFLAGS) -d -o p$$$$.c ../$(srcdir)/bliss/parse.y; then \
 	  grep '^#define[       ]*YYEMPTY' p$$$$.c >> p$$$$.h ; \
-	  test -f p$$$$.output && mv -f p$$$$.output blicprs.output ; \
-	  mv -f p$$$$.c blicprs.c ; mv -f p$$$$.h blicprs.h ; \
+	  test -f p$$$$.output && mv -f p$$$$.output parse.output ; \
+	  mv -f p$$$$.c parse.c ; mv -f p$$$$.h parse.h ; \
 	else \
 	  rm -f p$$$$.* ; \
 	  false ; \
 	fi
 
-bliss/blicprs.o: bliss/blicprs.c $(BLISS_TREE_H) \
+bliss/parse.o: bliss/parse.c $(BLISS_TREE_H) \
 	$(SYSTEM_H) toplev.h $(GGC_H)
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $(BIG_SWITCHFLAG) \
-		bliss/blicprs.c $(OUTPUT_OPTION)
+		bliss/parse.c $(OUTPUT_OPTION)
 
 
 bliss/bli-semantics.o: $(blisrc)/bli-semantics.c  $(BLI_NEW_UTIL_H)
@@ -161,8 +161,8 @@ bliss/bli-errors.o: $(blisrc)/bli-errors.c  $(BLI_NEW_UTIL_H)
 # directory in case someone wants to build but does not have
 # lex/yacc/autogen
 
-$(blibld)/bliclex.c: $(blisrc)/bliclex.l
-	$(LEX) $(LEXFLAGS) -o$(blibld)/bliclex.c $(blisrc)/bliclex.l
+$(blibld)/blilex.c: $(blisrc)/blilex.l
+	$(LEX) $(LEXFLAGS) -o$(blibld)/blilex.c $(blisrc)/blilex.l
 
 # -v for verbose .output file
 
@@ -175,7 +175,7 @@ gtype-bliss.h : s-gtype
 
 s-gtype: $(blisrc)/blicast.c $(blisrc)/blicbei.c\
 	$(blisrc)/blicgty.c $(blisrc)/blicgty.h $(blisrc)/blicc1.c $(blisrc)/blicc1.h \
-	$(blisrc)/bliclex.c $(blisrc)/blicsyt.c $(blisrc)/bliumsc.c \
+	$(blisrc)/blilex.c $(blisrc)/blicsyt.c $(blisrc)/bliumsc.c \
 	$(blisrc)/bliumsg.c $(blisrc)/bliumem.c $(blisrc)/blir_temp_config.h
 
 # Build hooks:

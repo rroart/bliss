@@ -102,7 +102,7 @@ BLISS_C_OBJS = attribs.o c-common.o c-format.o c-pragma.o c-semantics.o c-lex.o 
 
 # Language-specific object files.
 BLISS_OBJS = bliss.cp/call.o bliss.cp/decl.o bliss.cp/expr.o bliss.cp/pt.o bliss.cp/typeck2.o \
- bliss.cp/class.o bliss.cp/decl2.o bliss.cp/error.o bliss.cp/lex.o bliss.cp/bliclex.o bliss.cp/parse.o bliss.cp/ptree.o bliss.cp/rtti.o \
+ bliss.cp/class.o bliss.cp/decl2.o bliss.cp/error.o bliss.cp/lex.o bliss.cp/blilex.o bliss.cp/parse.o bliss.cp/ptree.o bliss.cp/rtti.o \
  bliss.cp/spew.o bliss.cp/typeck.o bliss.cp/cvt.o bliss.cp/except.o bliss.cp/friend.o bliss.cp/init.o bliss.cp/method.o \
  bliss.cp/search.o bliss.cp/semantics.o bliss.cp/tree.o bliss.cp/repo.o bliss.cp/dump.o \
  bliss.cp/optimize.o bliss.cp/mangle.o bliss.cp/cp-lang.o
@@ -249,16 +249,16 @@ BLISS_TREE_H = $(TREE_H) bliss.cp/cp-tree.h c-common.h bliss.cp/cp-tree.def c-co
 	function.h varray.h $(SYSTEM_H) $(CONFIG_H) $(TARGET_H) \
 	$(srcdir)/../include/hashtab.h $(srcdir)/../include/splay-tree.h
 
-bliss.cp/spew.o: bliss.cp/spew.c $(BLISS_TREE_H) bliss.cp/parse.h flags.h bliss.cp/lex.h toplev.h
-bliss.cp/lex.o: bliss.cp/lex.c $(BLISS_TREE_H) bliss.cp/parse.h flags.h bliss.cp/lex.h c-pragma.h \
+bliss.cp/spew.o: bliss.cp/spew.c $(BLISS_TREE_H) bliss.cp/parse.h flags.h bliss.cp/blilex.h toplev.h
+bliss.cp/blilex.o: bliss.cp/blilex.c $(BLISS_TREE_H) bliss.cp/parse.h flags.h bliss.cp/blilex.h c-pragma.h \
   toplev.h output.h mbchar.h $(GGC_H) input.h diagnostic.h bliss.cp/operators.def \
   $(TM_P_H)
 bliss.cp/cp-lang.o: bliss.cp/cp-lang.c $(BLISS_TREE_H) toplev.h langhooks.h $(LANGHOOKS_DEF_H) \
   c-common.h
-bliss.cp/decl.o: bliss.cp/decl.c $(BLISS_TREE_H) flags.h bliss.cp/lex.h bliss.cp/decl.h stack.h \
+bliss.cp/decl.o: bliss.cp/decl.c $(BLISS_TREE_H) flags.h bliss.cp/blilex.h bliss.cp/decl.h stack.h \
   output.h $(EXPR_H) except.h toplev.h hash.h $(GGC_H) $(RTL_H) \
   bliss.cp/operators.def $(TM_P_H) tree-inline.h diagnostic.h c-pragma.h
-bliss.cp/decl2.o: bliss.cp/decl2.c $(BLISS_TREE_H) flags.h bliss.cp/lex.h bliss.cp/decl.h $(EXPR_H) \
+bliss.cp/decl2.o: bliss.cp/decl2.c $(BLISS_TREE_H) flags.h bliss.cp/blilex.h bliss.cp/decl.h $(EXPR_H) \
   output.h except.h toplev.h $(GGC_H) $(RTL_H)
 bliss.cp/typeck2.o: bliss.cp/typeck2.c $(BLISS_TREE_H) flags.h toplev.h output.h $(TM_P_H) \
    diagnostic.h
@@ -282,11 +282,11 @@ bliss.cp/except.o: bliss.cp/except.c $(BLISS_TREE_H) flags.h $(RTL_H) except.h t
   bliss.cp/cfns.h $(EXPR_H) libfuncs.h bliss.cp/decl.h $(OBSTACK_H)
 bliss.cp/expr.o: bliss.cp/expr.c $(BLISS_TREE_H) $(RTL_H) flags.h $(EXPR_H) toplev.h \
   except.h $(TM_P_H)
-bliss.cp/pt.o: bliss.cp/pt.c $(BLISS_TREE_H) bliss.cp/decl.h bliss.cp/parse.h bliss.cp/lex.h toplev.h \
+bliss.cp/pt.o: bliss.cp/pt.c $(BLISS_TREE_H) bliss.cp/decl.h bliss.cp/parse.h bliss.cp/blilex.h toplev.h \
   $(GGC_H) $(RTL_H) except.h tree-inline.h
 bliss.cp/error.o: bliss.cp/error.c $(BLISS_TREE_H) toplev.h diagnostic.h flags.h real.h
 bliss.cp/repo.o: bliss.cp/repo.c $(BLISS_TREE_H) toplev.h $(GGC_H) diagnostic.h
-bliss.cp/semantics.o: bliss.cp/semantics.c $(BLISS_TREE_H) bliss.cp/lex.h except.h toplev.h \
+bliss.cp/semantics.o: bliss.cp/semantics.c $(BLISS_TREE_H) bliss.cp/blilex.h except.h toplev.h \
   flags.h $(GGC_H) debug.h output.h $(RTL_H) $(TIMEVAR_H) $(EXPR_H) \
   tree-inline.h
 bliss.cp/dump.o: bliss.cp/dump.c $(BLISS_TREE_H) tree-dump.h
@@ -296,7 +296,7 @@ bliss.cp/mangle.o: bliss.cp/mangle.c $(BLISS_TREE_H) toplev.h
 
 blibld = bliss.cp
 
-bliss.cp/parse.o: bliss.cp/parse.c $(BLISS_TREE_H) flags.h bliss.cp/lex.h except.h output.h \
+bliss.cp/parse.o: bliss.cp/parse.c $(BLISS_TREE_H) flags.h bliss.cp/blilex.h except.h output.h \
 	$(SYSTEM_H) toplev.h $(GGC_H)
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $(BIG_SWITCHFLAG) \
 		bliss.cp/parse.c $(OUTPUT_OPTION)
@@ -313,22 +313,8 @@ bliss.cp/TAGS: force
 
 blisrc=$(srcdir)/bliss.cp
 
-$(blisrc)/bliutab.c: $(blisrc)/bliutab.l 
-	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliutab.c $(blisrc)/bliutab.l
-
-$(blisrc)/bliplex.c: $(blisrc)/bliplex.l
-	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliplex.c $(blisrc)/bliplex.l
-
-$(blisrc)/blickw.c: $(blisrc)/blickw.txt 
-	gperf -D -t -L ANSI-C -K keyword_name -H kw_hash -N kw_lookup -k '*' \
-	$(blisrc)/blickw.txt >$(blisrc)/blickw.c 
-
-$(blisrc)/blippr1.c: $(blisrc)/blippr1.y
-	$(BISON) $(BISONFLAGS) $(blisrc)/blippr1.y --name-prefix=yy2 \
-	--output=$(blisrc)/blippr1.c
-
-$(blibld)/bliclex.c: $(blisrc)/bliclex.l
-	$(LEX) $(LEXFLAGS) -obliss.cp/bliclex.c $(blisrc)/bliclex.l
+$(blibld)/blilex.c: $(blisrc)/blilex.l
+	$(LEX) $(LEXFLAGS) -obliss.cp/blilex.c $(blisrc)/blilex.l
 
 $(blisrc)/blicprs.c: $(blisrc)/blicprs.y
 	$(BISON) $(BISONFLAGS) --name-prefix bli_ $(blisrc)/blicprs.y \
@@ -342,22 +328,7 @@ GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
 
 BLISS_EXTRAS = -B./ -B./bliss.cp/
 
-bliss.cp/bliplex.o: $(blibld)/bliplex.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss.cp/blipre.o: $(blisrc)/blipre.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss.cp/blipre1.o: $(blisrc)/blipre1.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss.cp/bliclex.o: $(blibld)/bliclex.c $(blisrc)/bliclex.h \
+bliss.cp/blilex.o: $(blibld)/blilex.c $(blisrc)/blilex.h \
 	 $(blisrc)/blicsyt.h\
 	 $(BLI_UTIL_H)
 	 $(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
