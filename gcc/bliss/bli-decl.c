@@ -6753,6 +6753,7 @@ push_parm_decl_init (tree parm, tree init)
 
   finish_decl (decl, NULL_TREE, NULL_TREE);
   DECL_INITIAL(decl)=init;
+  DECL_RESULT(decl)=init; // borrow this field?
 
   immediate_size_expand = save_immediate_size_expand;
 }
