@@ -1,10 +1,11 @@
 module f1 (main=r)=
 begin
+!structure
+!vector[i; n, unit=4, ext=0] =
+![n*unit] 
+!(vector + i*unit)<0,8*unit,ext>;
+!own def : vector[5];
 own dd;
-structure
-vector[i; n, unit=4, ext=0] =
-[n*unit]
-(vector + i*unit)<0,8*unit,ext>;
 routine dummy=
 begin
 own def;
@@ -16,6 +17,18 @@ abc=3;
 xyz+1=2;
 136000=3;
 !.136000=3;
+end;
+
+routine zzzz=
+begin
+own mybyte: byte;
+own myword: word;
+external routine undecl;
+mybyte=4;
+myword=3333;
+mybyte=.myword;
+undecl(.mybyte,.myword);
+undecl(65535,1);
 end;
 
 routine pppp(par1, par2)=
@@ -49,7 +62,9 @@ routine s=
 begin
 external routine undecl;
 external routine amalloc;
+external routine zzzz;
 own d,c;
+zzzz();
 pppp(1,2);
 pppp(255,2);
 undecl(dd,44);

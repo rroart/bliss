@@ -47,6 +47,8 @@
 
 #include "c-common.h"
 
+#include "bliss-tree.h"
+
 //#define YYSTYPE struct cmp_token_struct
 
 static struct bli_token_struct * current_token=NULL;
@@ -202,7 +204,7 @@ bli_parse PARAMS((void));
 %type <type_node_p> pushlevel poplevel
 %type <type_node_p> mystart module module_head module_body opt_mhargs ms_list
 %type <type_node_p> decl_list module_switch unlabeled_block start_block
-%type <type_node_p> unlabeled_block_start
+%type <type_node_p> unlabeled_block_start unlabeled_block_start2 
 %type <type_node_p> environ_16_option mode_spec mode_spec_list
 %type <type_node_p>  common_switch bliss_16_switch bliss_32_switch bliss_36_switch
 /*%type <type_int> T_NAME T_STRING T_DIGITS*/
@@ -262,7 +264,7 @@ bli_parse PARAMS((void));
 %type <type_node_p> range_attribute novalue_attribute /*pot_expression*/
 %type <type_node_p> /*opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
 %type <type_node_p> opexp9 lexical_function lexical_function_name 
-%type <type_node_p> weak_attribute own_attribute
+%type <type_node_p> weak_attribute own_attribute maybe_own_attribute_list
 %type <type_node_p> address lexical_actual_parameter own_attribute_list
 %type <type_node_p> initial_item initial_group initial_expression
 %type <type_node_p>  preset_item ctce_access_actual io_actual_parameter_list io_actual_parameter
@@ -581,7 +583,7 @@ common_switch	:  U_IDENT '=' T_STRING  { $$ = 0; }
 | U_LANGUAGE '(' language_list ')'  { $$ = 0; }
 | U_LINKAGE '(' T_NAME ')'  { $$ = 0; }
 | U_LIST '(' list_option_list ')'  { $$ = 0; }
-| K_STRUCTURE '(' structure_attribute ')'  { $$ = 0; }
+/*| K_STRUCTURE '(' structure_attribute ')'  { $$ = 0; }*/
 | U_MAIN '=' T_NAME  { $$ = 0; }
 | U_OPTLEVEL '=' T_DIGITS  { $$ = 0; }
 | U_VERSION '=' T_STRING  { $$ = 0; }
@@ -944,9 +946,9 @@ allocation_unit
 | K_REP replicator K_OF allocation_unit  { $$ = 0; }
 ;
 
-allocation_unit:  K_LONG   { $$ = 0; }
-| K_WORD   { $$ = 0; }
-| K_BYTE  { $$ = 0; }
+allocation_unit:  K_LONG   { $$ = integer_type_node; }
+| K_WORD   { $$ = short_integer_type_node; }
+| K_BYTE  { $$ = char_type_node; }
 ;
 
 replicator: ctce 
@@ -977,6 +979,12 @@ T_NAME ':'
 unlabeled_block_start: K_BEGIN { 
 $$=c_begin_compound_stmt ();
 }
+;
+
+unlabeled_block_start2: '(' { 
+$$=c_begin_compound_stmt ();
+}
+;
 
 unlabeled_block: unlabeled_block_start
 pushlevel block_body K_END poplevel
@@ -985,12 +993,21 @@ $$=poplevel (kept_level_p (), 1, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
    = $$;
-
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
 }
-| '(' block_body ')' { $$=$2;} 
+| unlabeled_block_start2 
+pushlevel block_body ')' poplevel
+{ 
+$$=poplevel (kept_level_p (), 1, 0);
+ SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
+   = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
+   = $$;
+ RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
+ last_expr_type = NULL_TREE;
+ $$=$1;
+}
 ;
 
 start_block: K_BEGIN { 
@@ -1586,7 +1603,10 @@ declaration: data_declaration
 | undeclare_declaration 
 ;
 
-attribute_list:attribute_list attribute 
+attribute_list:attribute_list attribute { 
+  //$$ = chainon ($1, $2); 
+$$ = tree_cons (NULL_TREE, $1, $2); 
+}
 |attribute 
 ;
 attribute:  allocation_unit 
@@ -1781,21 +1801,20 @@ own_declaration: K_OWN own_item_list ';' {
 }
 ;
 
-own_item_list: own_item_list ',' own_item {
-  //$$ = chainon($1, $3);
-  /* */
- }
-| declspecs_ts setspecs own_item { 
-  //  $$ = $1;
-}
+own_item_list: own_item_list ',' own_item
+| declspecs_ts setspecs own_item
 ;
 
-own_item: T_NAME { 
+own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
   //$$ = build_decl (VAR_DECL, $1, integer_type_node);
-  tree c, p , d, i;
+  tree c, p , d, i, t;
   char * s;
   int e,f;
-  TREE_TYPE($1)=integer_type_node;
+
+  t = tree_cons (NULL_TREE, $2, NULL_TREE); 
+  TREE_STATIC ($$) = 0;
+
+  //TREE_TYPE($1)=t;
   s=malloc($1->identifier.id.len+2);
   strcpy(s,$1->identifier.id.str);
   s[$1->identifier.id.len]='_';
@@ -1825,18 +1844,22 @@ own_item: T_NAME {
   /*  */
   
 }
-|T_NAME ':' own_attribute_list {
-   
-  
-}
 ;
+
+maybe_own_attribute_list: { $$ = 0; }
+| ':' own_attribute_list { $$ = $2; }
+;
+
 own_attribute_list:
-own_attribute_list own_attribute 
+own_attribute_list own_attribute { 
+  //$$ = chainon($1,$2); 
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
 |own_attribute 
 ;
 
 own_attribute:
-allocation_unit 
+allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |extension_attribute 
 |structure_attribute 
 |field_attribute 
@@ -1946,6 +1969,10 @@ structure_definition:
   T_NAME '['
   access_formal_list  ';' allocation_formal_list ']' '='
   structure_size  structure_body
+{
+  tree er = build_external_ref ($1, 0);
+  $$=build_nt(STRUCTURE_DECL,er,$3,$5,$8,$9);
+}
 ;
 
 allocation_formal_list: allocation_formal_list ',' allocation_formal 
@@ -1953,7 +1980,8 @@ allocation_formal_list: allocation_formal_list ',' allocation_formal
 ;
 
 allocation_formal:
-allocation_name '=' allocation_default 
+allocation_name
+|allocation_name '=' allocation_default 
 ;
 
 allocation_default: exp 
@@ -1967,7 +1995,7 @@ structure_body: expression
 ;
 
 access_formal_list: access_formal_list ',' access_formal 
-| access_formal_list  
+| access_formal 
 ;
 
 access_formal: T_NAME 
