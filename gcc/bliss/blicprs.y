@@ -1219,7 +1219,7 @@ op_exp12
 ;
 
 operator_expression:
-'.' opexp9  { $$ = build_indirect_ref ($2, "unary *"); }
+'.' opexp9  { /* $$=$2; */ $$ = build_indirect_ref ($2, "unary *"); }
 /*| '+' opexp9 %prec UMINUS {  $$->id="+"; }
 | '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
 | opexp9 '^' opexp9 
@@ -1234,7 +1234,18 @@ operator_expression:
 |  opexp9 K_OR opexp9 
 | opexp9 K_EQV opexp9 
 | opexp9 K_XOR  opexp9 
-| opexp9 '=' opexp9 { $$=build_modify_expr(build_indirect_ref ($1, "unary *"), NOP_EXPR, $3);  }
+| opexp9 '=' opexp9 { 
+  tree t=$1;
+  if (TREE_CODE(t) == INTEGER_CST) {
+    t=make_pointer_declarator(0,$1);
+    //t=build_pointer_type(integer_type_node);
+    TREE_TYPE(t)=build_pointer_type(integer_type_node);
+    $$=build_modify_expr(t, NOP_EXPR, $3);
+  } else {
+    $$=build_modify_expr(build_indirect_ref (t, "unary *"), NOP_EXPR, $3);
+  }
+  //$$=build_modify_expr($1, NOP_EXPR, $3);  
+}
 ;
 
 opexp9:
@@ -1776,7 +1787,12 @@ own_item: T_NAME {
   tree p = make_pointer_declarator(0,$1);
   tree d = start_decl (p, current_declspecs, 0,
 		       chainon (NULL_TREE, all_prefix_attributes));
- finish_decl (d, NULL_TREE, NULL_TREE);
+#if 0
+  int f = start_init(d,NULL,global_bindings_p());
+  int e = finish_init();
+  tree i = build_unary_op (ADDR_EXPR, $1, 0);
+#endif
+  finish_decl (d, 0, NULL_TREE);
   // $$ = build_tree_list ($1, NULL_TREE);
   /*  */
   
