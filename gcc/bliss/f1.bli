@@ -1,0 +1,16 @@
+module f1 (main=r)=
+begin
+own dd;
+routine r=
+begin
+own a;
+dd=3;
+end;
+routine s=
+begin
+own b;
+b=3;
+end;
+end
+eludom
+

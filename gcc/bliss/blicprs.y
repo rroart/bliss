@@ -58,6 +58,8 @@ struct bli_tree_struct_parse_tree_top* parse_tree_top=NULL;
  static tree all_prefix_attributes = NULL_TREE;
  static tree declspec_stack;
 
+extern tree  build_modify_expr (tree, enum tree_code, tree);
+
 #define symbtabinfo
   typedef int nodeAttr_t;
 
@@ -766,7 +768,7 @@ primary:
 numeric_literal  { $$=$1; }
 | string_literal  { $$=$1; }
 | plit { $$=$1; }
-| T_NAME { $$=creatid($1); }
+| T_NAME { $$=$1; }
 | block  { $$=$1; }
 | structure_reference { $$=$1; }
 | routine_call  { $$=$1; }
@@ -774,14 +776,14 @@ numeric_literal  { $$=$1; }
 | codecomment { $$=$1; }
 ;
 numeric_literal: 
-decimal_literal  { $$=$1; }
+decimal_literal  { $$=$1; TREE_TYPE($1)=integer_type_node; }
 | integer_literal { $$=$1; }
 | character_code_literal { $$=$1; }
 | float_literal  { $$=$1; }
 ;
 
 decimal_literal: 
-T_DIGITS { $$ = creatnode (decimal_literal,0,0);/* $$->value=$1;  */}
+T_DIGITS
 ;
 
 opt_sign: { $$=0; }
@@ -940,7 +942,7 @@ labeled_block
 | unlabeled_block
 ;
 
-labeled_block: attached_label_list unlabeled_block { $$=creatnode(labeled_block,$1,$2); }
+labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
 ;
 
 attached_label_list: attached_label_list attached_label { $$=creatnode(attached_label_list, $1, $2); }
@@ -951,8 +953,8 @@ attached_label:
 T_NAME ':' { $$=creatid($1); }
 ;
 
-unlabeled_block: K_BEGIN block_body K_END { $$=creatnode(unlabeled_block,0,$2);/* $$->value=1;  */}
-| '(' block_body ')' { $$=creatnode(unlabeled_block,0,$2);/* $$->value=0;  */} 
+unlabeled_block: K_BEGIN block_body K_END { $$=$2;/* $$->value=1;  */}
+| '(' block_body ')' { $$=$2;/* $$->value=0;  */} 
 ;
 
 
@@ -966,6 +968,7 @@ maybe_block_value /* $$=creatnode(block_body,$1,$3); $$->middle=$2;  */
   //tree decl;
   //DECL_NAME(decl)=
   //$$=decl;
+  $$ = chainon($1, $3);
 }
 ;
 /*
@@ -992,7 +995,7 @@ declaration_list: declaration_list declaration {
   ;
 */
 maybe_block_action_list: { $$=0; }
-|maybe_block_action_list block_action { $$=creatnode(block_action_list, $2, $1); }
+|maybe_block_action_list block_action { $$=chainon($1, $2); }
 ;
 
 block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
@@ -1171,7 +1174,7 @@ operator_expression:
 |  opexp9 K_OR opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_OR;  */}
 | opexp9 K_EQV opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_EQV;  */}
 | opexp9 K_XOR  opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_XOR;  */}
-| opexp9 '=' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="=";  */}
+| opexp9 '=' opexp9 { $$=build_modify_expr($1, '=', $3);  }
 ;
 
 opexp9:
@@ -1214,7 +1217,7 @@ K_EQL  { $$=$1; }
  | K_XOR  { $$=$1; }*/
 ;
 
-assign_expression: op_exp '=' op_exp { $$=creatnode(assign_expression,$1,$3);}
+assign_expression: op_exp '=' op_exp { $$=build_modify_expr($1, '=', $3);  }
 ;
 
 op_exp1: op_exp { $$=$1; }
@@ -1658,8 +1661,8 @@ own_declaration_list: own_declaration_list own_declaration { $$=creatnode(own_de
 */
 
 own_declaration: K_OWN own_item_list ';' {
-  $$ = build_decl (VAR_DECL, $2, integer_type_node);
   /* $$ = creatnode(own_declaration,0,$2); */
+  $$ = $2;
 }
 ;
 
@@ -1668,12 +1671,14 @@ own_item_list: own_item_list ',' own_item {
   /* $$ =creatnode(own_item_list,$3,$1);*/
  }
 |own_item { 
-  $$=$1;
+  $$ = $1;
 }
 ;
 
 own_item: T_NAME { 
-  $$ = build_tree_list ($1, NULL_TREE);
+  $$ = build_decl (VAR_DECL, $1, integer_type_node);
+  TREE_TYPE($1)=integer_type_node;
+  // $$ = build_tree_list ($1, NULL_TREE);
   /* $$ = creatnode(own_item,0,0); */
   /* $$->id=$1; */
 }
@@ -1839,7 +1844,10 @@ ordinary_routine_declaration { $$=$1; }
 |external_routine_declaration { $$=$1; }
 ;
 ordinary_routine_declaration: 
-K_ROUTINE routine_definition_list ';' { $$=creatnode(ordinary_routine_declaration,0,$2); }
+K_ROUTINE routine_definition_list ';' { 
+  //$$=creatnode(ordinary_routine_declaration,0,$2);
+  $$ = $2;
+}
 ;
 
 routine_definition_list: routine_definition_list ',' routine_definition { $$=creatnode(routine_definition_list,$3,$1); }
@@ -1876,11 +1884,13 @@ io_list
   /*$$=creatnode(routine_definition,$2,$4); $$->id=$1;  */
   //DECL_SOURCE_FILE (current_function_decl) = $6;
   //DECL_SOURCE_LINE (current_function_decl) = $7;
+  $$=chainon($3,$10);
+  DECL_SAVED_TREE (current_function_decl) = $$;
   bli_finish_function (0, 1); 
   POP_DECLSPEC_STACK;
-  tree decl=$3;
-  DECL_NAME(decl)=$3;
-  $$=decl;
+  //tree decl=$3;
+  //DECL_NAME(decl)=$3;
+  //$$=decl;
 }
 ;
 
@@ -4035,6 +4045,9 @@ with YYDEBUG set");
       fprintf(stderr, "lll; parser trace cannot be enabled - blicprs.y not compiled with YYDEBUG set");
     }
 #endif
+
+  init_reswords();
+
   ggc_add_tree_root (&declspec_stack, 1);
   ggc_add_tree_root (&current_declspecs, 1);
   ggc_add_tree_root (&prefix_attributes, 1);

@@ -2741,7 +2741,7 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    /* Write a record describing this implicit function declaration to the
       prototypes file (if requested).  */
 
-   gen_aux_info_record (decl, 0, 1, 0);
+   //gen_aux_info_record (decl, 0, 1, 0);
 
    /* Possibly apply some default attributes to this implicit declaration.  */
    decl_attributes (&decl, NULL_TREE, 0);
@@ -3158,8 +3158,7 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    tree endlink;
    tree ptr_ftype_void, ptr_ftype_ptr;
 
-   /* Adds some ggc roots, and reserved words for c-parse.in.  */
-   c_parse_init ();
+   //bli_parse_init ();
 
    current_function_decl = NULL;
    named_labels = NULL;
@@ -3661,8 +3660,10 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    /* If this is a function declaration, write a record describing it to the
       prototypes file (if requested).  */
 
+#if 0
    if (TREE_CODE (decl) == FUNCTION_DECL)
      gen_aux_info_record (decl, 0, 0, TYPE_ARG_TYPES (TREE_TYPE (decl)) != 0);
+#endif
 
    /* ANSI specifies that a tentative definition which is not merged with
       a non-tentative definition behaves exactly like a definition with an
@@ -3674,10 +3675,6 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
 
    /* Set attributes here so if duplicate decl, will have proper attributes.  */
    decl_attributes (&decl, attributes, 0);
-
-   /* If #pragma weak was used, mark the decl weak now.  */
-   if (current_binding_level == global_binding_level)
-     maybe_apply_pragma_weak (decl);
 
    if (TREE_CODE (decl) == FUNCTION_DECL
        && DECL_DECLARED_INLINE_P (decl)
@@ -3723,9 +3720,6 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    int was_incomplete = (DECL_SIZE (decl) == 0);
    const char *asmspec = 0;
 
-   /* If a name was specified, get the string.  */
-   if (current_binding_level == global_binding_level)
-     asmspec_tree = maybe_apply_renaming_pragma (decl, asmspec_tree);
    if (asmspec_tree)
      asmspec = TREE_STRING_POINTER (asmspec_tree);
 
@@ -6810,7 +6804,7 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    /* Write a record describing this function definition to the prototypes
       file (if requested).  */
 
-   gen_aux_info_record (fndecl, 1, 0, prototype);
+   //gen_aux_info_record (fndecl, 1, 0, prototype);
 
    /* Initialize the RTL code for the function.  */
    init_function_start (fndecl, input_filename, lineno);
@@ -6987,7 +6981,7 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
 	   /* Save function tree for inlining.  Should return 0 if the
 	      language does not support function deferring or the
 	      function could not be deferred.  */
-	   && defer_fn (fndecl))
+	   /*&& defer_fn (fndecl)*/)
 	 {
 	   /* Let the back-end know that this function exists.  */
 	   (*debug_hooks->deferred_inline_function) (fndecl);
@@ -17172,10 +17166,6 @@ c_alignof_expr (expr)
 static const struct attribute_spec c_format_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "format",                 3, 3, false, true,  true,
-			      handle_format_attribute },
-  { "format_arg",             1, 1, false, true,  true,
-			      handle_format_arg_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -19007,10 +18997,94 @@ bli_expand_stmt (t)
       bli_prep_stmt (t);
       switch (TREE_CODE (t))
         {
-	default:
-	  abort();
-	  break;
+        case FILE_STMT:
+          input_filename = FILE_STMT_FILENAME (t);
+          break;
+
+        case RETURN_STMT:
+          genrtl_return_stmt (t);
+          break;
+
+        case EXPR_STMT:
+          genrtl_expr_stmt_value (EXPR_STMT_EXPR (t), TREE_ADDRESSABLE (t),
+                                  TREE_CHAIN (t) == NULL
+                                  || (TREE_CODE (TREE_CHAIN (t)) == SCOPE_STMT
+                                      && TREE_CHAIN (TREE_CHAIN (t)) == NULL));
+          break;
+
+        case DECL_STMT:
+          genrtl_decl_stmt (t);
+          break;
+
+        case FOR_STMT:
+          genrtl_for_stmt (t);
+          break;
+
+        case WHILE_STMT:
+          genrtl_while_stmt (t);
+          break;
+
+        case DO_STMT:
+          genrtl_do_stmt (t);
+          break;
+
+        case IF_STMT:
+          genrtl_if_stmt (t);
+          break;
+
+        case COMPOUND_STMT:
+          genrtl_compound_stmt (t);
+          break;
+
+        case BREAK_STMT:
+          genrtl_break_stmt ();
+          break;
+        case CONTINUE_STMT:
+          genrtl_continue_stmt ();
+          break;
+
+        case SWITCH_STMT:
+          genrtl_switch_stmt (t);
+          break;
+
+        case CASE_LABEL:
+          genrtl_case_label (t);
+          break;
+
+        case LABEL_STMT:
+          expand_label (LABEL_STMT_LABEL (t));
+          break;
+
+        case GOTO_STMT:
+          genrtl_goto_stmt (GOTO_DESTINATION (t));
+          break;
+
+        case ASM_STMT:
+          genrtl_asm_stmt (ASM_CV_QUAL (t), ASM_STRING (t),
+                           ASM_OUTPUTS (t), ASM_INPUTS (t),
+                           ASM_CLOBBERS (t), ASM_INPUT_P (t));
+          break;
+
+        case SCOPE_STMT:
+          genrtl_scope_stmt (t);
+          break;
+
+        case CLEANUP_STMT:
+          genrtl_decl_cleanup (t);
+          break;
+
+        default:
+          if (lang_expand_stmt)
+            (*lang_expand_stmt) (t);
+          else 
+            {}//abort ();
+          break;
+
 	}
+	  fprintf(stderr,"body %x %x \n",t,TREE_CODE(t));
+	  if (t->decl.name && t->decl.name->identifier.id.str) fprintf(stderr,"%s\n",t->decl.name->identifier.id.str);
+	  //	  /*if (t->common.code==IDENTIFIER_NODE)*/ fprintf(stderr,"body %x %x %s\n",t,TREE_CODE(t),HT_STR(GCC_IDENT_TO_HT_IDENT(t)));
+	  //abort();
       /* Restore saved state.  */
       current_stmt_tree ()->stmts_are_full_exprs_p
         = saved_stmts_are_full_exprs_p;

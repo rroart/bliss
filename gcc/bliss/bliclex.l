@@ -159,7 +159,7 @@ yylval.type_node_p=get_identifier(s);
 		return T_NAME;
 	 }
   /*yylval.type_str=strdup(yytext);*/
-  yylval.type_int=key;
+  yylval.type_node_p=get_identifier(yytext);
   return key;
 }
 
@@ -719,3 +719,28 @@ intern_string_wrap ()
   intern_hash_table = NULL;
 }
 
+tree *ridpointers;
+#define N_reswords (sizeof keywords / sizeof (struct dict))
+init_reswords ()
+{
+  unsigned int i;
+  tree id;
+  /* It is not necessary to register ridpointers as a GC root, because
+     all the trees it points to are permanently interned in the
+     get_identifier hash anyway.  */
+  ridpointers = (tree *) xcalloc ((int) REALLY_MAX, sizeof (tree));
+  for (i = 0; i < N_reswords && keywords[i].d_num>-1; i++)
+    {
+      /* If a keyword is disabled, do not enter it into the table
+         and so create a canonical spelling that isn't a keyword.  */
+      //if (reswords[i].disable & mask)
+      //  continue;
+
+      id = get_identifier (keywords[i].d_text);
+      // C_RID_CODE (id) = keywords[i].rid;
+      //C_IS_RESERVED_WORD (id) = 1;
+      //TREE_LANG_FLAG_0 (id) = 1;
+      //id->common.lang_flag_0 = 1;
+      ridpointers [(int) keywords[i].d_num] = id;
+    }
+}
