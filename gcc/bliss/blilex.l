@@ -1890,8 +1890,10 @@ hexdigit [0-9a-f]
 	 continue;
 #endif
 	 // temp workaround if macros are simple enough?
-	 //if (m->param==0 && m->param2==0)
-	 //push_macro(make_macro_string(m,0));
+	 if (m->param==0 && m->param2==0) {
+		push_macro(make_macro_string(m,0));
+		continue;
+	 }
   }
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   if (macrocomma=='=') {
