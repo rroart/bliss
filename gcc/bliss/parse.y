@@ -312,7 +312,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> extension_attribute T_STRING2 string_par_list string_par
 %type <type_node_p>  field_attribute cond_handling_function_name
 %type <type_node_p>  initial_attribute executable_function_named
-%type <type_node_p> alignment_attribute preset_attribute op7 
+%type <type_node_p> alignment_attribute preset_attribute
+%type <type_node_code> op7 
 /*
 %type <type_node_code> K_AND K_OR K_NOT K_EQV K_XOR
 %type <type_node_code> K_EQL K_EQLA K_EQLU K_NEQ K_NEQA K_NEQU K_LSS K_LSSA K_LSSU
@@ -332,8 +333,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> own_declaration global_declaration
 %type <type_node_p> external_declaration forward_declaration
 %type <type_node_p> local_declaration stackglocal_declaration
-%type <type_node_p> register_declaration
-%type <type_node_p> global_reg_itemister_declaration
+%type <type_node_p> register_declaration global_register_declaration
 %type <type_node_p> external_register_declaration
 %type <type_node_p> map_declaration
 %type <type_node_p> own_item global_item
