@@ -168,16 +168,6 @@ $(blibld)/blilex.c: $(blisrc)/blilex.l
 
 $(INTL_TARGETS): 
 
-#ggc types
-
-gtype-bliss.h : s-gtype
-	@true
-
-s-gtype: $(blisrc)/blicast.c $(blisrc)/blicbei.c\
-	$(blisrc)/blicgty.c $(blisrc)/blicgty.h $(blisrc)/blicc1.c $(blisrc)/blicc1.h \
-	$(blisrc)/blilex.c $(blisrc)/blicsyt.c $(blisrc)/bliumsc.c \
-	$(blisrc)/bliumsg.c $(blisrc)/bliumem.c $(blisrc)/blir_temp_config.h
-
 # Build hooks:
 
 bliss.all.build: bliss
