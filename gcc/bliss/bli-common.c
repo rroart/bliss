@@ -37,6 +37,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "c-lex.h"
 #include "cpplib.h"
 #include "target.h"
+#include "bliss-tree.h"
 cpp_reader *parse_in;		/* Declared in c-lex.h.  */
 
 #undef WCHAR_TYPE_SIZE
@@ -3713,6 +3714,8 @@ c_staticp (exp)
 static const char c_tree_code_type[] = {
   'x',
 #include "c-common.def"
+  'x',
+#include "bliss-tree.def"
 };
 #undef DEFTREECODE
 
@@ -3725,6 +3728,8 @@ static const char c_tree_code_type[] = {
 static const int c_tree_code_length[] = {
   0,
 #include "c-common.def"
+  0,
+#include "bliss-tree.def"
 };
 #undef DEFTREECODE
 
@@ -3735,6 +3740,8 @@ static const int c_tree_code_length[] = {
 static const char *const c_tree_code_name[] = {
   "@@dummy",
 #include "c-common.def"
+  "@@blissdummy",
+#include "bliss-tree.def"
 };
 #undef DEFTREECODE
 
@@ -3746,13 +3753,13 @@ add_c_tree_codes ()
 {
   memcpy (tree_code_type + (int) LAST_AND_UNUSED_TREE_CODE,
 	  c_tree_code_type,
-	  (int) LAST_C_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE);
+	  (int) LAST_BLISS_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE);
   memcpy (tree_code_length + (int) LAST_AND_UNUSED_TREE_CODE,
 	  c_tree_code_length,
-	  (LAST_C_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE) * sizeof (int));
+	  (LAST_BLISS_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE) * sizeof (int));
   memcpy (tree_code_name + (int) LAST_AND_UNUSED_TREE_CODE,
 	  c_tree_code_name,
-	  (LAST_C_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE) * sizeof (char *));
+	  (LAST_BLISS_TREE_CODE - (int) LAST_AND_UNUSED_TREE_CODE) * sizeof (char *));
   lang_unsafe_for_reeval = c_unsafe_for_reeval;
 }
 
@@ -4255,5 +4262,27 @@ shadow_warning (msgid, name, decl)
   warning_with_file_and_line (DECL_SOURCE_FILE (decl),
 			      DECL_SOURCE_LINE (decl),
 			      "shadowed declaration is here");
+}
+
+rtx
+bli_expand_expr (exp, target, tmode, modifier)
+     tree exp;
+     rtx target;
+     enum machine_mode tmode;
+     enum expand_modifier modifier;
+{
+  switch (TREE_CODE (exp))
+    {
+    case BIT_FIELD_REFS:
+      {
+	return expand_expr (TREE_OPERAND (exp, 0), target, tmode, modifier);
+	break;
+      }
+    default:
+      abort ();
+    }
+
+  abort ();
+  return NULL;
 }
 
