@@ -1864,6 +1864,7 @@ save_filename save_lineno exp
 |declspecs_ts setspecs T_NAME 
 {
   //current_function_decl=$3;
+  void * vo = $3;
   bli_start_function (current_declspecs, $3, all_prefix_attributes);
 }
 io_list 
@@ -4015,10 +4016,11 @@ int bli_lex_not_now(void)
   return current_token->pfx.type.tok_type;
 }
 
-
+extern FILE *z1zin;
 void 
 parse_init (struct bli_token_struct * first_token, uint32 parser_trace_flag) 
 {
+  z1zin=fopen(input_filename,"r");
   current_token=NULL;
   first_available_token=first_token;
 #ifdef YYDEBUG

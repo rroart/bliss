@@ -464,11 +464,12 @@ blic_bei (parse_tree_top)
   current_program = (struct bli_tree_struct_program_top *)parse_tree_top->branch.child;
   BLI_ASSERT (current_program);  /* Should be at least one at this stage lll;.  */
 
-  while (current_program)
+  // while (0 && current_program)
+  while(0)
     {
       /* Lll; should run garbage collection after parse and after each function.  */
-      output_program_code (parse_tree_top, current_program);
-      current_program = (struct bli_tree_struct_program_top *)(current_program->cons.next);
+      //      output_program_code (parse_tree_top, current_program);
+      //    current_program = (struct bli_tree_struct_program_top *)(current_program->cons.next);
     }
 
 }
@@ -6917,6 +6918,7 @@ gen_aux_info_record (tree fndecl ATTRIBUTE_UNUSED,
 void
 c_parse_init ()
 {
+  fprintf(stderr,"in c_parse_init\n");
   return;
 }
 
@@ -6960,11 +6962,25 @@ begin_stmt_tree (tree *t ATTRIBUTE_UNUSED)
 }
 
 /* Should not be called for bliss.   */
-
+extern struct function *cfun;
 void
-finish_stmt_tree (tree *t ATTRIBUTE_UNUSED)
+finish_stmt_tree (t)
+     tree *t;
 {
-  abort ();
+  tree stmt;
+  
+  /* Remove the fake extra statement added in begin_stmt_tree.  */
+  stmt = TREE_CHAIN (*t);
+  *t = stmt;
+  last_tree = NULL_TREE;
+
+  if (cfun && stmt)
+    {
+      /* The line-number recorded in the outermost statement in a function
+         is the line number of the end of the function.  */
+      STMT_LINENO (stmt) = lineno;
+      STMT_LINENO_FOR_FN_P (stmt) = 1;
+    }
 }
 
 /* Should not be called for bliss.   */

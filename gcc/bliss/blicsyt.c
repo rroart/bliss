@@ -6320,41 +6320,14 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    /* Don't expand any sizes in the return type of the function.  */
    immediate_size_expand = 0;
 
-   decl1 = grokdeclarator (declarator, declspecs, FUNCDEF, 1);
+   //   decl1 = grokdeclarator (declarator, declspecs, FUNCDEF, 1);
 
-   /* If the declarator is not suitable for a function definition,
-      cause a syntax error.  */
-   if (decl1 == 0)
-     {
-       immediate_size_expand = old_immediate_size_expand;
-       return 0;
-     }
+   decl1 = build_decl (FUNCTION_DECL, declarator, integer_type_node);
 
+   DECL_LANG_SPECIFIC (decl1) = (struct lang_decl *)
+     ggc_alloc_cleared (sizeof (struct lang_decl));
+   
    decl_attributes (&decl1, attributes, 0);
-
-   /* If #pragma weak was used, mark the decl weak now.  */
-   if (current_binding_level == global_binding_level)
-     maybe_apply_pragma_weak (decl1);
-
-   if (DECL_DECLARED_INLINE_P (decl1)
-       && DECL_UNINLINABLE (decl1)
-       && lookup_attribute ("noinline", DECL_ATTRIBUTES (decl1)))
-     warning_with_decl (decl1,
-			"inline function `%s' given attribute noinline");
-
-   announce_function (decl1);
-
-   if (!COMPLETE_OR_VOID_TYPE_P (TREE_TYPE (TREE_TYPE (decl1))))
-     {
-       error ("return type is an incomplete type");
-       /* Make it return void instead.  */
-       TREE_TYPE (decl1)
-	 = build_function_type (void_type_node,
-				TYPE_ARG_TYPES (TREE_TYPE (decl1)));
-     }
-
-   if (warn_about_return_type)
-     pedwarn_c99 ("return type defaults to `int'");
 
    /* Save the parm names or decls from this function's declarator
       where store_parm_decls will find them.  */
@@ -6364,64 +6337,6 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    /* Make the init_value nonzero so pushdecl knows this is not tentative.
       error_mark_node is replaced below (in poplevel) with the BLOCK.  */
    DECL_INITIAL (decl1) = error_mark_node;
-
-   /* If this definition isn't a prototype and we had a prototype declaration
-      before, copy the arg type info from that prototype.
-      But not if what we had before was a builtin function.  */
-   old_decl = lookup_name_current_level (DECL_NAME (decl1));
-   if (old_decl != 0 && TREE_CODE (TREE_TYPE (old_decl)) == FUNCTION_TYPE
-       && !DECL_BUILT_IN (old_decl)
-       && (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (decl1)))
-	   == TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (old_decl))))
-       && TYPE_ARG_TYPES (TREE_TYPE (decl1)) == 0)
-     {
-       TREE_TYPE (decl1) = TREE_TYPE (old_decl);
-       current_function_prototype_file = DECL_SOURCE_FILE (old_decl);
-       current_function_prototype_line = DECL_SOURCE_LINE (old_decl);
-     }
-
-   /* If there is no explicit declaration, look for any out-of-scope implicit
-      declarations.  */
-   if (old_decl == 0)
-     old_decl = IDENTIFIER_IMPLICIT_DECL (DECL_NAME (decl1));
-
-   /* Optionally warn of old-fashioned def with no previous prototype.  */
-   if (warn_strict_prototypes
-       && TYPE_ARG_TYPES (TREE_TYPE (decl1)) == 0
-       && !(old_decl != 0
-	    && (TYPE_ARG_TYPES (TREE_TYPE (old_decl)) != 0
-		|| (DECL_BUILT_IN (old_decl)
-		    && ! C_DECL_ANTICIPATED (old_decl)))))
-     warning ("function declaration isn't a prototype");
-   /* Optionally warn of any global def with no previous prototype.  */
-   else if (warn_missing_prototypes
-	    && TREE_PUBLIC (decl1)
-	    && !(old_decl != 0
-		 && (TYPE_ARG_TYPES (TREE_TYPE (old_decl)) != 0
-		     || (DECL_BUILT_IN (old_decl)
-			 && ! C_DECL_ANTICIPATED (old_decl))))
-	    && ! MAIN_NAME_P (DECL_NAME (decl1)))
-     warning_with_decl (decl1, "no previous prototype for `%s'");
-   /* Optionally warn of any def with no previous prototype
-      if the function has already been used.  */
-   else if (warn_missing_prototypes
-	    && old_decl != 0 && TREE_USED (old_decl)
-	    && TYPE_ARG_TYPES (TREE_TYPE (old_decl)) == 0)
-     warning_with_decl (decl1,
-			"`%s' was used with no prototype before its definition");
-   /* Optionally warn of any global def with no previous declaration.  */
-   else if (warn_missing_declarations
-	    && TREE_PUBLIC (decl1)
-	    && old_decl == 0
-	    && ! MAIN_NAME_P (DECL_NAME (decl1)))
-     warning_with_decl (decl1, "no previous declaration for `%s'");
-   /* Optionally warn of any def with no previous declaration
-      if the function has already been used.  */
-   else if (warn_missing_declarations
-	    && old_decl != 0 && TREE_USED (old_decl)
-	    && old_decl == IDENTIFIER_IMPLICIT_DECL (DECL_NAME (decl1)))
-     warning_with_decl (decl1,
-			"`%s' was used with no declaration before its definition");
 
    /* This is a definition, not a reference.
       So normally clear DECL_EXTERNAL.
@@ -6437,63 +6352,6 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    if (current_function_decl != 0)
      TREE_PUBLIC (decl1) = 0;
 
-   /* Warn for unlikely, improbable, or stupid declarations of `main'.  */
-   if (warn_main > 0 && MAIN_NAME_P (DECL_NAME (decl1)))
-     {
-       tree args;
-       int argct = 0;
-
-       if (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (decl1)))
-	   != integer_type_node)
-	 pedwarn_with_decl (decl1, "return type of `%s' is not `int'");
-
-       for (args = TYPE_ARG_TYPES (TREE_TYPE (decl1)); args;
-	    args = TREE_CHAIN (args))
-	 {
-	   tree type = args ? TREE_VALUE (args) : 0;
-
-	   if (type == void_type_node)
-	     break;
-
-	   ++argct;
-	   switch (argct)
-	     {
-	     case 1:
-	       if (TYPE_MAIN_VARIANT (type) != integer_type_node)
-		 pedwarn_with_decl (decl1,
-				    "first argument of `%s' should be `int'");
-	       break;
-
-	     case 2:
-	       if (TREE_CODE (type) != POINTER_TYPE
-		   || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
-		   || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
-		       != char_type_node))
-		 pedwarn_with_decl (decl1,
-				    "second argument of `%s' should be `char **'");
-	       break;
-
-	     case 3:
-	       if (TREE_CODE (type) != POINTER_TYPE
-		   || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
-		   || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
-		       != char_type_node))
-		 pedwarn_with_decl (decl1,
-				    "third argument of `%s' should probably be `char **'");
-	       break;
-	     }
-	 }
-
-       /* It is intentional that this message does not mention the third
-	  argument because it's only mentioned in an appendix of the
-	  standard.  */
-       if (argct > 0 && (argct < 2 || argct > 3))
-	 pedwarn_with_decl (decl1, "`%s' takes only zero or two arguments");
-
-       if (! TREE_PUBLIC (decl1))
-	 pedwarn_with_decl (decl1, "`%s' is normally a non-static function");
-     }
-
    /* Record the decl so that the function name is defined.
       If we already have a decl for this name, and it is a FUNCTION_DECL,
       use the old decl.  */
@@ -6505,6 +6363,8 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    current_binding_level->subblocks_tag_transparent = 1;
 
    make_decl_rtl (current_function_decl, NULL);
+   //SET_DECL_ASSEMBLER_NAME(current_function_decl,DECL_NAME(current_function_decl));
+   //XSTR(DECL_RTL (current_function_decl))=
 
    restype = TREE_TYPE (TREE_TYPE (current_function_decl));
    /* Promote the value to int before returning it.  */
@@ -7047,7 +6907,7 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
    finish_fname_decls ();
 
    /* Tie off the statement tree for this function.  */
-   finish_stmt_tree (&DECL_SAVED_TREE (fndecl));
+   //finish_stmt_tree (&DECL_SAVED_TREE (fndecl));
 
    /* Complain if there's just no return statement.  */
    if (warn_return_type
@@ -7065,10 +6925,10 @@ duplicate_decls (newdecl, olddecl, different_binding_level)
      warning ("no return statement in function returning non-void");
 
    /* Clear out memory we no longer need.  */
-   free_after_parsing (cfun);
+   //free_after_parsing (cfun);
    /* Since we never call rest_of_compilation, we never clear
       CFUN.  Do so explicitly.  */
-   free_after_compilation (cfun);
+   //free_after_compilation (cfun);
    cfun = NULL;
 
    if (! nested)

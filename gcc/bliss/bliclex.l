@@ -119,7 +119,7 @@ hexdigit [0-9a-f]
 if (yy2debug) fprintf(stderr, "\nanymode %s\n",yytext); 
 //yylval.type_str = strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
 return T_NAME;
 } else REJECT;  }
 
@@ -133,7 +133,7 @@ return T_NAME;
 {digit}+			{
 //  yylval.type_int = atoi(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
   return T_DIGITS;
 }
 
@@ -155,7 +155,7 @@ yylval.type_node_p=build_string(strlen(s),s);
 	 onlytname:
 //		yylval.type_str=strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
 		return T_NAME;
 	 }
   /*yylval.type_str=strdup(yytext);*/
@@ -186,7 +186,7 @@ yylval.type_node_p=build_string(strlen(s),s);
   /* store that string w/o '' */
 //  yylval.type_str = strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
   return T_STRING;
 }
 
@@ -575,7 +575,7 @@ static int ukeyword (cp)
 {idigit}+			{
 //yylval.type_str=strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
 				  return T_IDIGITS;
 				}
 */
@@ -586,7 +586,7 @@ anymode=0;
 if (yy2debug) fprintf(stderr, "anymode\n");
 //yylval.type_str=strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
 				     return T_NAME;
    }
 else REJECT;
@@ -597,7 +597,7 @@ else REJECT;
   if (yy2debug) fprintf(stderr, "anymode\n"); 
 //  yylval.type_str = strdup(yytext);
 s=strdup(yytext);
-yylval.type_node_p=build_string(strlen(s),s);
+yylval.type_node_p=get_identifier(s);
   return T_NAME;
   }
 
