@@ -3511,8 +3511,6 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
       switch (TREE_CODE (decl))
 	{
 	case ARRAY_REF:
-	case ADDR_EXPR:       /* borrowed: C++ reference declaration */
-	  /* Fall through. */
 	case INDIRECT_REF:
 	case CALL_EXPR:
 	  innermost_code = TREE_CODE (decl);
@@ -3525,10 +3523,6 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
 
 	case IDENTIFIER_NODE:
 	  name = IDENTIFIER_POINTER (decl);
-	  decl = 0;
-	  break;
-
-	case INTEGER_TYPE:
 	  decl = 0;
 	  break;
 
@@ -4333,20 +4327,6 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
 	  declarator = TREE_OPERAND (declarator, 0);
 	}
 
-      else if (TREE_CODE (declarator) == ADDR_EXPR) // borrowed from C++
-	{
-	  if (TREE_CODE (type) == VOID_TYPE)
-	    error ("invalid type: `void &'");
-	  else
-	    //	    type = build_pointer_type (type);
-	    type = build_reference_type (type);
-	  declarator = TREE_OPERAND (declarator, 0);
-	}
-
-      else if (TREE_CODE (declarator) == INTEGER_TYPE) // new?
-	{
-	  declarator = 0;
-	}
       else
 	abort ();
 
