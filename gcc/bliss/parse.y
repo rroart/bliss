@@ -421,7 +421,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> machine_specific_function linkage_function
 %type <type_node_p> forward_item_list local_item_list register_item_list
 %type <type_node_p> global_reg_item_list alloc_actual_list
-%type <type_node_p> alloc_actual sign_ext_flag
+%type <type_node_p> alloc_actual sign_ext_flag maybe_sign_ext_flag
 %type <type_node_p> initial_item_list ctce_access_actual_list preset_item_list
 %type <type_node_p> initial_string own_item_list 
 %type <type_node_p> attribute_list 
@@ -429,7 +429,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> routine_designator actual_parameter_list
 %type <type_node_p> linkage_name
 %type <type_node_p> actual_parameter routine_address
-%type <type_node_p> field_selector quoted_string_list
+%type <type_node_p> field_selector quoted_string_list maybe_field_selector
 %type <type_node_p> fetch_expression /*prefix_expression*/
 %type <type_node_p> infix_expression assign_expression op_exp op_exp1
 %type <type_node_p> op_exp2 op_exp3 op_exp4 op_exp5 op_exp6 op_exp7 op_exp8
@@ -1454,6 +1454,9 @@ maybe_block_action_list block_action {
 
 block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 |block_action 
+{
+  // check if need more elaborate list chainon
+}
 ;
 /*The block_body must not be null.*/
 
@@ -1518,7 +1521,7 @@ T_NAME '[' access_actual_list ']' {
   tree type = xref_tag(STRUCTURE_ATTR,cell__);
   tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
   tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
-  chainon (tree_last($3), extref); 
+  chainon (tree_last($3), build_tree_list(NULL_TREE, extref)); 
   my_substitute(body,access,params);
   $$=body;
   //tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
@@ -1529,8 +1532,17 @@ T_NAME '[' access_actual_list ']' {
 }
 ;
 
-access_actual_list: access_actual_list ',' access_actual { $$=chainon($1,$3); }
-|access_actual 
+access_actual_list:
+access_actual_list ',' access_actual
+{
+  //$$ = chainon($1,$3);
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+access_actual 
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 segment_name: T_NAME 
@@ -1571,8 +1583,15 @@ T_NAME '[' access_part ';' alloc_actual_list ']'
 |T_NAME '[' access_part ']' 
 ;
 
-alloc_actual_list: alloc_actual_list ',' alloc_actual { $$ = chainon($1,$3); }
-|alloc_actual 
+alloc_actual_list: alloc_actual_list ',' alloc_actual
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+alloc_actual 
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 routine_call: ordinary_routine_call  
@@ -1601,12 +1620,28 @@ io_list3: { $$=0; }
 | ';' io_actual_parameter_list  { $$ = 0; }
 ;
 
-actual_parameter_list: actual_parameter_list ',' actual_parameter 
-|actual_parameter 
+actual_parameter_list:
+actual_parameter_list ',' actual_parameter 
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+actual_parameter 
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
-io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { chainon ($1, build_tree_list (NULL_TREE, $3)); }
-|io_actual_parameter { $$ = build_tree_list (NULL_TREE, $1);  }
+io_actual_parameter_list:
+io_actual_parameter_list ',' io_actual_parameter
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+io_actual_parameter
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 io_actual_parameter: { $$=0 }
@@ -1631,18 +1666,20 @@ routine_address: expression
 ;
 
 field_reference: 
-/*address*//*makes stuff loop*/
-/*|address field_selector  */
-/*|*/address '<' position_exp ',' size_exp '>'
+/*address*/ /*makes stuff loop*/
+address maybe_field_selector 
+/*address '<' position_exp ',' size_exp '>'*/
 {
   tree t, op0=0, op1=0, op2=0; 
+  tree pos = TREE_OPERAND($2, 0);
+  tree size = TREE_OPERAND($2, 1);
   char context=getbitcontext();
   /* if (context=='o') */ {
     // 32 hardcoded
     tree f = build_int_2(5,0); // (32==2^5)
     TREE_TYPE (f) = widest_integer_literal_type_node;
     f = convert (integer_type_node, f);
-    t = parser_build_binary_op(RSHIFT_EXPR, $3, f);
+    t = parser_build_binary_op(RSHIFT_EXPR, pos, f);
     op0 = parser_build_binary_op (PLUS_EXPR, $1, t);
   }
   /*if (context=='f') */ {
@@ -1656,8 +1693,8 @@ field_reference:
       //goto fetch_end;
       i=$1;
     }
-    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, $5, $3);
+    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, size_int (size->int_cst.int_cst.low), bitsize_int (pos->int_cst.int_cst.low));
+    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     t=stabilize_reference(t);
     op1 = t; 
@@ -1675,8 +1712,8 @@ field_reference:
       //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
       //d = build_indirect_ref (d, "unary *");
     }
-    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, $5, $3);
+    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size_int (size->int_cst.int_cst.low), bitsize_int (pos->int_cst.int_cst.low));
+    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     t=stabilize_reference(t);
    op2 = t;
@@ -1694,8 +1731,24 @@ primary
 | executable_function 
 ;
 
-field_selector: '<' position_exp ',' size_exp '>' { $$ = 0; }
-| '<' position_exp ',' size_exp ',' sign_ext_flag '>' { $$ = 0; }
+maybe_field_selector:
+/* could not be empty, it caused loop */
+/*|*/
+field_selector
+;
+
+field_selector:
+'<' position_exp ',' size_exp maybe_sign_ext_flag '>'
+{
+  $$ = build_nt(FIELD_SELECTOR, $2, $4, $5);
+}
+;
+
+maybe_sign_ext_flag:
+{ $$ = 0; } 
+|
+',' sign_ext_flag 
+{ $$ = $2; }
 ;
 
 sign_ext_flag: ctce
@@ -2009,8 +2062,13 @@ op_exp12:  op_exp11 /*'='*/ '@' op_exp12
 */
 executable_function:
 executable_function_name '('  actual_parameter_list  ')' {
-  /* */
- }
+  // copy from routine call?
+  void * ref;
+  if (yychar == YYEMPTY)
+    yychar = YYLEX;
+  ref = build_external_ref ($1, 1);
+  $$ = build_function_call (ref, $3); 
+}
 |executable_function_name '(' ')' 
 ;
 
@@ -2019,8 +2077,8 @@ standard_function_name
 /* standard_function_name  
 | linkage_function_name 
 | character_handling_function_name 
-| machine_specific_function_name 
-|*/ cond_handling_function_name 
+| machine_specific_function_name */
+| cond_handling_function_name 
 ;
 
 
@@ -2053,9 +2111,9 @@ character_handling_function_name: T_NAME
 machine_specific_function_name: T_NAME 
 ;
 cond_handling_function_name:
-K_SIGNAL { $$ = 0; }
-| K_STOP { $$ = 0; }
-| K_SETUNWIND  { $$ = 0; }
+K_SIGNAL
+| K_STOP
+| K_SETUNWIND 
 ;
 
 size_exp: exp 
@@ -2474,6 +2532,32 @@ structure_attribute:
 
 }
 |   T_NAME  
+{ 
+  //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
+  //tree t=find_struct(mystructs,$1);
+  tree t=xref_tag(STRUCTURE_TYPE,$1);
+  tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
+  tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
+  tree type, body_t, size_t, access_t, comp2, access;
+  //my_substitute(size,alloc,$3);
+  //my_substitute(body,alloc,$3);
+  my_fold(size);
+  //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
+  ////decl->exp.operands[2]=t;
+  type=char_type_node;
+  //$$ = set_array_declarator_type (decl, type, 0);
+  //TREE_TYPE(decl)=STRUCTURE_DECL;
+  access=TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t)));
+  //$$ = tree;
+
+  body_t=tree_cons(0,body,0);
+  size_t=tree_cons(0,size,body_t);
+  access_t=tree_cons(0,access,size_t);
+  comp2=tree_cons(0,0,access_t);
+
+  $$ = build_nt (STRUCTURE_STUFF, comp2, comp2);
+}
 ;
 
 extension_attribute: K_SIGNED { $$ = 0; }
@@ -3164,7 +3248,7 @@ allocation_name {
   tree t = tree_cons (0, integer_type_node, 0);   
   tree d = tree_cons (t, $1, 0);
  $$ = tree_cons (d, 0, 0);
- push_parm_decl($$);
+ push_parm_decl_init($$);
 }
 ;
 
@@ -3272,9 +3356,15 @@ field_name '=' '[' field_component_list ']'
 ;
 
 field_component_list:
-field_component_list ',' field_component { $$ = chainon($1, $3);}
+field_component_list ',' field_component
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
 |
 field_component
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 field_component:
@@ -3308,6 +3398,7 @@ io_list
   void * io_list = $5;
   void * fn;
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
+  // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $3, io_list, NULL_TREE);
   start_function (current_declspecs, fn, all_prefix_attributes);
   store_parm_decls ();
@@ -3761,9 +3852,9 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
   tree attr = current_declspecs;
-#if 0
-  tree type = $2;
-  tree myattr = $2;
+#if 1
+  tree type = $4;
+  tree myattr = $4;
 #else
   tree type = integer_type_node;
   tree myattr = integer_type_node;
@@ -3782,9 +3873,14 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
     cell__ = get_identifier(add_underscore($1,2));
     astruct = start_structure (STRUCTURE_ATTR, cell__);
     myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0, 0,0,0,0); 
+#if 0
+	 // not for bind? not allocating any
     size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
     decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+#endif
 #ifdef NEW_POINTER
+#if 0
+	 // not for bind? not allocating any
 	 tree byte=build_int_2(8,0);
 	 TREE_TYPE (byte) = widest_integer_literal_type_node;
 	 byte = convert (integer_type_node, byte);
@@ -3798,6 +3894,10 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
 	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
 	 //	 TREE_TYPE(cell_)=newint;
 	 current_declspecs=tree_cons(0, newint, 0);
+#else
+	 current_declspecs=0;
+	 cell=make_pointer_declarator(0,$1);
+#endif
 	 decl=0; //newint;
 #else
     //type = char_array_type_node;
@@ -3853,6 +3953,9 @@ maybe_bind_data_attribute_list: { $$ = 0; }
 
 bind_data_attribute_list:
 bind_data_attribute_list bind_data_attribute 
+{
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
 |bind_data_attribute 
 ;
 
@@ -3992,6 +4095,12 @@ T_NAME '(' keyword_pair_list ')' '=' { macromode=1; } macro_body '%'
 { 
   add_macro(IDENTIFIER_POINTER($1),KEYW_MACRO,$3,0,$7);
 }
+|
+T_NAME '=' { macromode=1; } macro_body '%' 
+{ 
+  // not according to grammar, but starlet.req got it like this at least once
+  add_macro(IDENTIFIER_POINTER($1),KEYW_MACRO,0,0,$4);
+}
 ;
 
 keyword_pair_list: keyword_pair_list ',' keyword_pair 
@@ -3999,7 +4108,14 @@ keyword_pair_list: keyword_pair_list ',' keyword_pair
 ;
 
 keyword_pair:
-T_NAME '=' default_actual 
+T_NAME '=' 
+{
+  extern int one_lexeme;
+  extern int macromode;
+  macromode=3;
+  one_lexeme = 1;
+}
+default_actual 
 |T_NAME 
 ;
 
@@ -4666,7 +4782,7 @@ my_substitute_fn  (tp, walk_subtrees, data)
   if (DECL_P(*tp)) {
     for(old=TREE_PURPOSE(old);old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
       if (DECL_NAME(*tp)==DECL_NAME(old)) {
-	*tp=new;
+	*tp=TREE_VALUE(new);
 	goto subst_out;
       }
     }
