@@ -27,6 +27,7 @@
 #include "parse.h"
 
 #define my_isblank(c) ((c) == ' ' || (c) == '\t')
+#define my_isblank2(c) ((c) == ' ' || (c) == '\t' || (c) == 0)
 #define my_isletter(c) ( ((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') || (c)=='$' || (c)=='_')
 #define my_isend(c) ((c) == '\n' || (c) == 0)
 
@@ -36,6 +37,7 @@
   tree parse_this_range (char * this, char * end);
   char * my_strcasestr(const char *, const char *);
   char * my_strstrend(const char *, const char *);
+  char * my_strstrendbal(const char *, const char *, char , int);
 
   extern int yydebug;
   extern int yy2debug;
@@ -45,6 +47,8 @@
   YYSTYPE yylval;
   unsigned int intern_hash_size=0;
   unsigned int estimated_token_count=0;
+
+  int cond_iter_macro_count = 0;
 
   char *p_title;
   int undefmode=0;
@@ -64,6 +68,8 @@
   int blipre_lineno=1;
   int blipre_charno=1;
   int blipre_debug_line=0; 
+
+  int last_eq=0;
 
 #define LEXINIT_INVALID 3
   int which_lex=LEXINIT_INVALID;
@@ -96,13 +102,23 @@
   int bli_init_reswords (void);
   int yylex ( void );
   int something_that_uses_yyunput(void);
+  int add_tree_string(tree, const char *, int);
+  void strip_par(char *);
 
 #define MAX_INCLUDE_DEPTH 10
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
-  int include_stack_ptr = 0;
+  signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
   int cond_stack_ptr = 0;
+#define MAX_MACRO_DEPTH 40
+  tree macro_stack[MAX_MACRO_DEPTH];
+  char macro_stack_char[MAX_MACRO_DEPTH];
+  int macro_stack_ptr=0;
+#define MAX_NESTED_MACRO_DEPTH 10
+  void* nested_macro_stack_mac[MAX_MACRO_DEPTH];
+  tree nested_macro_stack_act[MAX_MACRO_DEPTH];
+  int nested_macro_stack_ptr=0;
 
   int expr_parse = 0;
 
@@ -114,15 +130,47 @@
   char macrocomma=1;
   tree remaining=0;
 
+  char * opened_req[100];
+  char opened_req_ptr=0;
+
+  int 
+	 is_opened(char * file)
+	 {
+		downcase(file);
+		char i;
+		for(i=0;i<opened_req_ptr;i++) {
+		  if (0==strcmp(file,opened_req[i]))
+			 return 1;
+		}
+		return 0;
+	 }
+
   void
     push_macro(char *new)
     {
       char * empty="";
       if (new==0)
         new=empty;
+		strip_par(new);
       include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
  
       yy_switch_to_buffer(yy_scan_string(new));
+    }
+
+  void
+    push_nested_macro()
+    {
+      nested_macro_stack_mac[nested_macro_stack_ptr] = macr;
+      nested_macro_stack_act[nested_macro_stack_ptr] = macroact;
+		nested_macro_stack_ptr++;
+    }
+
+  void
+    pop_nested_macro()
+    {
+		nested_macro_stack_ptr--;
+      macr = nested_macro_stack_mac[nested_macro_stack_ptr];
+      macroact = nested_macro_stack_act[nested_macro_stack_ptr];
     }
 
   void
@@ -130,6 +178,7 @@
     {
       include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
 		downcase(new);
+		opened_req[opened_req_ptr++]=xstrdup(new);
       yyin = fopen( new, "r" );
      
       yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
@@ -159,14 +208,14 @@
     pop_cond_stack(void)
     {
       if ( --cond_stack_ptr < 0 )
-	{
-	  if (yy2debug) inform("\nempty cond stack\n");
-	}
+		  {
+			 if (yy2debug) inform("\nempty cond stack\n");
+		  }
       else
-   {
-	  /*base_*/skip_mode=cond_stack[cond_stack_ptr];
-    }
- }
+		  {
+			 /*base_*/skip_mode=cond_stack[cond_stack_ptr];
+		  }
+	 }
 
   int
     get_cond_stack(void)
@@ -180,6 +229,33 @@
     {
       if (cond_stack_ptr==0) fprintf(stderr,"cond_stack_ptr 0\n");
       return cond_stack[cond_stack_ptr-2];
+    }
+
+  void
+    push_macro_stack(tree t, char *c)
+    {
+      macro_stack[macro_stack_ptr] = t;
+      macro_stack_char[macro_stack_ptr++] = c;
+    }
+
+  tree
+    pop_macro_stack(void)
+    {
+      if ( --macro_stack_ptr < 0 )
+		  {
+			 if (yy2debug) inform("\nempty cond stack\n");
+		  }
+      else
+		  {
+			 return macro_stack[cond_stack_ptr];
+		  }
+	 }
+
+  char
+    get_macro_stack_char(void)
+    {
+      if (cond_stack_ptr==0) fprintf(stderr,"cond_stack_ptr 0\n");
+      return macro_stack_char[macro_stack_ptr-1];
     }
 
 %}
@@ -200,6 +276,12 @@ hexdigit [0-9a-f]
 */
 
 %%
+
+  // executed last?
+  if (last_eq) {
+	 if (*yytext!='=' && !my_isblank2(*yytext))
+      last_eq=0;
+  }
 
   if (se2) {
     se2=0;
@@ -229,7 +311,7 @@ hexdigit [0-9a-f]
 	 change_macromode();
   }
 
-  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
 
   if (last_p && *yytext==')') {
     int last=last_p;
@@ -248,13 +330,20 @@ hexdigit [0-9a-f]
 #endif
   }
 
+  if (*yytext=='=')
+	 last_eq=1;
+
   if (*yytext=='+' || *yytext=='-') {
 	 // workaround because shift/reduce etc with plain chars
+#if 0
 	 char * text = yytext - 1;
 	 while (my_isblank(*text))
       text--;
 
-	 if (*text=='=') {
+	 if (*text=='=') {}
+#endif
+	 if (last_eq) {
+		last_eq=0;
 		if (*yytext=='+')
 		  return UPLUS;
 		else
@@ -270,7 +359,7 @@ hexdigit [0-9a-f]
     yyless(yyleng);
     break;
   }
-  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   s=strdup(yytext);
   //fprintf(stderr, "TDIG %s\n",s); fflush(stderr); 
   yylval.type_node_p=copy_node(get_identifier(s));
@@ -287,7 +376,7 @@ hexdigit [0-9a-f]
   int key=0;
 
   downcase (yytext);
-  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
   if (key<=0) key = keyword (yytext);
@@ -320,7 +409,7 @@ hexdigit [0-9a-f]
 
 "%"{name}			{
   /* store that string w/o '' */
-  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
 
   int my_yyleng=0;
   signed int key = -3;
@@ -798,10 +887,12 @@ hexdigit [0-9a-f]
   case P_PRINT:
   case P_MESSAGE:
   case P_ERRORMACRO:
+  case P_NAME:
   case P_STRING: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrend(my_yytext,0);
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -813,9 +904,12 @@ hexdigit [0-9a-f]
 		goto do_break;
   
 	 char myret[255];
+	 int myretp=0;
 	 memset(myret, 0, 255);
-	 myret[0]=39;
-	 int myretp=1;
+	 if (key!=P_NAME) {
+		myret[0]=39;
+		myretp=1;
+	 }
 	 char myline[255];
 
 	 char * par = my_yytext+1;
@@ -823,12 +917,16 @@ hexdigit [0-9a-f]
 
   string_again:
 	 par_end = par;
+#if 0
 	 while (*par_end!=',' && par_end<my_end)
 		par_end++;
+#endif
+	 par_end=my_strstrendbal(par,my_end,',',1);
 
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
+	 strip_par(myline);
 	 printf("myretsp %s\n",myline);
 	 tree t=parse_this(myline);
 	 t=fold(t);
@@ -868,7 +966,16 @@ hexdigit [0-9a-f]
 
 	 {}
 
-	 char * start = IDENTIFIER_POINTER(t) + 1;
+	 char * start = IDENTIFIER_POINTER(t);
+
+	 if (key==P_NAME && TREE_CODE(t)==IDENTIFIER_NODE && *start!=39) {
+		int len=IDENTIFIER_LENGTH(t);
+		memcpy(&myret[myretp],IDENTIFIER_POINTER(t),len);
+		myretp+=len;
+		goto str_out;
+	 }
+
+	 start++;
 	 char * end = strchr(start,39);
 
 	 memcpy(&myret[myretp],start,end-start);
@@ -881,7 +988,8 @@ hexdigit [0-9a-f]
 		goto string_again;
 	 }
 
-	 myret[myretp]=39;
+	 if (key!=P_NAME)
+		myret[myretp]=39;
 
 	 char * s = strdup(myret);
 	 printf("myrets %s\n",s);
@@ -915,10 +1023,14 @@ hexdigit [0-9a-f]
 		fn=inform;
 		str="ERRORMACRO";
 		break;
-	 case P_STRING: { 
+	 case P_NAME:
+		retval=T_NAME;
+		goto out_data;
+		break;
+	 case P_STRING:
 		retval=T_STRING;
 		goto out_data;
-	 }
+		break;
 	 }
 	 fn("BLS-%s-%s\n",str,s);
 	 goto myout;
@@ -1213,7 +1325,7 @@ hexdigit [0-9a-f]
   case P_NULL:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
+		char * my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1232,14 +1344,25 @@ hexdigit [0-9a-f]
 
 	 null_again:
 		par_end = par;
+#if 0
 		while (*par_end!=',' && par_end<my_end)
 		  par_end++;
+#endif
+		par_end=my_strstrendbal(par,my_end,',',1);
 
 		memset(myline, 0, 255);
 		memcpy(myline,par,par_end-par);
 
+		strip_par(myline);
+		fprintf(stderr, "null parse this %s\n",myline);
+		tree t=parse_this(myline);
+		if (t) // check
+		  myret++;
+#if 0
+		// why was this here?
 		if (!is_on_remaining(myline),macroact)
 		  myret++;
+#endif
 
 		if (*par_end==',') {
 		  par = par_end + 1;
@@ -1522,6 +1645,24 @@ hexdigit [0-9a-f]
 	 break;
 
   case P_COUNT:
+	 {
+		yyless(key_len);
+
+		if (do_skip)
+		  goto do_break;
+  
+		char myline[255];
+		memset(myline,0,255);
+		sprintf(myline,"%d",cond_iter_macro_count);
+		char * s = strdup(myline);
+		yylval.type_node_p=copy_node(get_identifier(s));
+
+		retval=T_DIGITS;
+		goto out_data;
+		break;
+	 }
+	 break;
+
   case P_EXITITERATION:
   case P_EXITMACRO:
   case P_LTCE:
@@ -1531,7 +1672,6 @@ hexdigit [0-9a-f]
   case P_SWITCHES:
   case P_NBITS:
   case P_NBITSU:
-  case P_NAME:
   case P_QUOTENAME:
 	 {
 		printf("key %x not yet implemented\n", key);
@@ -1593,7 +1733,7 @@ hexdigit [0-9a-f]
   }
   struct mymacro * m;
   /* store that string w/o '' */
-  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   m=(void*)find_macro(0,yytext);
   macr=m;
   if (m) BEGIN(macro);
@@ -1639,15 +1779,40 @@ hexdigit [0-9a-f]
   }
 } 
 
-<macro>{delim}				{
+<macro>{delim}|"%"				{
   int newmacrocomma;
-  if (*yytext=='[' || *yytext=='(' || *yytext=='<') { if (macrostart==0) macrostart=*yytext; }
+  if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
+	 if (macrostart==0)
+		macrostart=*yytext;
+  }
+
+  if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
+	 push_macro_stack(macroact,*yytext);
+	 if (macro_stack_ptr>1) {
+		tree t = tree_last(macroact);
+		add_tree_string(t, yytext, 1);
+	 }
+	 goto out;
+  }
+
+  if (*yytext==']' || *yytext==')' || *yytext=='>') {
+	 if (macro_stack_ptr==0)
+		goto end_out;
+	 if (macro_stack_ptr>1) {
+		tree t = tree_last(macroact);
+		add_tree_string(t, yytext, 1);
+		pop_macro_stack();
+		goto out;
+	 }
+	 pop_macro_stack();
+  }
 
   if (macrostart==0 && *yytext==',') {
 	 yyless(0);
 	 goto ifall;
   }
 
+ end_out:
   if (macrostart==0) {
 	 yyless(0);
 	 goto ifall;
@@ -1664,6 +1829,17 @@ hexdigit [0-9a-f]
     case '>': 
       goto ifall;
       break;
+	 case '=':
+		if (macro_stack_ptr==1)
+		  goto out;
+	 default:
+		if (macro_stack_ptr>1) {
+		  tree t = tree_last(macroact);
+		  add_tree_string(t, yytext, strlen(yytext));
+		} else {
+		  if (*yytext==',')
+			 macroact=chainon(macroact,build_string(0,""));
+		}
     }
     goto out;
   ifall:
@@ -1678,19 +1854,22 @@ hexdigit [0-9a-f]
         remaining=a;
     }
     push_macro(make_macro_string(macr,macroact));
-    macrostart=0;
-    macr=0;
-    macroact=0;
-    macrocomma=1;
-    BEGIN(0);
-    continue;
-  }
+	 // not yet? pop_nested_macro();
+	 if (nested_macro_stack_ptr==0) {
+		macrostart=0;
+		macr=0;
+		macroact=0;
+		macrocomma=1;
+		BEGIN(0);
+		continue;
+	 }
+  } // if (macrostart)...
  out:
 
   newmacrocomma=*yytext;
 
   if (macrocomma && newmacrocomma==',') {
-	 fprintf(stderr,"macroact chainon\n");
+	 //fprintf(stderr,"macroact chainon\n");
 	 //chainon(macroact,tree_cons(0,0,0));
   }
 
@@ -1698,18 +1877,52 @@ hexdigit [0-9a-f]
 
 }
 
-<macro>{name}|{digit}+				{
+<macro>{name}|{string}|{digit}+				{
   downcase (yytext);
+  struct mymacro * m=(void*)find_macro(0,yytext);
+  if (m) {
+#if 0
+	 // not  yet?
+	 push_nested_macro();
+	 // which also must must handle the ordinary macro_stack etc
+	 macr=m;
+	 macroact=0;
+	 continue;
+#endif
+	 // temp workaround if macros are simple enough?
+	 //if (m->param==0 && m->param2==0)
+	 //push_macro(make_macro_string(m,0));
+  }
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   if (macrocomma=='=') {
-	 TREE_TYPE(macroact)=copy_node(get_identifier(strdup(yytext)));
+	 TREE_TYPE(macroact)=build_string(strlen(yytext),yytext);
 	 goto out_macro_comma;
   }
-  if (macrocomma) 
-	 macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
+  if (macrocomma==',' && macro_stack_ptr==1) {
+#if 0
+	 // don't need this anymore?
+	 macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+#else
+	 tree t = tree_last(macroact);
+	 add_tree_string(t, yytext, strlen(yytext));
+#endif
+  } else {
+	 if (macroact==0) {
+		macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+		goto out_macro_comma;
+	 }
+	 tree t = tree_last(macroact);
+	 add_tree_string(t, yytext, strlen(yytext));
+  }
  out_macro_comma:
   macrocomma=1;
 }
+
+<macro>\n            input_line++;
+
+<macro>{space}+          { }
+
+<macro>![^\n\f]*[\n\f]			/* ignore trailing comment */ input_line++ ; 
 
 %%
 
@@ -2157,7 +2370,9 @@ tree parse_this (char * this) {
   expr_parse++;
   include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
   yy_switch_to_buffer(yy_scan_string(this));
+  //tree t = save_last_tree();
   yyparse();
+  //restore_last_tree(t);
   return mylast();
 }
 
@@ -2280,6 +2495,31 @@ char * my_strstrend(const char * s, const char * t) {
   return s + strlen(s);
 }
 
+char * my_strstrendbal(const char * s, const char * end, char t, int bal) {
+  char * e = end; //strchr(s, '\n');
+    if (e==0)
+	 e=s+strlen(s);
+  if (bal) {
+	 signed int mybalcnt = 0;
+	 char * c = s;
+	 for(;c!=e;c++) {
+		if (*c=='(' || *c=='[' || *c=='<')
+		  mybalcnt++;
+		if (*c==')' || *c==']' || *c=='>') {
+		  mybalcnt--;
+		  if (mybalcnt<0)
+			 return c-1; // check
+		  if (mybalcnt==0 && t==0) // bad shortcut
+			 return c;
+		}
+		if (t && t==*c && mybalcnt==0) // bad shortcut
+		  return c;
+	 }
+  }
+ get_out:
+  return e;
+}
+
 change_macromode() {
   if (one_lexeme) {
 	 macromode=0;
@@ -2287,3 +2527,34 @@ change_macromode() {
   }
 }
 
+int
+add_tree_string(t,s,len)
+	  tree t;
+	  const char * s;
+	  int len;
+{
+  // maybe a source for leakage
+  int orig_len = TREE_STRING_LENGTH (t);
+  char str[1024]; // check bound overflow later
+  memcpy(str, TREE_STRING_POINTER(t), orig_len);
+  memcpy(str+orig_len, s, len);
+  str[orig_len+len]=0;
+  TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len);
+  TREE_STRING_LENGTH (t) = orig_len+len;
+  //  free(str); leak
+}
+
+void
+strip_par (s)
+	  char * s;
+{
+  return;
+  int end = strlen(s)-1;
+  int start = 0;
+  if (my_isblank(s[start]))
+	 start++;
+  if (my_isblank(s[end]))
+	 end--;
+  if (s[start]=='(' && s[end]==')')
+	 s[start]=s[end]=' ';
+}
