@@ -181,7 +181,7 @@ bliss.rest.encap:
 bliss.info:
 bliss.dvi:
 
-bliss.generated-manpages:
+bliss.man:
 
 #
 # Install hooks:
