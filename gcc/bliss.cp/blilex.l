@@ -197,7 +197,7 @@ yylval.type_node_p=get_identifier(s);
   return T_STRING;
 }
 
-![^\n\f]*[\n\f]			/* ignore trailing comment */  ;
+![^\n\f]*[\n\f]			/* ignore trailing comment */ lineno++ ;
 
 "%("([^\)]|")"[^\%])*")%"	/* ignore embedded comment */  ;
 
