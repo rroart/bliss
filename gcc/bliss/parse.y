@@ -443,6 +443,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> macro_actuals macro_actual_parameter_list macro_actual_parameter
 %type <type_node_p> keyword_assignments keyword_assignment keyword_formal_name
 %type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
+%type <type_node_p> if_then
 /*%type <type_node_p> test tok*/
 %type <filename> save_filename
 %type <lineno> save_lineno
@@ -1112,11 +1113,13 @@ block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 
 block_action: expression ';' { 
   /*bli_add_stmt ($1);*/
-  if ($1) $$=c_expand_expr_stmt($1);
+  if ($1) 
+    if (TREE_CODE($1)<SRCLOC)
+      $$=c_expand_expr_stmt($1);
 }
 ;
 
-maybe_block_value: { $$=0; }
+maybe_block_value: { $$=build_int_2(0,0); }
 |block_value
 ;
 
@@ -1684,6 +1687,7 @@ control_expression:  conditional_expression
 if_then:
 K_IF {
   $<type_node_p>$ = c_begin_if_stmt ();
+  TREE_TYPE ($<type_node_p>$) = integer_type_node;
 }
 exp
 {
@@ -1693,14 +1697,16 @@ exp
 K_THEN
 exp
 {
-  if ($6) $<type_node_p>$ = c_expand_expr_stmt($6);
+  tree if_stmt = $<type_node_p>2;
+  if ($6) /* $<type_node_p>$ =*/ c_expand_expr_stmt($6);
   c_finish_then();
+  //THEN_CLAUSE (if_stmt) = $6;
+  $$=$<type_node_p>2;
+  //  $$=$6;
 }
 ;
 
 conditional_expression: 
-/*K_IF exp K_THEN exp  K_ELSE exp ';' { $$=$2;}
-| */
 if_then
 K_ELSE
 {
@@ -1708,23 +1714,67 @@ K_ELSE
 }
 exp
 {
-  if ($4) $<type_node_p>$ = c_expand_expr_stmt($4);
+  tree if_stmt = $1;
+  tree nop = build_int_2(0,0);
+
+  if ($4) $4 /*$<type_node_p>$*/ = c_expand_expr_stmt($4);
   c_finish_else();
   c_expand_end_cond();
-#if 1
-  $$=0;
+
+  $$ = 0;
+  $$ = $1; 
+
+#if 0
+  if (TREE_TYPE(THEN_CLAUSE(if_stmt))==0)
+    TREE_TYPE(THEN_CLAUSE(if_stmt))=integer_type_node;
+  if (TREE_TYPE(ELSE_CLAUSE(if_stmt))==0)
+    TREE_TYPE(ELSE_CLAUSE(if_stmt))=integer_type_node;
+#endif
+
+#if 0
+  $$ = build_conditional_expr (IF_COND(if_stmt), THEN_CLAUSE(if_stmt), ELSE_CLAUSE(if_stmt));
+  //  $$ = add_stmt ( build_stmt (EXPR_STMT, $$));
+  //TREE_TYPE ($$) = TREE_TYPE (TREE_OPERAND($$, 0));
+  //  $$ = c_expand_expr_stmt ($$);
+
+  TREE_SIDE_EFFECTS ($$) = 1;
+  TREE_SIDE_EFFECTS (THEN_CLAUSE(if_stmt)) = 1;
+  TREE_SIDE_EFFECTS (ELSE_CLAUSE(if_stmt)) = 1;
+
+  THEN_CLAUSE(if_stmt) = 0;//nop;
+  ELSE_CLAUSE(if_stmt) = 0;//nop;
 #endif
 }
 |
 if_then %prec K_IF
 {
+  tree if_stmt = $1;
+  tree nop = build_int_2(0,0);
+
   c_expand_end_cond ();
-#if 1
-  $$=0;
+
+  $$ = $1;
+  //  $$ = 0;
+
+#if 0
+  if (TREE_TYPE(THEN_CLAUSE(if_stmt))==0)
+    TREE_TYPE(THEN_CLAUSE(if_stmt))=integer_type_node;
 #endif
+
+#if 0
+  $$ = build_conditional_expr (IF_COND(if_stmt), THEN_CLAUSE(if_stmt), build_int_2(0,0)/*save_expr($1)*/);
+  //  $$ = c_expand_expr_stmt ($$);
+  //TREE_TYPE ($$) = TREE_TYPE (TREE_OPERAND($$, 0));
+
+  TREE_SIDE_EFFECTS ($$) = 1;
+  TREE_SIDE_EFFECTS (THEN_CLAUSE(if_stmt)) = 1;
+  //TREE_SIDE_EFFECTS (ELSE_CLAUSE(if_stmt)) = 1;
+
+  THEN_CLAUSE(if_stmt) = 0;//nop;
+  ELSE_CLAUSE(if_stmt) = 0;//nop;
+#endif
+
 }
-/*K_IF exp K_THEN exp  K_ELSE exp 
-|K_IF exp K_THEN exp  */
 ;
 
 exp: expression 
@@ -3070,9 +3120,12 @@ linkage_function_name: T_NAME
 ;
 
 pushlevel:  /* empty 7 */
-{ pushlevel (0);
- clear_last_expr ();
- add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
+{
+  tree scope;
+  pushlevel (0);
+  clear_last_expr ();
+  scope = add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
+  //  if (TREE_TYPE(TREE_PURPOSE(scope))==0) TREE_TYPE(TREE_PURPOSE(scope))=integer_type_node;
 }
 ;
 

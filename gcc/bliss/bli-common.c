@@ -5253,8 +5253,16 @@ bli_expand_expr (exp, target, tmode, modifier)
 	return expand_expr (TREE_OPERAND (exp, 0), target, tmode, modifier);
 	break;
       }
+#if 0
+    case IF_STMT:  // work-around hack
+      {
+	return exp;
+	break;
+      }
+#endif
     default:
-      abort ();
+      abort();
+      //return c_expand_expr (exp, target, tmode, modifier);
     }
 
   abort ();

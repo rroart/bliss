@@ -127,6 +127,7 @@ end;
 routine pppp(par1, par2)=
 begin
 external routine undecl;
+external routine retval2;
 own myown;
 undecl(64,96);
 undecl(par1, par2);
@@ -135,19 +136,36 @@ undecl(.par1,.par2+.par1);
 myown=par1<16,8>;
 undecl(par1, .myown);
 undecl(64,97+1);
+retval2();
 end;
 
 !routine q=3;
 routine r=
 begin
 external routine undecl;
-own a,b,c,d;
+own a,b,c,d,e;
 a=0;
 b=3;
 undecl(130,130);
+
+e=(if .dd eql 4 then 20 else 30);
+!undecl(e,.e);
+
+if .a eql 0 then dd=8;
+if .a eql 0 then ( own a; a=3; 7);
 if .a then ( own a; a=3; 7);
 if .a eql 1 then ( undecl (43,44); );
-if .b geq 2 then ( undecl (45,46); );
+if .a eql 0 then ( undecl (43,45); );
+if .a eql 0 then undecl (43,46);
+if .a neq 1 then ( undecl (43,47); );
+if .b geq 2 then ( undecl (45,48); );
+if .b geq 2 then ( undecl (45,49); );
+if .b geq 2 then undecl (45,50); 
+if .b leq 2 then undecl (45,51); 
+if .b leq 2 then ( undecl (45,526);  );
+if .b leq 2 then undecl (45,46) else undecl(46,45);
+if .b leq 2 then ( undecl (47,48) ) else ( undecl(48,49) );
+if .b geq 2 then ( undecl (47,49) ) else ( undecl(48,50) );
 undecl(128^(0-3),0);
 undecl(0,16^3);
 undecl(129,16^(0-.b));
@@ -156,9 +174,11 @@ undecl(a,b);
 undecl(c,d);
 undecl(4,0);
 
-if b then dd=4;
+if .b geq 4 then dd=4;
+undecl(dd,.dd);
 undecl(4,1);
-if b then dd=4;
+if .b then dd=4;
+undecl(dd,.dd);
 undecl(4,2);
 end;
 routine s=
@@ -199,6 +219,24 @@ undecl(768,768);
 e=2;
 dummy2();
 end;
+
+routine retval=
+begin
+local a;
+a=3;
+42
+end;
+
+routine retval2=
+begin
+external routine retval;
+external routine undecl;
+local l;
+l=retval();
+undecl(7,8);
+undecl(l,.l);
+end;
+
 end
 eludom
 
