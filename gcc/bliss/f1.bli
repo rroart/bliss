@@ -4,12 +4,11 @@ own dd;
 routine r=
 begin
 own a;
+a=3;
+dd=3;
+decr a from 10 to 1 by 1 do begin
 dd=3;
 end;
-routine s=
-begin
-own b;
-b=3;
 end;
 end
 eludom
