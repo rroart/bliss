@@ -4114,6 +4114,10 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
 	  decl = 0;
 	  break;
 
+	case INTEGER_TYPE:
+	  decl = 0;
+	  break;
+
 	default:
 	  abort ();
 	}
@@ -4877,6 +4881,10 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
 	  declarator = TREE_OPERAND (declarator, 0);
 	}
 
+      else if (TREE_CODE (declarator) == INTEGER_TYPE) // new?
+	{
+	  declarator = 0;
+	}
       else
 	abort ();
 
@@ -5067,7 +5075,9 @@ grokdeclarator (declarator, declspecs, decl_context, initialized)
 
 	if (TREE_CODE (type) == FUNCTION_TYPE)
 	  {
+#if 0
 	    error ("field `%s' declared as a function", name);
+#endif
 	    type = build_pointer_type (type);
 	  }
 	else if (TREE_CODE (type) != ERROR_MARK
@@ -7523,6 +7533,8 @@ build_void_list_node ()
   return t;
 }
 
+#include "bliss-tree.h"
+
 tree
 start_structure (code, name)
      enum tree_code code;
@@ -7541,11 +7553,8 @@ start_structure (code, name)
       TYPE_PACKED (ref) = flag_pack_struct;
       if (TYPE_FIELDS (ref))
         {
-	  if (code == UNION_TYPE)
+	  if (code == STRUCTURE_TYPE)
 	    error ("redefinition of `union %s'",
-		   IDENTIFIER_POINTER (name));
-          else
-	    error ("redefinition of `struct %s'",
 		   IDENTIFIER_POINTER (name));
 	}  
 
@@ -7557,7 +7566,7 @@ start_structure (code, name)
   ref = make_node (code);
   pushtag (name, ref);
   C_TYPE_BEING_DEFINED (ref) = 1;
-  TYPE_PACKED (ref) = flag_pack_struct;
+  //  TYPE_PACKED (ref) = flag_pack_struct;
   return ref;
 }
 
@@ -7588,35 +7597,15 @@ finish_structure (t, fieldlist, access_formal, allocation_formal, structure_size
      and delete them, below).  */
 
   saw_named_field = 0;
-  for (x = fieldlist; x; x = TREE_CHAIN (x))
-    {
-      DECL_CONTEXT (x) = t;
-      DECL_PACKED (x) |= TYPE_PACKED (t);
-
-      /* Any field of nominal variable size implies structure is too.  */
-      if (C_DECL_VARIABLE_SIZE (x))
-	C_TYPE_VARIABLE_SIZE (t) = 1;
-
-      DECL_INITIAL (x) = 0;
-
-      if (DECL_NAME (x))
-	saw_named_field = 1;
-    }
-
   /* Now we have the nearly final fieldlist.  Record it,
      then lay out the structure or union (including the fields).  */
 
   TYPE_FIELDS (t) = fieldlist;
 
-  layout_type (t);
-
   /* Now we have the truly final field list.
      Store it in this type and in the variants.  */
 
   TYPE_FIELDS (t) = fieldlist;
-
-  /* Finish debugging output for this type.  */
-  rest_of_type_compilation (t, toplevel);
 
   return t;
 }
