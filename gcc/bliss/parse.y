@@ -161,6 +161,7 @@ bli_common_parse_file(set_yydebug)
  extern struct function *cfun; 
  struct function *acfun = 0;
  tree afun = 0;
+ int cfun_zero = 0;
 
  static int filestackno = 0;
 
@@ -586,6 +587,12 @@ save_location
 expression END_EXPR { last_expr = $1; YYACCEPT; }
 |
 maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
+|
+T_NAME END_EXPR 
+{
+  last_expr = $1;
+  YYACCEPT; 
+}
 ;
 
 module_head	: T_NAME
@@ -1374,7 +1381,14 @@ unlabeled_block_start: K_BEGIN {
 
 unlabeled_block_start2: '(' { 
 #ifndef c99
-  $$=c_begin_compound_stmt ();
+  if (cfun==0) {
+#if 0
+	 cfun_zero=1;
+	 allocate_struct_function();
+#endif
+  }
+  if (cfun)
+	 $$=c_begin_compound_stmt ();
 #endif
 }
 ;
@@ -1403,6 +1417,8 @@ pushlevel block_body K_END poplevel
 pushlevel block_body ')' poplevel
 { 
 #ifndef c99
+  if (cfun==0)
+	 goto no_cfun;
 $$=poplevel (KEEP_MAYBE, 0, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
@@ -1410,6 +1426,7 @@ $$=poplevel (KEEP_MAYBE, 0, 0);
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
+ no_cfun:
  $$=$3;
 #else 
  $$=0;
@@ -1496,6 +1513,9 @@ maybe_block_value: { $$=build_int_2(0,0); }
   $$=$1; 
 #endif
 
+  if (cfun==0)
+	 goto no_cfun_block_value;
+
   tree type = integer_type_node;
 
   // next something based on cp build_local_temp
@@ -1515,7 +1535,10 @@ maybe_block_value: { $$=build_int_2(0,0); }
 
   c_expand_expr_stmt(t);
   TREE_TYPE($$)=integer_type_node;
-
+  goto block_value_out;
+ no_cfun_block_value:
+  $$ = $1;
+ block_value_out:
 }
 ;
 
@@ -2079,7 +2102,8 @@ op_exp12:  op_exp11 /*'='*/ '@' op_exp12
   ;
 */
 executable_function:
-executable_function_name '('  actual_parameter_list  ')' {
+executable_function_name '('  actual_parameter_list  ')'
+{
   // copy from routine call?
   void * ref;
   if (yychar == YYEMPTY)
@@ -2088,6 +2112,14 @@ executable_function_name '('  actual_parameter_list  ')' {
   $$ = build_function_call (ref, $3); 
 }
 |executable_function_name '(' ')' 
+{
+  // copy from routine call?
+  void * ref;
+  if (yychar == YYEMPTY)
+    yychar = YYLEX;
+  ref = build_external_ref ($1, 1);
+  $$ = build_function_call (ref, 0); 
+}
 ;
 
 executable_function_named:
@@ -3682,7 +3714,8 @@ require_declaration: K_REQUIRE T_STRING ';'
   if (brack)
 	 new=brack+1;
   char * new2 = my_strcat(new,".req",0);
-  push_req_stack(new2);
+  if (!is_opened(new2))
+	 push_req_stack(new2);
 
   //  pop_srcloc();
   $$ = 0;
@@ -3703,7 +3736,8 @@ library_declaration: K_LIBRARY T_STRING ';'
   if (brack)
 	 new=brack+1;
   char * new2 = my_strcat(new,".req",0);
-  push_req_stack(new2);
+  if (!is_opened(new2))
+	 push_req_stack(new2);
 
   //  pop_srcloc();
   $$ = 0;
@@ -4271,18 +4305,24 @@ linkage_function_name: T_NAME
 
 pushlevel:  /* empty 7 */
 {
+  if (cfun==0)
+	 goto skip_pushlevel;
   tree scope;
   pushlevel (0);
   clear_last_expr ();
   scope = add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
   //  if (TREE_TYPE(TREE_PURPOSE(scope))==0) TREE_TYPE(TREE_PURPOSE(scope))=integer_type_node;
+ skip_pushlevel:
 }
 ;
 
 poplevel:  /* empty 8 */
 { 
+  if (cfun==0)
+	 goto skip_poplevel;
   $$ = add_scope_stmt (/*begin_p=*/0, /*partial_p=*/0);
- }
+ skip_poplevel:
+}
 ;
 
 %%
@@ -4941,7 +4981,9 @@ make_macro_string(m,r)
 	 goto other_macro;
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
-    char * l = IDENTIFIER_POINTER(t);
+    char * l = TREE_STRING_POINTER(t);
+	 if (TREE_CODE(t)==IDENTIFIER_NODE)
+		l=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
 	 // check. not quite sure about doing quoting here
 	 if (is_quote) {
 		is_quote=0;
@@ -4954,24 +4996,24 @@ make_macro_string(m,r)
 		goto keyw_macro;
     for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
       if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
-		  l=IDENTIFIER_POINTER(new);
+		  l=TREE_STRING_POINTER(new);
 		  goto subst_out;
       }
     }
 	 goto subst_out;
   keyw_macro:
     for(new=r;new;new=TREE_CHAIN(new)) {
-		//fprintf(stderr,"IDD3 %x %x %x\n",l,IDENTIFIER_POINTER(TREE_TYPE(new)),IDENTIFIER_POINTER(new));
-      if (0==strcmp(l,IDENTIFIER_POINTER(new))) {
+		//fprintf(stderr,"IDD3 %x %x %x\n",l,TREE_TYPE(new),TREE_STRING_POINTER(new));
+      if (0==strcmp(l,TREE_STRING_POINTER(new))) {
 		  if (TREE_TYPE(new))
-			 l=IDENTIFIER_POINTER(TREE_TYPE(new));
+			 l=TREE_STRING_POINTER(TREE_TYPE(new));
 		  goto subst_out;
       }
     }
     for(old=p;old;old=TREE_CHAIN(old)) {
-		//printf("IDD4 %x %x %x\n",l,l,l);
+		//printf("IDD4 %x %x %x\n",l,TREE_VALUE(old),TREE_PURPOSE(old));
       if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
-		  l=IDENTIFIER_POINTER(TREE_PURPOSE(old));
+		  l=TREE_STRING_POINTER(TREE_PURPOSE(old));
 		  goto subst_out;
       }
     }
@@ -4987,6 +5029,8 @@ make_macro_string(m,r)
  other_macro:
   if (m->type==COND_MACRO)
 	 goto cond_macro;
+  extern int cond_iter_macro_count;
+  cond_iter_macro_count=0;
   tree iter=m->param2;
   tree new=r;
   tree tmp=p;
@@ -4996,7 +5040,7 @@ make_macro_string(m,r)
 	 fprintf(stderr,"new %x\n",new);
 	 tree t;
 	 for(t=b;t;t=TREE_CHAIN(t)) {
-		char * l = IDENTIFIER_POINTER(t);
+		char * l = TREE_STRING_POINTER(t);
 		tree new2=new;
 		tree par2=par;
 		for(;new2 && par2;new2=TREE_CHAIN(new2),par2=TREE_CHAIN(par2)) {
@@ -5011,14 +5055,15 @@ make_macro_string(m,r)
 			 continue;
 #endif
 		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(par2)))) {
-			 l=IDENTIFIER_POINTER(new2);
+			 l=TREE_STRING_POINTER(new2);
 			 goto subst_out2;
 		  }
 		}
 		tree old3, new3;
 		for(old3=p,new3=r;old3 && new3;old3=TREE_CHAIN(old3),new3=TREE_CHAIN(new3)) {
 		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old3)))) {
-			 l=IDENTIFIER_POINTER(new3);
+			 //fprintf(stderr,"CMP3 %s %s %s %x %x\n",l,IDENTIFIER_POINTER(TREE_VALUE(old3)),TREE_STRING_POINTER(new3),TREE_STRING_POINTER(new3),new3);
+			 l=TREE_STRING_POINTER(new3);
 			 goto subst_out2;
 		  }
 		}
@@ -5028,7 +5073,9 @@ make_macro_string(m,r)
 	 for(tmp=iter;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
 	 if (new)
 		s = my_strcat(s,",",0); // remember to fix punctuation later
+	 cond_iter_macro_count++;
   } // end while
+  fprintf(stderr, "ITER %x\n",s);
   fprintf(stderr, "ITER %s\n",s);
   return s;
  cond_macro:
@@ -5043,7 +5090,7 @@ print_remain(r)
   tree t;
   for(t=r;t;t=TREE_CHAIN(t)) {
     tree old,new;
-    char * l = IDENTIFIER_POINTER(t);
+    char * l = TREE_STRING_POINTER(t);
     if (s==0) s=xstrdup(l);
     else
       s=my_strcat(s,l,0);
@@ -5332,3 +5379,16 @@ my_strcat_gen(str1, str2, space)
   return str;
 }
 
+tree
+save_last_tree() {
+  int t = last_tree;
+  last_tree = build_nt (EXPR_STMT, void_zero_node);
+  return t;
+}
+
+void
+restore_last_tree(t)
+	  tree t;
+{
+  last_tree = t;
+}
