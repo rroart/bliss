@@ -1,0 +1,9 @@
+go to gcc/ and mkdir bliss, cd bliss and symlink/copy everything.
+
+at least something like configure --enable-languages=bliss
+
+do a make bootstrap
+
+next time, for quicker compile, go to gcc and do make quickstrap -k
+until you get bli1
+
