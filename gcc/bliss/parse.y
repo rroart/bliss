@@ -167,6 +167,9 @@ bli_common_parse_file(set_yydebug)
 
 /* test */
 
+%nonassoc K_IF
+%nonassoc K_ELSE
+
 /*%token_table yacc*/
 %token <type_node_p> T_DIGITS
 %token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME
@@ -1678,23 +1681,47 @@ control_expression:  conditional_expression
 | return_expression  
 ;
 
-conditional_expression: 
-/* K_IF exp K_THEN exp  K_ELSE exp ';' 
-| */
-K_IF
-{
-  $<type_node_p>$ = c_begin_if_stmt (); 
+if_then:
+K_IF {
+  $<type_node_p>$ = c_begin_if_stmt ();
 }
 exp
 {
   c_expand_start_cond (c_common_truthvalue_conversion ($3), 
 		       compstmt_count,$<type_node_p>2);
 }
-K_THEN exp
+K_THEN
+exp
 {
-  c_finish_then ();
-  c_expand_end_cond ();
+  if ($6) $<type_node_p>$ = c_expand_expr_stmt($6);
+  c_finish_then();
+}
+;
+
+conditional_expression: 
+/*K_IF exp K_THEN exp  K_ELSE exp ';' { $$=$2;}
+| */
+if_then
+K_ELSE
+{
+  c_expand_start_else();
+}
+exp
+{
+  if ($4) $<type_node_p>$ = c_expand_expr_stmt($4);
+  c_finish_else();
+  c_expand_end_cond();
+#if 1
   $$=0;
+#endif
+}
+|
+if_then %prec K_IF
+{
+  c_expand_end_cond ();
+#if 1
+  $$=0;
+#endif
 }
 /*K_IF exp K_THEN exp  K_ELSE exp 
 |K_IF exp K_THEN exp  */
