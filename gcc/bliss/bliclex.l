@@ -30,10 +30,13 @@ return strdup(s1);
 #include "blir_temp_config.h"
 #include "config.h"
 #include <stdio.h>
-#include <ctype.h>
+//#include <ctype.h>
 #include "gansidecl.h"
 
 #undef IN_GCC
+
+#include "system.h"
+#include "tree.h"
 
 #include "blidebug.h"
 #include "blicc1.h"
