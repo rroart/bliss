@@ -763,7 +763,7 @@ lowlevel: T_DIGITS {  }
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
 primary  { $$=$1; }
-| operator_expression  { $$=c_expand_expr_stmt($1); }
+| operator_expression  { /* $$=c_expand_expr_stmt($1); */ }
 | executable_function  { $$=$1; }
 | control_expression   { $$=$1; }
 | p_stuff { $$=$1; };
@@ -782,7 +782,7 @@ numeric_literal  { $$=$1; }
 }
 | block  { $$=$1; }
 | structure_reference { $$=$1; }
-| routine_call  { $$ = c_expand_expr_stmt ($1); }
+| routine_call  { /* $$ = c_expand_expr_stmt ($1);*/ }
 | field_reference { $$=$1; }
 | codecomment { $$=$1; }
 ;
@@ -1054,6 +1054,7 @@ block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 
 block_action: expression ';' { 
   /*bli_add_stmt ($1);*/
+  if ($1) $$=c_expand_expr_stmt($1);
 }
 ;
 
@@ -1214,7 +1215,7 @@ op_exp12 { $$=$1; }
 ;
 
 operator_expression:
-'.' opexp9 {  }
+'.' opexp9  { $$ = build_indirect_ref ($2, "unary *"); }
 /*| '+' opexp9 %prec UMINUS {  $$->id="+"; }
 | '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
 | opexp9 '^' opexp9 { }
@@ -1424,6 +1425,7 @@ K_THEN exp
 {
   c_finish_then ();
   c_expand_end_cond ();
+  $$=0;
 }
 /*K_IF exp K_THEN exp  K_ELSE exp {  }
 |K_IF exp K_THEN exp  {  }*/
@@ -1514,6 +1516,7 @@ exp
  $<type_node_p>$ = add_stmt ($<type_node_p>2); }
  K_DO exp  {
   RECHAIN_STMTS ($<type_node_p>4, WHILE_BODY ($<type_node_p>4));
+  $$=0;
  } 
 | K_UNTIL  exp K_DO exp { }
 ;
@@ -1536,8 +1539,8 @@ K_EXITLOOP  exp  { $$=$2; }
 ;
 
 return_expression: 
-K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); }
-|K_RETURN { $$ = c_expand_return (NULL_TREE); }
+K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); $$=0; }
+|K_RETURN { $$ = c_expand_return (NULL_TREE); $$=0; }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
 /**** 4.0 DECLARATIONS **********************************************/
@@ -1766,7 +1769,8 @@ own_item_list: own_item_list ',' own_item {
 own_item: T_NAME { 
   //$$ = build_decl (VAR_DECL, $1, integer_type_node);
   TREE_TYPE($1)=integer_type_node;
-  tree d = start_decl ($1, current_declspecs, 0,
+  tree p = make_pointer_declarator(0,$1);
+  tree d = start_decl (p, current_declspecs, 0,
 		       chainon (NULL_TREE, all_prefix_attributes));
  finish_decl (d, NULL_TREE, NULL_TREE);
   // $$ = build_tree_list ($1, NULL_TREE);
@@ -4405,4 +4409,18 @@ void
 cpp_finish (pfile)
      cpp_reader *pfile;
 {
+}
+
+/* This is actually the bliss default */
+
+tree
+make_pointer_declarator (type_quals_attrs, target)
+     tree type_quals_attrs, target;
+{
+  tree quals, attrs;
+  tree itarget = target;
+  split_specs_attrs (type_quals_attrs, &quals, &attrs);
+  if (attrs != NULL_TREE)
+    itarget = tree_cons (attrs, target, NULL_TREE);
+  return build1 (INDIRECT_REF, quals, itarget);
 }
