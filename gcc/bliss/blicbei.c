@@ -391,36 +391,6 @@ tree saved_perform_ptr_array_decl = NULL;
 
 static tree resultdecl;  /* Result declaration for current function.  */
 
-/* The front end language hooks (addresses of code for this front
-   end).  Mostly just use the C routines.  */
-
-#undef LANG_HOOKS_TRUTHVALUE_CONVERSION
-#define LANG_HOOKS_TRUTHVALUE_CONVERSION c_common_truthvalue_conversion
-#undef LANG_HOOKS_MARK_ADDRESSABLE
-#define LANG_HOOKS_MARK_ADDRESSABLE c_mark_addressable
-#undef LANG_HOOKS_SIGNED_TYPE
-#define LANG_HOOKS_SIGNED_TYPE c_common_signed_type
-#undef LANG_HOOKS_UNSIGNED_TYPE
-#define LANG_HOOKS_UNSIGNED_TYPE c_common_unsigned_type
-#undef LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE
-#define LANG_HOOKS_SIGNED_OR_UNSIGNED_TYPE c_common_signed_or_unsigned_type
-#undef LANG_HOOKS_TYPE_FOR_MODE
-#define LANG_HOOKS_TYPE_FOR_MODE c_common_type_for_mode
-#undef LANG_HOOKS_TYPE_FOR_SIZE
-#define LANG_HOOKS_TYPE_FOR_SIZE c_common_type_for_size
-#undef LANG_HOOKS_PARSE_FILE
-#define LANG_HOOKS_PARSE_FILE bliss_parse_file
-
-/* Hook routines and data unique to bliss.  */
-
-#undef LANG_HOOKS_INIT
-#define LANG_HOOKS_INIT bliss_init
-#undef LANG_HOOKS_NAME
-#define LANG_HOOKS_NAME	"GNU BLISS for GCC"
-#undef LANG_HOOKS_DECODE_OPTION	
-#define LANG_HOOKS_DECODE_OPTION bliss_decode_option
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
-
 /* Tree code type/name/code tables.  */
 
 #if 0
@@ -6678,7 +6648,7 @@ bliss_init_decl_processing ()
 /* Tell the c code we are not objective C.  */
 
 int
-maybe_objc_comptypes (tree lhs ATTRIBUTE_UNUSED,
+maybe_objc_comptypes2 (tree lhs ATTRIBUTE_UNUSED,
                       tree rhs ATTRIBUTE_UNUSED,
                       int reflexive ATTRIBUTE_UNUSED)
 {
@@ -6688,7 +6658,7 @@ maybe_objc_comptypes (tree lhs ATTRIBUTE_UNUSED,
 /* Used by c-typeck.c (build_external_ref), but only for objc.  */
 
 tree
-lookup_objc_ivar (tree id ATTRIBUTE_UNUSED)
+lookup_objc_ivar2 (tree id ATTRIBUTE_UNUSED)
 {
   return 0;
 }
@@ -6706,7 +6676,7 @@ check_function_format (int *status ATTRIBUTE_UNUSED,
 /* Tell the c code we are not objective C.  */
 
 tree
-maybe_building_objc_message_expr ()
+maybe_building_objc_message_expr2 ()
 {
   return 0;
 }
@@ -6740,7 +6710,7 @@ dt (tree t)
 }
 
 void
-maybe_objc_check_decl (tree decl ATTRIBUTE_UNUSED)
+maybe_objc_check_decl2 (tree decl ATTRIBUTE_UNUSED)
  {
    abort ();
  }

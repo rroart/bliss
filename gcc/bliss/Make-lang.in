@@ -169,10 +169,10 @@ bliss/blipre$(exeext): bliss/blipre.o bliss/blipre1.o $(BLI_NEW_UTILS)\
 # core compiler 
 bliss/bli1$(exeext): bliss/blicgty.o bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
 	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
-	 bliss/blicast.o bliss/blicbei.o bliss/bli-semantics.o $(BLI_BE_LIBS)
+	 bliss/blicast.o bliss/blicbei.o bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o $(BLI_BE_LIBS)
 	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
 	 bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
-	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o bliss/bli-semantics.o \
+	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o \
 	 bliss/blicast.o bliss/blicbei.o bliss/blicgty.o $(BLI_BE_LIBS)
 #c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
 
@@ -384,6 +384,24 @@ bliss/blicmsg.o: $(blisrc)/blicmsg.c  $(BLI_NEW_UTIL_H) $(blisrc)/blicc1.h
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
 bliss/bli-semantics.o: $(blisrc)/bli-semantics.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-decl.o: $(blisrc)/bli-decl.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-typeck.o: $(blisrc)/bli-typeck.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-common2.o: $(blisrc)/bli-common2.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-common.o: $(blisrc)/bli-common.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-lang.o: $(blisrc)/bli-lang.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bli-convert.o: $(blisrc)/bli-convert.c  $(BLI_NEW_UTIL_H)
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
 bliss/blir_bin128LLL.o: $(blisrc)/blir_bin128LLL.c \

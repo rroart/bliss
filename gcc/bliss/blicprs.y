@@ -465,12 +465,16 @@ save_filename save_lineno
  block K_ELUDOM
 {
   /*  $$=creatnode(module, $2, $4); */
-  $$=$2;
+  $$=$7;
   //  DECL_SOURCE_FILE (current_function_decl) = $5;
   //  DECL_SOURCE_LINE (current_function_decl) = $6;
   //  bli_finish_function (0, 1); 
   //  POP_DECLSPEC_STACK;
   fprintf (stderr, "%s\n",OK);
+  while (! global_bindings_p ())
+    poplevel (0, 0, 0);
+  finish_fname_decls ();
+  finish_file ();
 }
 ;
 
@@ -1661,23 +1665,25 @@ own_declaration_list: own_declaration_list own_declaration { $$=creatnode(own_de
 */
 
 own_declaration: K_OWN own_item_list ';' {
-  /* $$ = creatnode(own_declaration,0,$2); */
   $$ = $2;
 }
 ;
 
 own_item_list: own_item_list ',' own_item {
-  $$ = chainon($1, $3);
+  //$$ = chainon($1, $3);
   /* $$ =creatnode(own_item_list,$3,$1);*/
  }
-|own_item { 
-  $$ = $1;
+|declspecs_ts setspecs own_item { 
+  //  $$ = $1;
 }
 ;
 
 own_item: T_NAME { 
-  $$ = build_decl (VAR_DECL, $1, integer_type_node);
+  //$$ = build_decl (VAR_DECL, $1, integer_type_node);
   TREE_TYPE($1)=integer_type_node;
+  tree d = start_decl ($1, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
+ finish_decl (d, NULL_TREE, NULL_TREE);
   // $$ = build_tree_list ($1, NULL_TREE);
   /* $$ = creatnode(own_item,0,0); */
   /* $$->id=$1; */
@@ -1872,12 +1878,13 @@ save_filename save_lineno exp
 |declspecs_ts setspecs T_NAME 
 {
   //current_function_decl=$3;
-  void * vo = $3;
-  bli_start_function (current_declspecs, $3, all_prefix_attributes);
+  void * v = build_tree_list (NULL_TREE, NULL_TREE);
+  void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
+  start_function (current_declspecs, vo, all_prefix_attributes);
 }
 io_list 
 {
-  //  store_parm_decls ();
+  store_parm_decls ();
 }
 '=' save_filename save_lineno exp 
 { 
@@ -1885,8 +1892,8 @@ io_list
   //DECL_SOURCE_FILE (current_function_decl) = $6;
   //DECL_SOURCE_LINE (current_function_decl) = $7;
   $$=chainon($3,$10);
-  DECL_SAVED_TREE (current_function_decl) = $$;
-  bli_finish_function (0, 1); 
+  //  DECL_SAVED_TREE (current_function_decl) = $$;
+  finish_function (0, 1); 
   POP_DECLSPEC_STACK;
   //tree decl=$3;
   //DECL_NAME(decl)=$3;
@@ -1919,13 +1926,17 @@ io_list: { $$=0; }
 |'(' ';' formal_item_list ')' { $$=creatnode(io_list, 0, $3); }
 ;
 
-formal_item_list: { $$=0; }
-|formal_item_list ','  formal_item { $$=creatnode(formal_item_list, $3, $1); }
-|formal_item { $$=$1; }
+formal_item_list:
+/* empty */ { $$ = 0 ; } 
+|formal_item_list ','  formal_item
+|declspecs_ts setspecs formal_item  
 ;
 
-formal_item: T_NAME ':' formal_attribute_list { $$=creatnode(formal_item, 0, $3);/* $$->id=$1;  */}
-|T_NAME { $$=creatnode(formal_item,0,0);/* $$->id=$1;  */}
+formal_item: T_NAME ':' formal_attribute_list 
+|T_NAME { tree d = start_decl ($1, current_declspecs, 0,
+			       chainon (NULL_TREE, all_prefix_attributes));
+ finish_decl (d, NULL_TREE, NULL_TREE); 
+}
 ;
 routine_attribute_list:
 routine_attribute_list routine_attribute { $$=creatnode(routine_attribute_list,$2,$1); }
@@ -4117,3 +4128,191 @@ ggc_mark_if_gcable (const void * a  ATTRIBUTE_UNUSED)
 {
 }
 
+void
+maybe_apply_pragma_weak(int a) {
+}
+
+tree
+maybe_apply_renaming_pragma(tree decl, tree asmname) {
+  return asmname;
+}
+
+void
+c_parse_init(void) {
+}
+
+void
+c_common_insert_default_attributes2 (decl)
+     tree decl;
+{
+  tree name = DECL_NAME (decl);
+
+#if 0
+  if (!c_attrs_initialized)
+    c_init_attributes ();
+#endif
+
+#if 0
+#define DEF_ATTR_NULL_TREE(ENUM) /* Nothing needed after initialization.  */
+#define DEF_ATTR_INT(ENUM, VALUE)
+#define DEF_ATTR_IDENT(ENUM, STRING)
+#define DEF_ATTR_TREE_LIST(ENUM, PURPOSE, VALUE, CHAIN)
+#define DEF_FN_ATTR(NAME, ATTRS, PREDICATE)                     \
+  if ((PREDICATE) && name == built_in_attributes[(int) NAME])   \
+    decl_attributes (&decl, built_in_attributes[(int) ATTRS],   \
+                     ATTR_FLAG_BUILT_IN);
+#include "builtin-attrs.def"
+#undef DEF_ATTR_NULL_TREE
+#undef DEF_ATTR_INT
+#undef DEF_ATTR_IDENT
+#undef DEF_ATTR_TREE_LIST
+#undef DEF_FN_ATTR
+#endif
+}
+
+int
+cpp_handle_option (pfile, argc, argv, ignore)
+     cpp_reader *pfile;
+     int argc;
+     char **argv;
+     int ignore;
+{
+}
+
+int
+defer_fn2 (fn)
+     tree fn;
+{
+  //  VARRAY_PUSH_TREE (deferred_fns, fn);
+
+  return 1;
+}
+
+void
+set_Wformat (setting)
+     int setting;
+{
+  warn_format = setting;
+  warn_format_y2k = setting;
+  warn_format_extra_args = setting;
+  if (setting != 1)
+    {
+      warn_format_nonliteral = setting;
+      warn_format_security = setting;
+    }
+}
+
+void
+gen_aux_info_record (fndecl, is_definition, is_implicit, is_prototyped)
+     tree fndecl;
+     int is_definition;
+     int is_implicit;
+     int is_prototyped;
+{
+#if 0
+  if (flag_gen_aux_info)
+    {
+      static int compiled_from_record = 0;
+
+      /* Each output .X file must have a header line.  Write one now if we
+         have not yet done so.  */
+
+      if (! compiled_from_record++)
+        {
+          /* The first line tells which directory file names are relative to.
+             Currently, -aux-info works only for files in the working
+             directory, so just use a `.' as a placeholder for now.  */
+          fprintf (aux_info_file, "/* compiled from: . */\n");
+        }
+
+      /* Write the actual line of auxiliary info.  */
+
+      fprintf (aux_info_file, "/* %s:%d:%c%c */ %s;",
+               DECL_SOURCE_FILE (fndecl),
+               DECL_SOURCE_LINE (fndecl),
+               (is_implicit) ? 'I' : (is_prototyped) ? 'N' : 'O',
+               (is_definition) ? 'F' : 'C',
+               gen_decl (fndecl, is_definition, ansi));
+
+      /* If this is an explicit function declaration, we need to also write
+         out an old-style (i.e. K&R) function header, just in case the user
+         wants to run unprotoize.  */
+
+      if (is_definition)
+        {
+          fprintf (aux_info_file, " /*%s %s*/",
+                   gen_formal_list_for_func_def (fndecl, k_and_r_names),
+                   gen_formal_list_for_func_def (fndecl, k_and_r_decls));
+        }
+
+      fprintf (aux_info_file, "\n");
+    }
+#endif
+}
+
+void
+cpp_finish_options (pfile)
+     cpp_reader *pfile;
+{
+}
+
+cpp_reader *
+cpp_create_reader (lang)
+     enum c_lang lang;
+{
+}
+
+void
+cpp_post_options (pfile)
+     cpp_reader *pfile;
+{
+}
+
+void
+cpp_error VPARAMS ((cpp_reader * pfile, const char *msgid, ...))
+{
+}
+
+unsigned int
+cpp_errors (pfile)
+     cpp_reader *pfile;
+{
+  //return pfile->errors;
+}
+
+tree
+handle_format_attribute (node, name, args, flags, no_add_attrs)
+     tree *node;
+     tree name ATTRIBUTE_UNUSED;
+     tree args;
+     int flags;
+     bool *no_add_attrs;
+{
+}
+
+tree
+handle_format_arg_attribute (node, name, args, flags, no_add_attrs)
+     tree *node;
+     tree name ATTRIBUTE_UNUSED;
+     tree args;
+     int flags;
+     bool *no_add_attrs;
+{
+}
+
+const char *
+init_c_lex (filename)
+     const char *filename;
+{
+}
+
+void
+init_pragma ()
+{
+}
+
+void
+cpp_finish (pfile)
+     cpp_reader *pfile;
+{
+}
