@@ -1,4 +1,4 @@
-%x macro p_paren
+%x macro
 
 %{
 
@@ -54,8 +54,12 @@
   int if_mode=0;
   int then_mode=0;
   int skip_mode=0;
+  int base_skip_mode=0;
+  int do_skip=0;
   int se2=0;
   int last_p=0;
+  int one_lexeme=0;
+  int balanced_lexemes=0;
 
   int blipre_lineno=1;
   int blipre_charno=1;
@@ -96,7 +100,7 @@
 #define MAX_INCLUDE_DEPTH 10
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
   int include_stack_ptr = 0;
-#define MAX_COND_DEPTH 10
+#define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
   int cond_stack_ptr = 0;
 
@@ -148,7 +152,7 @@
   void
     push_cond_stack(int new)
     {
-      cond_stack[cond_stack_ptr++] = skip_mode;
+      cond_stack[cond_stack_ptr++] = /*base_*/skip_mode;
     }
 
   void
@@ -160,7 +164,7 @@
 	}
       else
    {
-      skip_mode=cond_stack[cond_stack_ptr];
+	  /*base_*/skip_mode=cond_stack[cond_stack_ptr];
     }
  }
 
@@ -169,6 +173,13 @@
     {
       if (cond_stack_ptr==0) fprintf(stderr,"cond_stack_ptr 0\n");
       return cond_stack[cond_stack_ptr-1];
+    }
+
+  int
+    get_prev_cond_stack(void)
+    {
+      if (cond_stack_ptr==0) fprintf(stderr,"cond_stack_ptr 0\n");
+      return cond_stack[cond_stack_ptr-2];
     }
 
 %}
@@ -203,6 +214,19 @@ hexdigit [0-9a-f]
   if (skip_mode && if_mode == 0) {
 	 yyless(yyleng);
     break;
+  }
+
+  if (macromode==3 && one_lexeme) {
+    // was this balancing defined in the grammar?
+	 // check this. more to balance?
+	 if (strchr("<[",*yytext))
+		balanced_lexemes++;
+	 if (strchr(">]",*yytext))
+		balanced_lexemes--;
+  }
+
+  if (macromode==3 && one_lexeme && balanced_lexemes==0 && (*yytext==',' || *yytext==')')) {
+	 change_macromode();
   }
 
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
@@ -298,6 +322,7 @@ hexdigit [0-9a-f]
   /* store that string w/o '' */
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
 
+  int my_yyleng=0;
   signed int key = -3;
   downcase (yytext);
   key = keyword (yytext);
@@ -310,9 +335,14 @@ hexdigit [0-9a-f]
 	 }
 #endif
 
+  do_skip=0;
   if (skip_mode && if_mode == 0 && key!=P_IF && key!=P_THEN && key != P_ELSE && key != P_FI) {
+#if 0
     yyless(yyleng);
     break;
+#else
+	 do_skip=1;
+#endif
   }
 
   if (key == -1) {
@@ -339,6 +369,7 @@ hexdigit [0-9a-f]
 		memset(myline, 0, 255);
 		printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 		memcpy(myline,my_yytext,my_end-my_yytext);
+		printf("my2 %s\n",myline);
 #if 0
 		myline+=3;
 		myline[strlen(myline)-5]=0;
@@ -348,17 +379,26 @@ hexdigit [0-9a-f]
 		int len=my_end-yytext+5;
 		yyless(len);
 		//yyless(my_yyleng);
-		printf("skipp %x\n",skip_mode);
-		expr_parse++;
-		include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-		yy_switch_to_buffer(yy_scan_string(myline));
-		yyparse();
-		push_cond_stack(0);
-		skip_mode=get_cond_stack()|integer_zerop(fold(mylast()));
+		printf("skipp %x %x %x\n",base_skip_mode,skip_mode,cond_stack_ptr);
+		if (skip_mode==0) {
+		  expr_parse++;
+		  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+		  yy_switch_to_buffer(yy_scan_string(myline));
+		  yyparse();
+		  push_cond_stack(0);
+		  skip_mode=get_cond_stack()|integer_zerop(fold(parser_build_binary_op(BIT_AND_EXPR,mylast(),build_int_2(1,0))));
+		  push_cond_stack(0);
+		} else {
+		  push_cond_stack(0);
+		  skip_mode=1;
+		  push_cond_stack(0);
+		}
 		goto myout;
 	 }
 	 break;
 
+#if 0
+	 // dead code soon to be removed
   case P_THEN: { if_mode = 0; then_mode = 1;
   //printf("then nod %x\n" , yylval.type_node_p);
   tree f=fold(yylval.type_node_p);
@@ -367,15 +407,17 @@ hexdigit [0-9a-f]
   skip_mode=get_cond_stack()|integer_zerop(fold(mylast()));
   printf("skip %x\n",skip_mode);
   //yyless(yyleng);
+  exit(42);
   se2=1;
   return P_SOFTERROR3;
   break;
   }
 	 break;
+#endif
 
   case P_ELSE: {
 	 then_mode = 0;
-	 skip_mode=get_cond_stack()|!skip_mode;
+	 skip_mode=get_prev_cond_stack()|!get_cond_stack();
 	 //fprintf(stderr,"pel %s\n",yytext); fflush(stderr); 
 	 yyless(5/*yyleng*/);
 	 //fprintf(stderr,"pel2 %s\n",yytext); fflush(stderr);
@@ -383,10 +425,10 @@ hexdigit [0-9a-f]
   }
 	 break;
 
-  case P_FI: { /*skip_mode = 0;*/ pop_cond_stack(); /*yyless(yyleng);*/ yyless(3); key=-1; }
+  case P_FI: { /*skip_mode = 0;*/ pop_cond_stack(); pop_cond_stack(); /*yyless(yyleng);*/ yyless(3); key=-1; }
 	 break;
 
-  case P_QUOTE: { /* quote_mode_next = 1; */ yyless(yyleng); }
+  case P_QUOTE: { /* quote_mode_next = 1; */ yyless(6/*yyleng*/); key=-1; }
 	 break;
 
   case P_EXPAND: { /* quote_mode_next = 1; */ yyless(yyleng); }
@@ -407,6 +449,10 @@ hexdigit [0-9a-f]
 	 //  yytext=my_yytext+=my_yyleng;
 	 int len=my_end-yytext+1;
 	 yyless(len);
+
+	 if (do_skip)
+		goto do_break;
+  
 	 myline[1]=0;
 	 myline[0]='4';
 	 yylval.type_node_p=copy_node(get_identifier(myline));
@@ -429,14 +475,6 @@ hexdigit [0-9a-f]
 	 if (strcmp(str,"global register")==0)
 		$$ = build_int_2(4,0);
 #endif
-#if 0
-	 last_p=key;
-	 yyless(yyleng);
-	 BEGIN(p_paren);
-	 extern int yyrec;
-	 yyrec=1;
-	 return START_LEX;
-#endif
   }
 	 break;
 
@@ -445,6 +483,9 @@ hexdigit [0-9a-f]
 	 char * my_end=strchr(my_yytext, '\n');
 	 int len=my_end-yytext+1;
 	 yyless(len);
+  
+	 if (do_skip)
+		goto do_break;
   
 	 while (*my_end!=')')
 		my_end--;
@@ -521,14 +562,6 @@ hexdigit [0-9a-f]
 	 if (strcmp(str,"global register")==0)
 		$$ = build_int_2(4,0);
 #endif
-#if 0
-	 last_p=key;
-	 yyless(yyleng);
-	 BEGIN(p_paren);
-	 extern int yyrec;
-	 yyrec=1;
-	 return START_LEX;
-#endif
   }
 	 break;
 
@@ -537,6 +570,9 @@ hexdigit [0-9a-f]
 	 char * my_end=strchr(my_yytext, ')');
 	 int len=my_end-yytext+1;
 	 yyless(len);
+  
+	 if (do_skip)
+		goto do_break;
   
 	 char myret[255];
 	 memset(myret, 0, 255);
@@ -589,6 +625,9 @@ hexdigit [0-9a-f]
 	 int len=my_end-yytext+1;
 	 yyless(len);
   
+	 if (do_skip)
+		goto do_break;
+  
 	 int myret = 0;
 	 char myline[255];
 
@@ -637,6 +676,9 @@ hexdigit [0-9a-f]
 
 	 int len=my_end-yytext+1;
 	 yyless(len);
+  
+	 if (do_skip)
+		goto do_break;
   
 	 int tmp;
 	 int myret = 1;
@@ -690,6 +732,9 @@ hexdigit [0-9a-f]
 
 	 int len=my_end-yytext+1;
 	 yyless(len);
+  
+	 if (do_skip)
+		goto do_break;
   
 	 int myret = 0;
 	 int mylinep = 0;
@@ -753,12 +798,16 @@ hexdigit [0-9a-f]
   case P_STRING: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrend(my_yytext,0);
 
 	 while (*my_end!=')')
 		my_end--;
 
 	 int len=my_end-yytext+1;
 	 yyless(len);
+
+	 if (do_skip)
+		goto do_break;
   
 	 char myret[255];
 	 memset(myret, 0, 255);
@@ -777,13 +826,9 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(myline));
 	 printf("myretsp %s\n",myline);
-	 yyparse();
-
-	 tree t=fold(mylast());
+	 tree t=parse_this(myline);
+	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
 	 char * c = &v;
 	 int i;
@@ -887,6 +932,9 @@ hexdigit [0-9a-f]
 
 	 int len=my_end-yytext+1;
 	 yyless(len);
+  
+	 if (do_skip)
+		goto do_break;
   
 	 char * p1 = my_yytext + 1;
 	 while (my_isblank(*p1))
@@ -1026,6 +1074,9 @@ hexdigit [0-9a-f]
 	 yyless(6);
 #endif
 
+	 if (do_skip)
+		goto do_break;
+  
 	 *my_yytext=' ';
 	 *my_end=' ';
 
@@ -1108,6 +1159,9 @@ hexdigit [0-9a-f]
 		int len=my_end-yytext+1;
 		yyless(len);
 
+		if (do_skip)
+		  goto do_break;
+  
 		my_yytext++;
 		while (my_isblank(*my_yytext))
 		  my_yytext++;
@@ -1120,9 +1174,25 @@ hexdigit [0-9a-f]
 		char myline[255];
 		memset(myline, 0, 255);
 		memcpy(myline,my_yytext,1+my_end-my_yytext);
-		printf("decl %sX\n",myline);
 
-		tree is_there = maybe_get_identifier(myline);
+#if 0
+		printf("decl0 %s\n",myline);
+		tree n = parse_this(myline);
+		char * myline2=IDENTIFIER_POINTER(n);
+#else
+		char * quote=my_strcasestr(myline,"%quote");
+		char * myline2=myline;
+		if (quote) {
+		  myline2+=6;
+		  while (my_isblank(*myline2))
+			 myline2++;
+		}
+#endif
+		downcase(myline2);
+		tree is_there = maybe_get_identifier(myline2);
+		if (is_there==0)
+		  find_macro(0,myline2);
+		printf("decl %s %x\n",myline2,is_there);
 
 		myline[1]=0;
 		if (is_there)
@@ -1147,6 +1217,9 @@ hexdigit [0-9a-f]
 
 		int len=my_end-yytext+1;
 		yyless(len);
+  
+		if (do_skip)
+		  goto do_break;
   
 		char myline[255];
 		int myret=0;
@@ -1196,6 +1269,9 @@ hexdigit [0-9a-f]
 
 		int len=my_end-yytext+1;
 		yyless(len);
+  
+		if (do_skip)
+		  goto do_break;
   
 		char * p1 = my_yytext + 1;
 		while (my_isblank(*p1))
@@ -1248,6 +1324,9 @@ hexdigit [0-9a-f]
 
 		int len=my_end-yytext+1;
 		yyless(len);
+  
+		if (do_skip)
+		  goto do_break;
   
 		char myline[255];
 		int myret=0;
@@ -1303,6 +1382,9 @@ hexdigit [0-9a-f]
 
 		int len=my_end-yytext+1;
 		yyless(len);
+  
+		if (do_skip)
+		  goto do_break;
   
 		char * p1 = my_yytext + 1;
 		while (my_isblank(*p1))
@@ -1367,6 +1449,10 @@ hexdigit [0-9a-f]
   case P_LENGTH:
 	 {
 		yyless(key_len);
+
+		if (do_skip)
+		  goto do_break;
+  
 		tree t=macroact;
 		int len=0;
 		for (;t;t=TREE_CHAIN(t),len++) ;
@@ -1395,6 +1481,9 @@ hexdigit [0-9a-f]
 		int len=my_end-yytext+1;
 		yyless(len);
 
+		if (do_skip)
+		  goto do_break;
+  
 		my_yytext++;
 		my_end++;
 
@@ -1472,8 +1561,13 @@ hexdigit [0-9a-f]
   goto myout;
 
  out_data:
-  if (macromode) return LEXEME;
+  if (macromode) { return LEXEME; }
   return retval;
+
+ less_and_break:
+  yyless(my_yyleng);
+ do_break:
+  break;
 
  myout:
   {}
@@ -1481,6 +1575,10 @@ hexdigit [0-9a-f]
 
 "%"				{
   if (macromode) macromode=0;
+  if (skip_mode && if_mode == 0) {
+    yyless(yyleng);
+    break;
+  }
   yylval.type_str = strdup(yytext);
   return '%';
 }
@@ -1542,6 +1640,11 @@ hexdigit [0-9a-f]
   int newmacrocomma;
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') { if (macrostart==0) macrostart=*yytext; }
 
+  if (macrostart==0 && *yytext==',') {
+	 yyless(0);
+	 goto ifall;
+  }
+
   if (macrostart) {
     switch (*yytext) {
     case ']':
@@ -1589,14 +1692,6 @@ hexdigit [0-9a-f]
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
   macrocomma=1;
-}
-
-<p_paren>"(" {
-  yyless(yyleng);
-  BEGIN(0);
-  //se2=1;
-  //return P_SOFTERROR3;
-  continue;
 }
 
 %%
@@ -2167,3 +2262,11 @@ char * my_strstrend(const char * s, const char * t) {
 	 return e;
   return s + strlen(s);
 }
+
+change_macromode() {
+  if (one_lexeme) {
+	 macromode=0;
+	 one_lexeme=0;
+  }
+}
+
