@@ -320,7 +320,7 @@ bli_common_parse_file(set_yydebug)
 */
 %type <type_node_p> linkage_attribute tname_list tname_list2 char_par_list char_par
 %type <type_node_p> range_attribute novalue_attribute /*pot_expression*/
-%type <type_node_p> /*opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
+/* %type <type_node_p> opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
 %type <type_node_p> opexp9 lexical_function lexical_function_name 
 %type <type_node_p> weak_attribute own_attribute maybe_own_attribute_list
 %type <type_node_p> address lexical_actual_parameter own_attribute_list
