@@ -148,7 +148,7 @@ a=0;
 b=3;
 undecl(130,130);
 
-e=(if .dd eql 4 then 20 else 30);
+!e=(if .dd eql 4 then 20 else 30);
 !undecl(e,.e);
 
 if .a eql 0 then dd=8;
