@@ -619,7 +619,7 @@ fill_out_replacing_details (struct copyrepl_struct *copyrepl_details,
 
   BLI_ASSERT (to_last_token ? to_first_token : (void *)1);
 
-  allocate_replacing_struct ();
+  //  allocate_replacing_struct ();
 
   current_replacing = copyrepl_details->copyrepl_replacing->elem
     + copyrepl_details->copyrepl_replacing_count - 1;

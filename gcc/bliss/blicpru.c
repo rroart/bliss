@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include "safe-ctype.h"
 
 /* Avoid having to pull in the whole GCC tree thing, which we regard
    as a black box in this module.  */
@@ -916,7 +916,6 @@ get_next_name_symtab_entry (void *current, struct bli_token_struct *tk, uint32 *
   * status = find_next_symtab_entry_hierarchy (names_used, names, name_lengths,  & symtab_entry, type);
   return symtab_entry;
 }
-
 
 
 

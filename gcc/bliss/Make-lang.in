@@ -167,13 +167,15 @@ bliss/blipre$(exeext): bliss/blipre.o bliss/blipre1.o $(BLI_NEW_UTILS)\
 	 bliss/bliplex.o bliss/blippr1.o bliss/blippru.o bliss/blipmsg.o $(BLI_PRE_LIBS)
 
 # core compiler 
-bliss/bli1$(exeext): bliss/blicgty.o bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o\
+bliss/bli1$(exeext): bliss/blicgty.o bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
 	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
-	 bliss/blicast.o bliss/blicbei.o c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
+	 bliss/blicast.o bliss/blicbei.o $(BLI_BE_LIBS)
 	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
-	 bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o\
+	 bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
 	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
-	 bliss/blicast.o bliss/blicbei.o bliss/blicgty.o c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
+	 bliss/blicast.o bliss/blicbei.o bliss/blicgty.o $(BLI_BE_LIBS)
+#c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
+
 
 # test drivers
 .phony: bliss-check

@@ -17,6 +17,10 @@
 extern int yydebug;
 extern int yy2debug;
 
+char * s;
+
+//#define do_build_string(c) do { c=strdup(yytext); yylval=build_string(strlen(c),c); } while(0);
+
 #if 0
 static inline char *strdup(const char *s1) {
 return strdup(s1);
@@ -40,7 +44,8 @@ return strdup(s1);
 #include "blicsyt.h"
 #include "blicprs.h"
 
-static YYSTYPE yylval;
+#define yylval bli_lval
+YYSTYPE yylval;
 //static YYSTYPE yy2lval;
 static uchar *upper_work = NULL;
 static uint32 upper_work_length = 0;
@@ -112,7 +117,9 @@ hexdigit [0-9a-f]
 {any}+ { if (anymode) { 
 
 if (yy2debug) fprintf(stderr, "\nanymode %s\n",yytext); 
-yylval.type_str = strdup(yytext);
+//yylval.type_str = strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
 return T_NAME;
 } else REJECT;  }
 
@@ -124,7 +131,9 @@ return T_NAME;
 }
 
 {digit}+			{
-  yylval.type_int = atoi(yytext);
+//  yylval.type_int = atoi(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
   return T_DIGITS;
 }
 
@@ -144,7 +153,9 @@ return T_NAME;
   if (key == -1) 
 	 {
 	 onlytname:
-		yylval.type_str=strdup(yytext);
+//		yylval.type_str=strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
 		return T_NAME;
 	 }
   /*yylval.type_str=strdup(yytext);*/
@@ -173,7 +184,9 @@ return T_NAME;
 
 {string}			{
   /* store that string w/o '' */
-  yylval.type_str = strdup(yytext);
+//  yylval.type_str = strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
   return T_STRING;
 }
 
@@ -560,7 +573,9 @@ static int ukeyword (cp)
 
 /*
 {idigit}+			{
-yylval.type_str=strdup(yytext);
+//yylval.type_str=strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
 				  return T_IDIGITS;
 				}
 */
@@ -569,7 +584,9 @@ yylval.type_str=strdup(yytext);
 if (anymode) {
 anymode=0;
 if (yy2debug) fprintf(stderr, "anymode\n");
-yylval.type_str=strdup(yytext);
+//yylval.type_str=strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
 				     return T_NAME;
    }
 else REJECT;
@@ -578,7 +595,9 @@ else REJECT;
 /*
   {others} {
   if (yy2debug) fprintf(stderr, "anymode\n"); 
-  yylval.type_str = strdup(yytext);
+//  yylval.type_str = strdup(yytext);
+s=strdup(yytext);
+yylval.type_node_p=build_string(strlen(s),s);
   return T_NAME;
   }
 
@@ -640,7 +659,7 @@ initial_lexical_analysis(uint32 * token_count)
       my_token_count ++;
       new_token = BLI_ALLOC (sizeof (struct bli_token_struct));
 //      memcpy (new_token, ((struct bli_token_struct *)(&yylval)), sizeof (struct bli_token_struct));
-      new_token->type_int=yylval.type_int;
+//      new_token->type_int=yylval.type_int;
       BLI_ASSERT (new_token->string_details);
 
       if (first_token)

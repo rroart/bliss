@@ -1,3 +1,4 @@
+%option noyywrap
 %{
   /* File lexlex.l
 	* The Unknown Scandinavian was here

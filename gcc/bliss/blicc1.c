@@ -491,7 +491,7 @@ bliss_init (const char *filename)
   bliumsc_set_progname ((uchar *)"bli1");
 
   bliss_init_decl_processing ();
-
+  add_c_tree_codes ();
   /* This error will not happen from gcc as it will always create a
      fake input file.  So it will only happen running the compiler
      bare (blicc1 rather than gcc).  */

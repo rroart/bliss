@@ -371,10 +371,6 @@ typedef union bli_item_union bli_item;
 
 struct bli_tree_struct_parse_tree_top;
 struct bli_tree_struct_program_top;
-struct bli_tree_struct_identification_division;
-struct bli_tree_struct_environment_division;
-struct bli_tree_struct_data_division;
-struct bli_tree_struct_procedure_division;
 struct bli_tree_struct_program_id;
 struct bli_tree_struct_storage;
 struct bli_tree_struct_data_item;
@@ -557,7 +553,7 @@ typedef struct item_prefix_struct item_prefix;
 
 /* Structure for token in compiler.  */
 
-typedef struct bli_token_struct *ignodeptr;
+//typedef struct bli_token_struct *ignodeptr;
 
 struct bli_token_struct GTY(())
 {
@@ -570,6 +566,7 @@ struct bli_token_struct GTY(())
   uint32 bli_token_lineno; 
   uint32 bli_token_charno;
 
+#if 0
   int type_int;
   char     *type_str;
   ignodeptr  type_node_p;
@@ -582,11 +579,11 @@ struct bli_token_struct GTY(())
   ignodeptr middle;
   int value;
   char *id;
-
+#endif
 };
 
-typedef struct bli_token_struct ignode;
-ignodeptr igroot;
+//typedef struct bli_token_struct ignode;
+extern tree igroot;
 
 /* 
    3. Parse tree and symbol table proper.  */
@@ -637,11 +634,6 @@ struct bli_tree_struct_program_top GTY(())
   struct bli_tree_cons cons;  /* Next is next program.  */
   bli_token *reference_token;  /* First token.  */
   struct bli_tree_struct_identification_division *identification_division;  /* ID division.  */
-  struct bli_tree_struct_environment_division *environment_division;  /* Environment division.  */
-  struct bli_tree_struct_data_division *data_division;  /* Data division.  */
-  struct bli_tree_struct_procedure_division *procedure_division;  /* Procedure division header.  */
-  struct bli_tree_struct_end_program *end_program;  /* End of program details.  */
-  tree bli_tree_struct_decl;
   unsigned program_is_main: 1; 
 };
 
@@ -649,39 +641,6 @@ struct bli_tree_struct_program_top GTY(())
 struct bli_tree_struct_item_list GTY(())
 {
   struct bli_tree_branch branch;
-};
-
-/* IDENTIFICATION DIVISION.  */
-struct bli_tree_struct_identification_division GTY(())
-{
-  struct bli_tree_noncons noncons; 
-  bli_token *reference_token; 
-  struct bli_tree_struct_program_id *program_name;  /* Program name details.  */
-};
-
-/* ENVIRONMENT DIVISION.  */
-struct bli_tree_struct_environment_division GTY(())
-{
-  struct bli_tree_noncons noncons; 
-  bli_token *reference_token; 
-};
-
-/* DATA DIVISION.  */
-struct bli_tree_struct_data_division GTY(())
-{
-  struct bli_tree_branch branch; 
-  bli_token *reference_token; 
-  struct bli_tree_struct_occurs_clause *occurs_first;
-};
-
-/* PROCEDURE DIVISION.  */
-struct bli_tree_struct_procedure_division GTY(())
-{
-  struct bli_tree_branch branch; 
-  bli_token *reference_token; 
-  struct bli_tree_struct_label *label_first;
-  struct bli_tree_struct_verb_fullstop *end_of_sentence_first;
-  int32 exit_label_count;
 };
 
 /* PROGRAM ID.  */
@@ -1000,15 +959,6 @@ struct bli_tree_struct_verb_if GTY(())
   bli_item *if_false;  /* Stmts or SENTENCE for false case.  */
 };
 
-/* End of a program.  */
-struct bli_tree_struct_end_program GTY(())
-{
-  struct bli_tree_cons noncons; 
-  bli_token *reference_token;  /* END.  */
-  bli_token *type_token;  /* PROGRAM.  */
-  bli_token *name_token;  /* Name.  */
-};
-
 /* One in list of VALUE clauses.  */
 struct bli_tree_struct_value_clause GTY(())
 {
@@ -1068,10 +1018,6 @@ union bli_item_union GTY ((desc ("((((struct bli_token_struct*)&%0)->pfx.cat)|((
   bli_token GTY ((tag ("type_token"))) s000;
   struct bli_tree_struct_parse_tree_top * GTY ((tag ("type_production | (BLI_PROD_TYPE_PARSE_TREE_TOP<<16)"))) s001;
   struct bli_tree_struct_program_top GTY ((tag ("type_production | (BLI_PROD_TYPE_PROGRAM_TOP<<16)")))  s002;
-  struct bli_tree_struct_identification_division GTY ((tag ("type_production | (BLI_PROD_TYPE_IDENTIFICATION_DIVISION<<16)")))  s003;
-  struct bli_tree_struct_environment_division GTY ((tag ("type_production | (BLI_PROD_TYPE_ENVIRONMENT_DIVISION<<16)")))  s004;
-  struct bli_tree_struct_data_division GTY ((tag ("type_production | (BLI_PROD_TYPE_DATA_DIVISION<<16)"))) s005;
-  struct bli_tree_struct_procedure_division GTY ((tag ("type_production | (BLI_PROD_TYPE_PROCEDURE_DIVISION <<16)"))) s006;  
   struct bli_tree_struct_program_id GTY ((tag ("type_production | (BLI_PROD_TYPE_PROGRAM_ID<<16)"))) s007;
   struct bli_tree_struct_storage GTY ((tag ("type_production | (BLI_PROD_TYPE_STORAGE<<16)"))) s008;
   struct bli_tree_struct_data_item GTY ((tag ("type_production | (BLI_PROD_TYPE_DATA_ITEM<<16)"))) s009;
@@ -1098,7 +1044,6 @@ union bli_item_union GTY ((desc ("((((struct bli_token_struct*)&%0)->pfx.cat)|((
   struct bli_tree_struct_verb_exit GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_EXIT<<16)"))) s030;
   struct bli_tree_struct_verb_fullstop GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_FULLSTOP<<16)"))) s031; 
   struct bli_tree_struct_verb_if GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_IF<<16)"))) s032;
-  struct bli_tree_struct_end_program GTY ((tag ("type_production | (BLI_PROD_TYPE_END_PROGRAM<<16)"))) s033;
   struct bli_tree_struct_verb_next_sentence GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_NEXT_SENTENCE<<16)"))) s034;
   struct bli_tree_struct_save_details GTY ((tag ("type_production | (BLI_PROD_TYPE_SAVE_DETAILS<<16)"))) s035;
   struct bli_tree_struct_value_clause GTY ((tag ("type_production | (BLI_PROD_TYPE_VALUE_CLAUSE<<16)"))) s036; 

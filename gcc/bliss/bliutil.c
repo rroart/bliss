@@ -479,3 +479,4 @@ myabort (const char * const msg, const char * const file, int line)
   fprintf (stderr, "abort line %d file %s: %s\n", line, file, msg);
   abort ();
 }
+

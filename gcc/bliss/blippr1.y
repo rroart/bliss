@@ -8,6 +8,7 @@
 */
 //  int yydebug=0;
 #define YYERROR_VERBOSE
+#define YYDEBUG 1
 
 #include "blir_temp_config.h"
 
@@ -16,12 +17,16 @@
 #include <string.h>
 
 #include "gansidecl.h"
+#include "config.h"
+
+#undef IN_GCC
+#include "ggc.h"
+#define IN_GCC
 
 #include "bliumem.h"
 #include "blipre.h"
 #include "blidebug.h"
 #include "bliumsg.h"
-#include "tree.def"
 #include "tree.h"
 #include "blicsyt.h"
 
@@ -62,10 +67,10 @@ int copy_nested_level;
   /*#define YYSTYPE ignodeptr*/
   typedef int nodeAttr_t;
 
-  ignodeptr  creatnode (nodeAttr_t, ignodeptr, ignodeptr);
-  ignodeptr  creatid (char *);
-  ignodeptr  creatvalue (int);
-  ignodeptr  ForExpand(char *, int, int, ignodeptr);
+  tree  creatnode (nodeAttr_t, tree, tree);
+  tree  creatid (char *);
+  tree  creatvalue (int);
+  tree  ForExpand(char *, int, int, tree);
 //  int      yyerror (char *);
   int lineno=1;
 
@@ -380,7 +385,7 @@ int copy_nested_level;
 
 /**** 1.0 MODULES ***************************************************/
 
-module : lines { igroot=creatnode(module, $1, 0) };
+module : lines { /*igroot=creatnode(module, $1, 0);*/ };
 
 lines : lines singleline { $$=creatnode(module, $1, $2); 
 /*fprintf(stderr, "%x %x here2\n",$2,$2);*/ } | singleline { $$=creatnode(module, $1, 0); };
@@ -536,7 +541,7 @@ singleline: T_NAME { $$=creatid($1); /* fprintf(stderr, "%x %x %x here\n",$1,$1-
 //  | T_NAME '(' name_list ')'
 //  {*/ /* declare p */
 ///*			  int i;
-//			  ignodeptr p;
+//			  tree p;
 //			  			  $$=creatnode(special_switch,$3,0); $$->id=$1;
 //
 //			  switch (ukeyword( $1 )) {
@@ -2535,10 +2540,11 @@ void yyerror (char *s)
   fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
 }
 
-ignodeptr  creatnode (nodeAttr_t  type, ignodeptr left,
-							 ignodeptr     new)
+tree  creatnode (nodeAttr_t  type, tree left,
+							 tree     new)
 {
-  ignodeptr  tmp_node = (ignodeptr) malloc (sizeof (struct token_struct));
+#if 0
+  tree  tmp_node = (tree) malloc (sizeof (struct token_struct));
 
   if (yydebug) fprintf(stderr, "creating %d\n",type);
   tmp_node->type = type;
@@ -2548,11 +2554,13 @@ ignodeptr  creatnode (nodeAttr_t  type, ignodeptr left,
   tmp_node->id = 0;
   tmp_node->value = 0;
   return tmp_node;
+#endif
 }
 
-ignodeptr creatid (char *id) 
+tree creatid (char *id) 
 {
-  ignodeptr  tmp_node = (ignodeptr) malloc (sizeof (struct token_struct));
+#if 0
+  tree  tmp_node = (tree) malloc (sizeof (struct token_struct));
 
   if (id) if (yydebug) fprintf(stderr, "creating %s\n",id);
 #if 0
@@ -2564,11 +2572,13 @@ ignodeptr creatid (char *id)
   tmp_node->id = id;
   tmp_node->value = 0;
   return tmp_node;
+#endif
 }
 
-ignodeptr creatvalue (int value) 
+tree creatvalue (int value) 
 {
-  ignodeptr  tmp_node = (ignodeptr) malloc (sizeof (struct token_struct));
+#if 0
+  tree  tmp_node = (tree) malloc (sizeof (struct token_struct));
 
   if (yydebug) fprintf(stderr, "creating %d\n",value);
 #if 0
@@ -2580,14 +2590,16 @@ ignodeptr creatvalue (int value)
   tmp_node->id = 0;
   tmp_node->value = value;
   return tmp_node;
+#endif
 }
 
 /* Konstruer en l|vnode som kun inneholder en tallverdi. */
 int numbFors=0;
 
-ignodeptr search(ignodeptr ig, int type) {
-  ignodeptr fin;
-  void dosearch(ignodeptr ig, int type) {
+tree search(tree ig, int type) {
+#if 0
+  tree fin;
+  void dosearch(tree ig, int type) {
 	 if (fin) return;
 	 if (!ig) { fin=1; return 0; }
 	 if (ig->type==type) { fin=ig; }
@@ -2599,11 +2611,12 @@ ignodeptr search(ignodeptr ig, int type) {
   dosearch(ig,type);
   if (fin==1) fin=0;
   return fin;
+#endif
 };
 
-char * gettype(ignodeptr ig) {
+char * gettype(tree ig) {
 #if 0
-  ignodeptr sign, isvoid, def;
+  tree sign, isvoid, def;
   char *sign_s=0,*isvoid_s=0,*def_s=0,*tmp;
   tmp=(char *)malloc( 80);
   tmp[0]=32;
@@ -2657,7 +2670,7 @@ if (c) fprintf(stdout,argptr);
 extern FILE * f;
 extern FILE * myout;
 
-void  generatecode (ignodeptr np) {
+void  generatecode (tree np) {
   if (np) {
 	 switch (np->type) {
 	 case module:
@@ -3000,7 +3013,7 @@ void  generatecode (ignodeptr np) {
 #define downlevel cur_sym_table=prev;cur_top_table=prevtop;end_cur();next_sym_table=&(cur_sym_table->next);
 
 #if 0
-void  parsetree (ignodeptr np) {
+void  parsetree (tree np) {
   symrec *this,*prev,*scope,*prevtop; void * new;
   if (np) {
 	 switch (np->type) {
@@ -3410,7 +3423,7 @@ void  parsetree (ignodeptr np) {
 		  break;
 		default:
 		  fprintf(myout, "nonimp6 %d",np->value);/*
-																 { ignodeptr p=(ignodeptr)np->value; fprintf(myout, " %d",p->value); }*/
+																 { tree p=(tree)np->value; fprintf(myout, " %d",p->value); }*/
 		  break;
 		}
 		break;
@@ -3800,7 +3813,8 @@ void  parsetree (ignodeptr np) {
 };
 #endif // before parsetree
 
-print_token PARAMS((FILE * file, int type , YYSTYPE value))
+void
+print_token PARAMS ((FILE * file, uint32 type , void * value))
 {
   struct token_struct *token;
   int ix;
@@ -3869,20 +3883,20 @@ yy2error2 (char *error_message)
   //BLI_RECORD_MSG_TOKEN( MESSAGE_ID 13, token, actual_message);
 }
 
-int
+uint32
 blippr1 PARAMS(( /* input parms */
-           struct token_struct *first_token, int copy_flag,
+           struct token_struct *first_token, uint32 copy_flag,
            /* output parms */
-           struct copyrepl_struct **copy_array, int *copy_array_count))
+           dynarray_copyrepl **copy_array, uint32 *copy_array_count))
 {
 
   int parse_result;
 
-  assert (first_token);
+  //  assert (first_token);
 
   copy_count = 0;
   current_copyrepl_details = NULL;
-  copyrepl_details = BLI_ALLOC_DYNARRAY(10, sizeof(struct copyrepl_struct));
+  //  copyrepl_details = BLI_ALLOC_DYNARRAY(10, sizeof(struct copyrepl_struct));
 
   yydebug = option_parser_trace;
   copy_of_copy_flag = copy_flag;

@@ -467,7 +467,7 @@ blic_bei (parse_tree_top)
   while (current_program)
     {
       /* Lll; should run garbage collection after parse and after each function.  */
-      //      output_program_code (parse_tree_top, current_program); not yet
+      output_program_code (parse_tree_top, current_program);
       current_program = (struct bli_tree_struct_program_top *)(current_program->cons.next);
     }
 
@@ -477,6 +477,13 @@ blic_bei (parse_tree_top)
    programs in a source file.  Overall parse tree in PARSE_TREE_TOP.  */
 
 static tree fndecl = NULL;  /* Function declaration.  */
+
+static void
+output_program_code (struct bli_tree_struct_parse_tree_top *parse_tree_top, 
+                    struct bli_tree_struct_program_top *current_program)
+{
+  fprintf(stderr,"output_program_code\n");
+}
 
 #if 0
 static void
@@ -6708,7 +6715,23 @@ maybe_building_objc_message_expr ()
 tree
 build_stmt VPARAMS ((enum tree_code code  ATTRIBUTE_UNUSED, ...))
 {
-  abort ();
+  //  abort ();
+  tree t;
+  int length;
+  int i;
+
+  VA_OPEN (p, code);
+  VA_FIXEDARG (p, enum tree_code, code);
+
+  t = make_node (code);
+  length = TREE_CODE_LENGTH (code);
+  STMT_LINENO (t) = lineno;
+
+  for (i = 0; i < length; i++)
+    TREE_OPERAND (t, i) = va_arg (p, tree);
+
+  VA_CLOSE (p);
+  return t;
 }
 
 /* Should not be called for bliss.   */
