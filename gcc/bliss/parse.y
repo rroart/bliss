@@ -160,6 +160,8 @@ bli_common_parse_file(set_yydebug)
  tree parm_first_to_last (tree);
  void add_macro (char *,tree,tree);
  char * add_underscore (tree, int);
+ void * find_macro(struct mymacro * s,char * name);
+ char * make_macro_string(struct mymacro * m, tree r);
 
 %}
 
@@ -510,7 +512,7 @@ save_location
  start_block K_ELUDOM
 {
   $$=$6;
-  fprintf (stderr, "\n%BLS-I-PARSED-OK-That's a module alright\n");
+  //  fprintf (stdout, "\n%BLS-I-PARSED-OK-That's a module alright\n");
   while (! global_bindings_p ())
     poplevel (0, 0, 0);
   finish_fname_decls ();
@@ -625,11 +627,11 @@ common_switch	:  U_IDENT '=' T_STRING  { $$ = 0; }
   |T_NAME "equal" T_NAME
   {
    $$->id=$1;
-  fprintf(stderr, "swit %x %x %x\n",$$,$1,$3);
+  fprintf(stdout, "swit %x %x %x\n",$$,$1,$3);
   switch (ukeyword( $1 )) {
   case U_MAIN:
   ig_main  = $3;
-  fprintf(stderr,"main= %d %s \n",switch_main,ig_main);
+//  fprintf(stdout,"main= %d %s \n",switch_main,ig_main);
   break;
   default:
   yyerror ("here3");
@@ -767,7 +769,7 @@ tname_list2: tname_list2  T_NAME
   {
   int i=ukeyword( $1 );
   
-  fprintf(stderr, "$1 %s\n",$1);
+  fprintf(stdout, "$1 %s\n",$1);
   if (i>0)
   
   else {
@@ -779,7 +781,7 @@ tname_list2: tname_list2  T_NAME
   {
   int i=ukeyword( $3 );
   
-  fprintf(stderr, "$1 %s\n",$1);
+  fprintf(stdout, "zzz $1 %s\n",$1);
   if (i>0)
   
   else {
@@ -1140,7 +1142,7 @@ T_NAME '[' access_actual_list ']' {
   //tree t=build_external_ref ($1, 0);
   tree extref=build_external_ref ($1, 0);
   //tree params = chainon(copy_node(extref), $3);
-  //if (TREE_CHAIN(er)) fprintf(stderr, "\npanic %x\n",input_location.line);
+  //if (TREE_CHAIN(er)) fprintf(stdout, "\npanic %x\n",input_location.line);
   tree params = $3;
   tree type = xref_tag(STRUCTURE_ATTR,cell__);
   tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
@@ -1274,7 +1276,7 @@ field_reference:
     if (TREE_CODE(TREE_TYPE($1))==POINTER_TYPE) {
       i = build_indirect_ref ($1, "unary *");
     } else {
-      fprintf(stderr, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
+		fprintf(stdout, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
       //i = build_indirect_ref (convert(build_pointer_type (integer_type_node), $1), "unary *");
       //i = build_indirect_ref ($1, "unary *");
       //goto fetch_end;
@@ -1293,7 +1295,7 @@ field_reference:
     if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
       d = build_indirect_ref (d, "unary *");
     } else {
-      fprintf(stderr , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
+      fprintf(stdout , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
       //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
       //d = build_indirect_ref (d, "unary *");
     }
@@ -1304,7 +1306,7 @@ field_reference:
    op2 = t;
   }
   if (context=='a') {
-    fprintf(stderr, "not implemented yet");
+    fprintf(stdout, "not implemented yet");
   }
   $$ = build_nt (BIT_FIELD_REFS, op0, op1, op2);
   if (op0) TREE_TYPE($$)=TREE_TYPE(op0);
@@ -1407,7 +1409,7 @@ myassign: opexp9 '=' opexp9 {$<type_node_p>$=0};
 
 opexp99:
 {
-  fprintf (stderr, "here I am 2\n");
+  fprintf (stdout, "here I am 2\n");
 
 } 
 opexp9
@@ -1440,10 +1442,10 @@ operator_expression:
   //  if (tree_int_cst_sgn (d3) < 0) 
   if (!tree_expr_nonnegative_p(d3)) {
     $$ = parser_build_binary_op (RSHIFT_EXPR, $1, build_unary_op( NEGATE_EXPR, d3, 0)); 
-    fprintf (stderr, "\n%BLS-I-NOTHING rshift %x\n", input_location.line);
+    fprintf (stdout, "\n%%BLS-I-NOTHING rshift %x\n", input_location.line);
   } else {
     $$ = parser_build_binary_op (LSHIFT_EXPR, $1, d3); 
-    fprintf (stderr, "\n%BLS-I-NOTHING lshift %x\n", input_location.line);
+    fprintf (stdout, "\n%%BLS-I-NOTHING lshift %x\n", input_location.line);
   }
 }
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
@@ -1473,7 +1475,7 @@ opexp9 '=' opexp9 {
       op0=TREE_OPERAND(op0, 0);
 #if 0
       if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
-	fprintf(stderr, "\n\nxyz %x\n\n",input_location.line);
+	fprintf(stdout, "\n\nxyz %x\n\n",input_location.line);
 	TREE_TYPE(op0)==integer_type_node;
       }
 #endif
@@ -1928,7 +1930,7 @@ attribute:  allocation_unit
 | novalue_attribute 
 | linkage_attribute  
 | range_attribute 
-| { undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
+| { undefmode=1; fprintf(stdout, "undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
 | weak_attribute  
 ;
 /*
@@ -2012,7 +2014,7 @@ compile_time_constant_expression: expression { /*nonfin*/ }
 
 addressing_mode_attribute: 
 /*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' 
-  |*/{ undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' {  undefmode=0; }
+  |*/{ undefmode=1; fprintf(stdout, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' {  undefmode=0; }
 ;
 
 mode_16:
@@ -3802,7 +3804,7 @@ make_macro_string(m,r)
     
   }
   
-  fprintf(stderr, "\n%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
+  fprintf(stdout, "\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
   return s;
 }
