@@ -21,6 +21,7 @@
 #undef IN_GCC
 
 #include "system.h"
+#include "coretypes.h"
 #include "tree.h"
 
 #include "parse.h"
@@ -128,7 +129,7 @@ hexdigit [0-9a-f]
 
 %%
 
-\n            lineno++;
+\n            input_line++;
 
 {delim}				{
 
@@ -220,7 +221,7 @@ hexdigit [0-9a-f]
   return T_STRING;
 }
 
-![^\n\f]*[\n\f]			/* ignore trailing comment */ lineno++ ; 
+![^\n\f]*[\n\f]			/* ignore trailing comment */ input_line++ ; 
 
 "%("([^\)]|")"[^\%])*")%"	/* ignore embedded comment */  ;
 
@@ -281,7 +282,7 @@ hexdigit [0-9a-f]
 
 <macro>{name}|{digit}+				{
   downcase (yytext);
-  if (macrocomma==0) fprintf(stderr, "\nmacrocomma missing %x\n",lineno);
+  if (macrocomma==0) fprintf(stderr, "\nmacrocomma missing %x\n",input_line);
   macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
   macrocomma=1;
 }
