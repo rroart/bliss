@@ -1247,7 +1247,58 @@ labeled_block
 | unlabeled_block
 ;
 
-labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
+labeled_block:
+attached_label_list
+{
+  tree cur_last=last_tree;
+  tree decl;
+  tree name=$1;
+  decl = lookup_label(name);
+  //  decl = build_decl (LABEL_DECL, name, TREE_TYPE (integer_type_node));
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+
+  tree label_decl = decl;
+  tree node = build (LABELED_BLOCK_EXPR, NULL_TREE, label_decl, NULL_TREE);
+  TREE_SIDE_EFFECTS (node) = 1;
+  TREE_TYPE(node)=void_type_node;
+  LABELED_BLOCK_LABEL(node)=label_decl; // superfluous?
+  TREE_OPERAND(node, 1)= cur_last; // temp storage
+  $$=node;
+  $$=c_expand_expr_stmt($$);
+}
+unlabeled_block
+{
+  tree body = last_tree;
+  tree es=$<type_node_p>2;
+  tree node=TREE_OPERAND(es, 0);
+  tree scope=TREE_OPERAND(node, 1);
+  TREE_TYPE(body)=integer_type_node;
+  // body = c_expand_expr_stmt(body);
+  // body = EXPR_STMT_EXPR(body);
+  TREE_TYPE(body)=integer_type_node;
+  //RECHAIN_STMTS(node, LABELED_BLOCK_BODY(node));
+  LABELED_BLOCK_BODY(node)=body;//$2;
+  TREE_CHAIN(TREE_CHAIN(scope))=TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(scope)));
+  //TREE_CHAIN(scope)=TREE_CHAIN(TREE_CHAIN(scope));
+  //last_tree = node;
+  TREE_SIDE_EFFECTS (body) = 1;
+  //c_expand_expr_stmt(node);
+
+#if 0
+  tree n = build1 (STMT_EXPR, last_expr_type, node);
+  TREE_TYPE(n)=void_type_node;
+  TREE_SIDE_EFFECTS (n) = 1;
+  c_expand_expr_stmt(n);
+#endif
+
+  //last_tree = node;
+  $$ = node;
+  $$ = 0;
+  //c_expand_expr_stmt($$);
+  //$$ = 0;
+  //  add_stmt($$);
+}
 ;
 
 attached_label_list: attached_label_list attached_label 
@@ -1276,10 +1327,10 @@ unlabeled_block: unlabeled_block_start
 pushlevel block_body K_END poplevel
 { 
 #ifndef c99
-$$=poplevel (KEEP_MAYBE, 0, 0);
- SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
-   = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
-   = $$;
+  $$=poplevel (KEEP_MAYBE, 0, 0);
+  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
+	 = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
+	 = $$;
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
@@ -2165,7 +2216,6 @@ K_WHILE { $$ = 0; }
 post_tested_loop:
 K_DO 
 {
-  c_in_iteration_stmt++;
   $<type_node_p>$ = add_stmt (build_stmt (DO_STMT, NULL_TREE, NULL_TREE));
   DO_COND ($<type_node_p>$) = error_mark_node; // see c-parse.y for why
 }
@@ -2181,7 +2231,6 @@ exp
   if ($4)
 	 $6 = build_unary_op (TRUTH_NOT_EXPR, $6, 0);
   DO_COND ($$) = c_common_truthvalue_conversion ($6);
-  c_in_iteration_stmt--;
   //  c_expand_expr_stmt($$);
 }/*
 |
@@ -2208,16 +2257,63 @@ exit_expression:  leave_expression
 | exitloop_expression  
 ;
 leave_expression: 
-K_LEAVE T_NAME K_WITH exp  { $$ = 0; }
-|K_LEAVE T_NAME  { $$ = 0; }
+K_LEAVE T_NAME K_WITH exp 
+{
+  tree decl;
+  tree name=$2;
+  decl = lookup_label(name);
+  //  decl = build_decl (LABEL_DECL, name, TREE_TYPE (integer_type_node));
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+  tree newdecl=build(LABEL_EXPR, NULL_TREE, decl, NULL_TREE);
+
+  tree label_block_expr = newdecl;
+  tree t = build (EXIT_BLOCK_EXPR, NULL_TREE, label_block_expr, NULL_TREE);
+  TREE_TYPE(t)=void_type_node;
+  TREE_SIDE_EFFECTS (t) = 1;
+  EXIT_BLOCK_RETURN(t)=c_expand_expr_stmt($4);
+  $$=t;
+}
+|K_LEAVE T_NAME  
+{
+  tree decl;
+  tree name=$2;
+  decl = lookup_label(name);
+	 // build_decl (LABEL_DECL, name, TREE_TYPE (integer_type_node));
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+  tree newdecl=build(LABEL_EXPR, NULL_TREE, decl, NULL_TREE);
+
+  tree label_block_expr = newdecl;
+  tree t = build (EXIT_BLOCK_EXPR, NULL_TREE, label_block_expr, NULL_TREE);
+  TREE_TYPE(t)=void_type_node;
+  TREE_SIDE_EFFECTS (t) = 1;
+
+  $$=t;
+
+#if 0
+  tree decl;
+  tree name=$2;
+  decl = build_decl (LABEL_DECL, name, TREE_TYPE (integer_type_node));
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+#endif
+}
 ;
 exitloop_expression: 
-K_EXITLOOP  exp  { $$=$2; }
-|K_EXITLOOP    { $$=0; }
+K_EXITLOOP  exp  { $$=0; }
+|K_EXITLOOP
+{
+  tree t = build_int_2 (0, 0);
+  tree truetree = parser_build_binary_op (EQ_EXPR, t, t);
+  $$ = build (EXIT_EXPR, void_type_node, truetree);
+}
 ;
 
 return_expression: 
-K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); $$=0; }
+/*K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); $$=0; }*/
+/*K_RETURN  exp { $$ = c_expand_return (c_expand_expr_stmt($2)); $$=0; }*/
+K_RETURN  exp { $$ = c_expand_return ($2); $$=0; }
 |K_RETURN { $$ = c_expand_return (NULL_TREE); $$=0; }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
