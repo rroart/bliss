@@ -1230,7 +1230,7 @@ operator_expression:
 |  opexp9 K_OR opexp9 { }
 | opexp9 K_EQV opexp9 { }
 | opexp9 K_XOR  opexp9 { }
-| opexp9 '=' opexp9 { $$=build_modify_expr($1, NOP_EXPR, $3);  }
+| opexp9 '=' opexp9 { $$=build_modify_expr(build_indirect_ref ($1, "unary *"), NOP_EXPR, $3);  }
 ;
 
 opexp9:
@@ -4424,3 +4424,31 @@ make_pointer_declarator (type_quals_attrs, target)
     itarget = tree_cons (attrs, target, NULL_TREE);
   return build1 (INDIRECT_REF, quals, itarget);
 }
+
+/* borrowed from cp */
+
+#if 0
+tree
+make_reference_declarator (cv_qualifiers, target)
+     tree cv_qualifiers, target;
+{
+  if (target)
+    {
+      if (TREE_CODE (target) == ADDR_EXPR)
+        {
+          error ("cannot declare references to references");
+          return target;
+        }
+      if (TREE_CODE (target) == INDIRECT_REF)
+        {
+          error ("cannot declare pointers to references");
+          return target;
+        }
+      if (TREE_CODE (target) == IDENTIFIER_NODE && ANON_AGGRNAME_P (target))
+	error ("type name expected before `&'");
+    }
+  target = build_nt (ADDR_EXPR, target);
+  TREE_TYPE (target) = cv_qualifiers;
+  return target;
+}
+#endif

@@ -4,12 +4,14 @@ own dd;
 routine r=
 begin
 external routine undecl;
-own a,b;
+own a,b,c,d;
+undecl(a,b);
+undecl(c,d);
 undecl(4,0);
 
-if b then .dd=4;
+if b then dd=4;
 undecl(4,1);
-if .b then .dd=4;
+if b then dd=4;
 undecl(4,2);
 end;
 routine s=
@@ -17,26 +19,26 @@ begin
 external routine undecl;
 own c,d;
 undecl(d,.d);
-.d=2;
+d=2;
 undecl(d,.d);
 r();
-.d=3;
+d=3;
 r();
-undecl(.d);
+undecl(d);
 undecl(2,3);
 undecl2();
 end;
 routine t=
 begin
 own e,f;
-.f=3;
+f=3;
 while .f do begin
 r();
-undecl(9,.f);
-.f=.f-1;
+undecl(9,f);
+f=.f-1;
 end;
 return;
-.e=2;
+e=2;
 end;
 end
 eludom
