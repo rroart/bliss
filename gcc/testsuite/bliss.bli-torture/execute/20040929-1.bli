@@ -1,0 +1,10 @@
+module m=
+begin
+
+routine main=
+begin
+(3-3)
+end;
+
+end
+eludom

@@ -1,0 +1,17 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+
+l=22;
+!l=(if .l eql 2 then 0 else 1;);
+l=(if .l neq 2 then 1 else 0; 0);
+l=2;
+l=(local q; if .l neq 2 then q=1 else q=0; .q);
+
+.l
+end;
+end
+eludom

@@ -1,0 +1,13 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+l=1;
+return .l-1;
+.2
+end;
+
+end
+eludom

@@ -1,0 +1,19 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+local i;
+i=4;
+while i gtr 2 do
+begin
+l=0;
+exitloop;
+l=1;
+end;
+
+.l
+end;
+end
+eludom
