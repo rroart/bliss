@@ -1,0 +1,6 @@
+how to follow gcc versions (I hope):
+
+bli-common2.c is based on c-obj-common.c
+the rest of bli-*.c is based on the corresponding c-*.c
+
+these files ought to follow patches
