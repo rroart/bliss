@@ -21,8 +21,6 @@ int yydebug=0;
  extern int tnamemode;
  extern int macromode;
 
-#define malloc xmalloc
-
 #include "config.h"
 
 #include "system.h"
@@ -40,8 +38,6 @@ int yydebug=0;
 #include "ggc.h"
 #endif
  //#define IN_GCC
-
-#define malloc xmalloc
 
  static int compstmt_count;
 
@@ -1151,16 +1147,16 @@ structure_reference:
 
 ordinary_structure_reference:
 T_NAME '[' access_actual_list ']' {
-  tree c=get_identifier(add_underscore($1,2));
+  tree cell__ = get_identifier(add_underscore($1, 2));
   //tree t=build_external_ref ($1, 0);
-  tree er=build_external_ref ($1, 0);
-  //tree params = chainon(copy_node(er), $3);
+  tree extref=build_external_ref ($1, 0);
+  //tree params = chainon(copy_node(extref), $3);
   //if (TREE_CHAIN(er)) fprintf(stderr, "\npanic %x\n",lineno);
   tree params = $3;
-  tree t=xref_tag(STRUCTURE_ATTR,c);
-  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
-  tree access=my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t))));
-  chainon (tree_last($3), er); 
+  tree type = xref_tag(STRUCTURE_ATTR,cell__);
+  tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+  tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+  chainon (tree_last($3), extref); 
   my_substitute(body,access,params);
   $$=body;
   //tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
@@ -2080,14 +2076,11 @@ own_item_list: own_item_list ',' own_item
 ;
 
 own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
-  tree c, cc, p , d, i, t, d2;
-  char * s;
-  int e,f;
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
   tree attr = current_declspecs;
   tree type = $2;
   tree myattr = $2;
-  tree dd, size, decl;
   
   //current_declspecs=0;
 
@@ -2096,45 +2089,45 @@ own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
   t = tree_cons (NULL_TREE, type, NULL_TREE); 
   //TREE_STATIC ($$) = 0;
 
-  c=get_identifier(add_underscore($1,1));
+  cell_=get_identifier(add_underscore($1,1));
   if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
-    current_declspecs=0;
+    tree size, decl, astruct, cell__;
 
-    cc=get_identifier(add_underscore($1,2));
+    current_declspecs = 0;
 
-    dd = start_structure (STRUCTURE_ATTR, cc);
-    myattr = finish_structure (dd, TREE_OPERAND(myattr, 0) , 0, 0,0,0,0); 
-
+    cell__ = get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0, 0,0,0,0); 
     size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
     decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
-    type=char_array_type_node;
-    type = set_array_declarator_type (decl, c, 0);
+    //type = char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
     //TREE_TYPE(c)=char_type_node;
     //goto own_end;
-    cc=decl;
+    cell=decl;
   } else {
-    TREE_TYPE(c)=integer_type_node;
-    cc=c;
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
   }
 
-  d = start_decl (cc, current_declspecs, 0,
+  cell_decl_p = start_decl (cell, current_declspecs, 0,
                        chainon (NULL_TREE, all_prefix_attributes));
-  TREE_STATIC(d)=1; // same as local, except for STATIC?
+  TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
   //printf("xxx %x\n",d);
-  finish_decl (d, 0, NULL_TREE);
-  p = make_pointer_declarator(0,$1);
-  d2 = start_decl (p, current_declspecs, 1,
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
                        chainon (NULL_TREE, all_prefix_attributes));
 
-  TREE_STATIC(d2)=1;
-  start_init(d2,NULL,global_bindings_p());
+  TREE_STATIC(cell_decl)=1;
+  start_init(cell_decl,NULL,global_bindings_p());
   finish_init();
 
   //int ccc = build_external_ref(c,0);
   //printf("yyy %x\n",ccc);
-  i = build_unary_op (ADDR_EXPR, d/*build_external_ref (c, 0)*/, 0);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
 
-  finish_decl (d2, i, NULL_TREE);
+  finish_decl (cell_decl, init, NULL_TREE);
  own_end:
   current_declspecs=attr;
 }
@@ -2221,15 +2214,12 @@ T_NAME ':' attribute_list
 */
 
 local_item: T_NAME maybe_local_attribute_list setspecs { //maybe... is a declspecs
-  tree c, cc, p , d, i, t;
-  char * s;
-  int e,f;
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
   tree attr = current_declspecs;
   tree type = $2;
   tree myattr = $2;
-  tree dd, size, decl, d2; 
-  
+
   //current_declspecs=0;
 
   if ($2==0) type = integer_type_node;
@@ -2237,43 +2227,43 @@ local_item: T_NAME maybe_local_attribute_list setspecs { //maybe... is a declspe
   t = tree_cons (NULL_TREE, type, NULL_TREE); 
   //TREE_STATIC ($$) = 0;
 
-  c=get_identifier(add_underscore($1,1));
+  cell_=get_identifier(add_underscore($1,1));
   if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    tree size, decl, astruct, cell__; 
+  
     current_declspecs=0;
 
-    cc=get_identifier(add_underscore($1,2));
-
-    dd = start_structure (STRUCTURE_ATTR, cc);
-    myattr = finish_structure (dd, TREE_OPERAND(myattr, 0) , 0,0,0,0); 
-
+    cell__=get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0,0,0,0); 
     size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
     decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
-    type=char_array_type_node;
-    type = set_array_declarator_type (decl, c, 0);
+    //type=char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
     //TREE_TYPE(c)=char_type_node;
     //goto local_end;
-    cc=decl;
+    cell=decl;
   } else {
-    TREE_TYPE(c)=integer_type_node;
-    cc=c;
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
   }
 
-  d = start_decl (cc, current_declspecs, 0,
+  cell_decl_p = start_decl (cell, current_declspecs, 0,
                        chainon (NULL_TREE, all_prefix_attributes));
   //printf("xxx %x\n",d);
-  finish_decl (d, 0, NULL_TREE);
-  p = make_pointer_declarator(0,$1);
-  d2 = start_decl (p, current_declspecs, 1,
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
                        chainon (NULL_TREE, all_prefix_attributes));
 
-  start_init(d2,NULL,global_bindings_p());
+  start_init(cell_decl, NULL, global_bindings_p());
   finish_init();
 
   //int ccc = build_external_ref(c,0);
   //printf("yyy %x\n",ccc);
-  i = build_unary_op (ADDR_EXPR, d/*build_external_ref (c, 0)*/, 0);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
 
-  finish_decl (d2, i, NULL_TREE);
+  finish_decl (cell_decl, init, NULL_TREE);
  local_end:
   current_declspecs=attr;
 }
@@ -2335,14 +2325,15 @@ structure_definition_list: structure_definition_list ',' structure_definition
 structure_definition:
   declspecs_ts setspecs T_NAME '['
 {
-  tree e, f, x;
-  //$5
-//$$ = start_struct(RECORD_TYPE, $3);
+  // $5
+
+  tree int_tree, parm_tree, x;
+
   pushlevel(0);
 #if 1
-  e=tree_cons(0,integer_type_node,0);
-  f=tree_cons(e,$3,0); 
-  $$ = tree_cons (f,0,0);
+  int_tree = tree_cons(0,integer_type_node,0);
+  parm_tree = tree_cons(int_tree, $3, 0); 
+  $$ = tree_cons (parm_tree, 0, 0);
   push_parm_decl($$); 
 #if 0
   x = get_parm_info (1);
@@ -2352,46 +2343,51 @@ structure_definition:
 }
   access_formal_list  ';' 
 {
-  //$8
-  //push_parm_decl($<type_node_p>5);
-  tree accessfn;
-  tree accessid;
-  tree v = $6;
-  accessid=get_identifier(add_underscore($3,2));
+  // $8
 
+  tree accessid = get_identifier(add_underscore($3, 2));
+  tree accessls = $6;
+  tree accessfn = build_nt (CALL_EXPR, accessid, accessls, NULL_TREE);
+
+  //push_parm_decl($<type_node_p>5);
   //PUSH_DECLSPEC_STACK;
   //mydeclares($6);
-  accessfn = build_nt (CALL_EXPR, accessid, v, NULL_TREE);
+  //begin_stmt_tree(&$<type_node_p>$);
+  //$<type_node_p>8=accessfn;
+
   start_function (current_declspecs, accessfn, all_prefix_attributes);
   store_parm_decls ();
   afun=current_function_decl;
-  //begin_stmt_tree(&$<type_node_p>$);
-  //$<type_node_p>8=accessfn;
+
   $$=accessfn;
 }
 allocation_formal_list ']' '='
 {
-  //$12
-  tree allocfn;
-  tree allocid;
-  tree v;
-  allocid=get_identifier(add_underscore($3,1));
-  v = build_tree_list (NULL_TREE, NULL_TREE);
+  // $12
+
+  tree allocform_list = $9;
+  tree allocid = get_identifier(add_underscore($3, 1));
+  tree allocfn = build_nt (CALL_EXPR, allocid, allocform_list, NULL_TREE);
+
   //mydeclares($9);
-  v = $9;
-  allocfn = build_nt (CALL_EXPR, allocid, v, NULL_TREE);
+
   acfun=cfun;
   start_function (current_declspecs, allocfn, all_prefix_attributes);
   store_parm_decls ();
+
   //begin_stmt_tree(&$<type_node_p>$);
   //$<type_node_p>12=allocfn;
+
   $$=allocfn;
 }
 structure_size
 {
-  tree accessfn, tr=0;
-  //$14
+  // $14
+
+  tree accessfn = $<type_node_p>8;
+
   finish_function (0, 1); 
+
   //POP_DECLSPEC_STACK;
 
   current_function_decl=afun;
@@ -2399,7 +2395,6 @@ structure_size
   //begin_stmt_tree (&tr);
   begin_stmt_tree (&DECL_SAVED_TREE (current_function_decl));
 
-  accessfn=$<type_node_p>8;
   $$=accessfn;
 }
 structure_body
@@ -2433,34 +2428,16 @@ structure_body
 
   prev=accesser;
 
-
-
   if (!$9) goto none;
   for(tmp=$9->list.purpose;tmp;tmp=TREE_CHAIN(tmp)) {
-    tree c = tree_cons (0, integer_type_node, 0);   
-    tree d = tree_cons (c, TREE_VALUE(tmp), 0);
-    tree dd = tree_cons (d, 0, 0);
-    tree grok;
-
-    //TREE_TYPE(c)=integer_type_node;
-
-    //c = TREE_VALUE(tmp);
-    c = DECL_NAME(tmp);
-
-    grok = grokfield (input_filename, lineno, c, 0, 0);
-
+    tree decl_name = DECL_NAME(tmp);
+    tree grok = grokfield (input_filename, lineno, decl_name, 0, 0);;
 
     chainon(prev, grok);
     prev=grok;
   }
 
-
   none:
-
-
-
-
-
 
 //  $$ = finish_struct ($<type_node_p>5, comp, NULL);
 
@@ -2468,14 +2445,14 @@ structure_body
 
   accesstmp = parm_first_to_last($6);
 
-  body=tree_cons(0,$15,0);
-  size=tree_cons(0,$13,body);
-  alloc=tree_cons(0,$9,size);
-  access=tree_cons(0,/*$6*/accesstmp,alloc);
-  comp2=tree_cons(0,0,access);
+  body = tree_cons(0, $15, 0);
+  size = tree_cons(0, $13, body);
+  alloc = tree_cons(0, $9, size);
+  access = tree_cons(0, /*$6*/accesstmp, alloc);
+  comp2 = tree_cons(0, 0, access);
 
   $$ = start_structure (STRUCTURE_TYPE, $3);
-  $$ = finish_structure ($$, comp2, 0,0,0,0,0); 
+  $$ = finish_structure ($$, comp2, 0, 0, 0, 0, 0); 
 
   //$$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
   //add_struct(&mystructs,$$); 
@@ -2498,9 +2475,9 @@ $$ = get_parm_info (1);
 allocation_formal:
 allocation_name { 
 #if 1
-  tree t = tree_cons (0, integer_type_node, 0);   
-  tree d = tree_cons (t, $1, 0);
- $$ = tree_cons (d, 0, 0);
+  tree int_tree = tree_cons (0, integer_type_node, 0);   
+  tree parm_decl = tree_cons (int_tree, $1, 0);
+ $$ = tree_cons (parm_decl, 0, 0);
  push_parm_decl($$);
 #else
   tree e=tree_cons(0,integer_type_node,0);
@@ -2582,9 +2559,9 @@ access_formal: T_NAME {
 //  chainon (NULL_TREE, all_prefix_attributes));
 //finish_decl (d, 0, NULL_TREE);
 #if 1
-  tree e=tree_cons(0,integer_type_node,0);
-  tree f=tree_cons(e,$1,0); 
-  $$ = tree_cons (f,0,0);
+  tree int_tree = tree_cons(0, integer_type_node, 0);
+  tree parm_tree = tree_cons(int_tree, $1, 0); 
+  $$ = tree_cons (parm_tree, 0, 0);
   push_parm_decl($$); 
 #else
   tree e=tree_cons(0,integer_type_node,0);
@@ -2622,12 +2599,11 @@ routine_definition: declspecs_ts setspecs T_NAME
 }
 io_list 
 {
-  void * xyz = $5;
-  void * v = $5;
-  void * vo;
-  if (v==0) v=build_tree_list (NULL_TREE, NULL_TREE);
-  vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
-  start_function (current_declspecs, vo, all_prefix_attributes);
+  void * io_list = $5;
+  void * fn;
+  if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
+  fn = build_nt (CALL_EXPR, $3, io_list, NULL_TREE);
+  start_function (current_declspecs, fn, all_prefix_attributes);
   store_parm_decls ();
 }
 routine_attributes '=' save_filename save_lineno exp 
@@ -2688,15 +2664,12 @@ formal_item: /*T_NAME ':' formal_attribute_list
 |*/declspecs_ts setspecs  T_NAME { 
 
   tree type = integer_type_node;
-  tree t = tree_cons (NULL_TREE, type, NULL_TREE);
-  tree p = make_pointer_declarator (0, $3);
+  tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
+  tree point_tree = make_pointer_declarator (0, $3);
 
-  tree e = tree_cons (t, p, 0);
+  tree point_int = tree_cons (int_tree, point_tree, 0);
 
-  $$ = tree_cons (e, 0, chainon (NULL, all_prefix_attributes));
-
-
-
+  $$ = tree_cons (point_int, 0, chainon (NULL, all_prefix_attributes));
 
  POP_DECLSPEC_STACK;
  push_parm_decl ($$);
@@ -3328,37 +3301,9 @@ cpp_preprocess_file (pfile, in_fname, out_stream)
 {
 }
 
-/* borrowed from cp */
-
-#if 0
-tree
-make_reference_declarator (cv_qualifiers, target)
-     tree cv_qualifiers, target;
-{
-  if (target)
-    {
-      if (TREE_CODE (target) == ADDR_EXPR)
-        {
-          error ("cannot declare references to references");
-          return target;
-        }
-      if (TREE_CODE (target) == INDIRECT_REF)
-        {
-          error ("cannot declare pointers to references");
-          return target;
-        }
-      if (TREE_CODE (target) == IDENTIFIER_NODE && ANON_AGGRNAME_P (target))
-	error ("type name expected before `&'");
-    }
-  target = build_nt (ADDR_EXPR, target);
-  TREE_TYPE (target) = cv_qualifiers;
-  return target;
-}
-#endif
-
 void
 add_struct(struct structure ** s,tree elem) {
-  struct structure * t=malloc(sizeof(*t));
+  struct structure * t=xmalloc(sizeof(*t));
   t->next=*s;
   t->elem=elem;
   *s=t;
@@ -3632,7 +3577,7 @@ parm_first_to_last(mytree)
 
 void
 add_macro(char * name, tree param, tree body) {
-  struct mymacro * t=malloc(sizeof(*t));
+  struct mymacro * t=xmalloc(sizeof(*t));
   struct mymacro **s=&macros;
   t->next=macros;
   t->name=name;
@@ -3686,7 +3631,7 @@ add_underscore(t,n)
      tree t;
      int n;
 {
-    char * ss=malloc(IDENTIFIER_LENGTH(t)+n);
+    char * ss=xmalloc(IDENTIFIER_LENGTH(t)+n);
     strcpy(ss,IDENTIFIER_POINTER(t));
     ss[IDENTIFIER_LENGTH(t)+n]=0;
     while (n--)
@@ -3699,6 +3644,3 @@ add_underscore(t,n)
 const struct ggc_root_tab gt_ggc_r_gt_c_pragma_h[] = {
   LAST_GGC_ROOT_TAB
 };
-
-//#include "gt-c-pragma.h"
-//#include "c-pragma.h"
