@@ -29,31 +29,4 @@ Boston, MA 02111-1307, USA.  */
   {".bli",  "@bliss", 0},
   {".BLI",  "@bliss", 0},
   {"@bliss",
-   /* cc1plus has an integrated ISO C preprocessor.  We should invoke
-      the external preprocessor if -save-temps is given.  */
-    "%{E|M|MM:cpp0 -lang-c++ %{!no-gcc:-D__GNUG__=%v1}\
-       %{!Wno-deprecated:-D__DEPRECATED}\
-       %{!fno-exceptions:-D__EXCEPTIONS}\
-       %{ansi:-D__STRICT_ANSI__ -trigraphs -$} %(cpp_options)}\
-     %{!E:%{!M:%{!MM:\
-       %{save-temps|no-integrated-cpp:cpp0 -lang-c++ \
-		    %{!no-gcc:-D__GNUG__=%v1}\
-       		    %{!Wno-deprecated:-D__DEPRECATED}\
-		    %{!fno-exceptions:-D__EXCEPTIONS}\
-		    %{ansi:-D__STRICT_ANSI__ -trigraphs -$}\
-		    %(cpp_options) %{save-temps:%b.ii} %{!save-temps:%g.ii} \n}\
-      bli1 %{save-temps|no-integrated-cpp:-fpreprocessed %{save-temps:%b.ii} %{!save-temps:%g.ii}}\
-              %{!save-temps:%{!no-integrated-cpp:%(cpp_unique_options)\
-			    %{!no-gcc:-D__GNUG__=%v1} \
-       			    %{!Wno-deprecated:-D__DEPRECATED}\
-			    %{!fno-exceptions:-D__EXCEPTIONS}\
-			    %{ansi:-D__STRICT_ANSI__}}}\
-       %{ansi:-trigraphs -$}\
-       %(cc1_options) %2 %{+e1*}\
-       %{!fsyntax-only:%(invoke_as)}}}}",
-     CPLUSPLUS_CPP_SPEC},
-  {".ii", "@c++-cpp-output", 0},
-  {"@c++-cpp-output",
-   "%{!M:%{!MM:%{!E:\
-    bli1 -fpreprocessed %i %(cc1_options) %2 %{+e*}\
-    %{!fsyntax-only:%(invoke_as)}}}}", 0},
+   "bli1 f771 %i %(cc1_options) %{I*} %{!fsyntax-only:%(invoke_as)}", 0},
