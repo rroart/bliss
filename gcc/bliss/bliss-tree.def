@@ -1,1 +1,3 @@
 DEFTREECODE (STRUCTURE_DECL, "structure_decl", 'd', 0)
+DEFTREECODE (STRUCTURE_ATTR, "structure_attr", 'd', 0)
+

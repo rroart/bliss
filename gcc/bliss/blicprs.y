@@ -84,6 +84,13 @@ bli_parse PARAMS((void));
 
  tree igroot;
 
+struct structure {
+  struct structure * next;
+  tree elem;
+};
+
+struct structure * mystructs = 0;
+
 %}
 
 %start mystart
@@ -466,6 +473,7 @@ mystart: module
 module		: K_MODULE module_head '=' 
 {
   last_expr_filename=input_filename;
+  //last_expr_type = NULL_TREE;
   //current_function_decl=$2;
   //  bli_start_function (current_declspecs, , all_prefix_attributes);
   // store_parm_decls();
@@ -977,18 +985,23 @@ T_NAME ':'
 ;
 
 unlabeled_block_start: K_BEGIN { 
-$$=c_begin_compound_stmt ();
+#ifndef c99
+  $$=c_begin_compound_stmt ();
+#endif
 }
 ;
 
 unlabeled_block_start2: '(' { 
-$$=c_begin_compound_stmt ();
+#ifndef c99
+  $$=c_begin_compound_stmt ();
+#endif
 }
 ;
 
 unlabeled_block: unlabeled_block_start
 pushlevel block_body K_END poplevel
 { 
+#ifndef c99
 $$=poplevel (kept_level_p (), 1, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
@@ -996,10 +1009,14 @@ $$=poplevel (kept_level_p (), 1, 0);
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
+#else
+ $$=0;
+#endif
 }
 | unlabeled_block_start2 
 pushlevel block_body ')' poplevel
 { 
+#ifndef c99
 $$=poplevel (kept_level_p (), 1, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
@@ -1007,6 +1024,9 @@ $$=poplevel (kept_level_p (), 1, 0);
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
+#else 
+ $$=0;
+#endif
 }
 ;
 
@@ -1093,10 +1113,17 @@ structure_reference:
 ;
 
 ordinary_structure_reference:
-T_NAME '[' access_actual_list ']' { $$=$3; }
+T_NAME '[' access_actual_list ']' {
+  tree t=build_external_ref ($1, 0);
+  tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
+  decl->exp.operands[2]=t;
+  tree type=integer_type_node;
+  $$ = set_array_declarator_type (decl, type, 1);
+  $$ = $3;
+}
 ;
 
-access_actual_list: access_actual_list ',' access_actual 
+access_actual_list: access_actual_list ',' access_actual { $$=chainon($1,$3); }
 |access_actual 
 ;
 
@@ -1138,7 +1165,7 @@ T_NAME '[' access_part ';' alloc_actual_list ']'
 |T_NAME '[' access_part ']' 
 ;
 
-alloc_actual_list: alloc_actual_list ',' alloc_actual 
+alloc_actual_list: alloc_actual_list ',' alloc_actual { $$ = chainon($1,$3); }
 |alloc_actual 
 ;
 
@@ -1250,7 +1277,7 @@ operator_expression:
 | '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
 | opexp9 '^' opexp9 
 | opexp9 K_MOD opexp9 
-| opexp9 '*' opexp9 
+| opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
 | opexp9 '/' opexp9 
 | opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
 | opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
@@ -1633,7 +1660,15 @@ attribute:  allocation_unit
 structure_attribute:
   K_REF T_NAME '[' alloc_actual_list ']' { $$ = 0; }
 |  K_REF T_NAME  { $$ = 0; }
-|   T_NAME '[' alloc_actual_list ']' 
+|   T_NAME '[' alloc_actual_list ']' { 
+  //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
+  tree t=find_struct(mystructs,$1);
+  tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
+  decl->exp.operands[2]=t;
+  tree type=integer_type_node;
+  $$ = set_array_declarator_type (decl, type, 1);
+  TREE_TYPE(decl)=STRUCTURE_DECL;
+}
 |   T_NAME  
 ;
 
@@ -1966,16 +2001,72 @@ structure_definition_list: structure_definition_list ',' structure_definition
 ;
 
 structure_definition:
-  T_NAME '['
-  access_formal_list  ';' allocation_formal_list ']' '='
-  structure_size  structure_body
+  declspecs_ts setspecs T_NAME '['
 {
-  tree er = build_external_ref ($1, 0);
-  $$=build_nt(STRUCTURE_DECL,er,$3,$5,$8,$9);
+  //$5
+
+  // trying a dummy function?
+
+  tree c;
+  tree d = start_decl ($3, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
+  finish_decl (d, 0, NULL_TREE);
+  char *s=malloc($3->identifier.id.len+2);
+  strcpy(s,$3->identifier.id.str);
+  s[$3->identifier.id.len]='_';
+  s[$3->identifier.id.len+1]=0;
+  c=get_identifier(s);
+  tree v = build_tree_list (NULL_TREE, NULL_TREE);
+  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
+  start_function (current_declspecs, vo, all_prefix_attributes);
+  store_parm_decls ();
+}
+  access_formal_list  ';' 
+{
+  //$8
+  //tree accesslist = $6;
+  //if (accesslist==0) accesslist=build_tree_list(NULL_TREE, NULL_TREE);
+  //$<type_node_p>$ = accesslist;
+}
+allocation_formal_list ']' '='
+{
+  //$12
+  //tree alloclist = $9;
+  //if (alloclist==0) alloclist=build_tree_list(NULL_TREE, NULL_TREE);
+  //tree v=alloclist;
+  //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
+  //start_function (current_declspecs, vo, all_prefix_attributes);
+  begin_stmt_tree(&$<type_node_p>$);
+}
+structure_size
+{
+  //$14
+  //store_parm_decls ();
+  //finish_function (0, 1); 
+  //POP_DECLSPEC_STACK;
+}
+structure_body
+{
+  //$16
+  //tree v=$<type_node_p>8; //accesslist;
+  //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
+  //start_function (current_declspecs, vo, all_prefix_attributes);
+  //store_parm_decls ();
+  //finish_function (0, 1); 
+  //POP_DECLSPEC_STACK;
+
+  finish_function (0, 1); 
+  POP_DECLSPEC_STACK;
+  $$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
+  add_struct(&mystructs,$$); 
 }
 ;
 
 allocation_formal_list: allocation_formal_list ',' allocation_formal 
+{ 
+  //$$=chainon ($1, $3); 
+  $$ = tree_cons (NULL_TREE, $1, $3);
+}
 |allocation_formal  
 ;
 
@@ -1994,14 +2085,22 @@ structure_size: { $$ = 0; }
 structure_body: expression 
 ;
 
-access_formal_list: access_formal_list ',' access_formal 
+access_formal_list: access_formal_list ',' access_formal { $$=chainon($1,$3); }
 | access_formal 
 ;
 
-access_formal: T_NAME 
+access_formal: T_NAME {
+  tree d = start_decl ($1, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
+  finish_decl (d, 0, NULL_TREE);
+}
 ;
 
-allocation_name: T_NAME 
+allocation_name: T_NAME {
+  tree d = start_decl ($1, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
+  finish_decl (d, 0, NULL_TREE);
+}
 ;
 
 field_declaration: K_FIELD { $$ = 0; }
@@ -2887,3 +2986,20 @@ make_reference_declarator (cv_qualifiers, target)
   return target;
 }
 #endif
+
+void
+add_struct(struct structure ** s,tree elem) {
+  struct structure * t=malloc(sizeof(*t));
+  t->next=*s;
+  t->elem=elem;
+  *s=t;
+}
+
+tree
+find_struct(struct structure * s,tree elem) {
+  struct structure * t=s;
+  while (t->elem && t->elem->exp.operands[0]!=elem) t=t->next;
+  return t->elem;
+}
+
+
