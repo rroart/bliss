@@ -1,7 +1,7 @@
 module f1 (main=r)=
 begin
 structure
-vector[i; n, unit=4, ext=0] =
+vector[i; n, unit, ext] =
 [n*unit] 
 (vector + i*unit)<0,8*unit>;
 routine dummy2=

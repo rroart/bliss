@@ -2004,6 +2004,7 @@ structure_definition:
   declspecs_ts setspecs T_NAME '['
 {
   //$5
+  $$ = start_structure(RECORD_TYPE, $3);
 
   // trying a dummy function?
 
@@ -2025,7 +2026,7 @@ allocation_formal_list ']' '='
   //start_function (current_declspecs, vo, all_prefix_attributes);
   tree c;
   tree d = start_decl ($3, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
+  	       chainon (NULL_TREE, all_prefix_attributes));
   finish_decl (d, 0, NULL_TREE);
   char *s=malloc($3->identifier.id.len+2);
   strcpy(s,$3->identifier.id.str);
@@ -2043,8 +2044,27 @@ structure_size
 {
   //$14
   //store_parm_decls ();
-  //finish_function (0, 1); 
-  //POP_DECLSPEC_STACK;
+  finish_function (0, 1); 
+  POP_DECLSPEC_STACK;
+
+  PUSH_DECLSPEC_STACK;
+  tree c;
+  tree d = start_decl ($3, current_declspecs, 0,
+  	       chainon (NULL_TREE, all_prefix_attributes));
+  finish_decl (d, 0, NULL_TREE);
+  char *s=malloc($3->identifier.id.len+3);
+  strcpy(s,$3->identifier.id.str);
+  s[$3->identifier.id.len]='_';
+  s[$3->identifier.id.len+1]='_';
+  s[$3->identifier.id.len+2]=0;
+  c=get_identifier(s);
+  tree v = build_tree_list (NULL_TREE, NULL_TREE);
+  v = $9;
+  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
+  start_function (current_declspecs, vo, all_prefix_attributes);
+  store_parm_decls ();
+  begin_stmt_tree(&$<type_node_p>$);
+
 }
 structure_body
 {
@@ -2053,11 +2073,12 @@ structure_body
   //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
   //start_function (current_declspecs, vo, all_prefix_attributes);
   //store_parm_decls ();
-  //finish_function (0, 1); 
-  //POP_DECLSPEC_STACK;
 
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
+
+  $$ = finish_structure ( $<type_node_p>5, 0, $6, $9 ,$13, $15, 0);
+
   $$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
   add_struct(&mystructs,$$); 
 }
@@ -2098,9 +2119,10 @@ access_formal: T_NAME {
 ;
 
 allocation_name: T_NAME {
-  tree d = start_decl ($1, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
-  finish_decl (d, 0, NULL_TREE);
+  $$ = $1;
+  //tree d = start_decl ($1, current_declspecs, 0,
+  //	       chainon (NULL_TREE, all_prefix_attributes));
+  //finish_decl (d, 0, NULL_TREE);
 }
 ;
 

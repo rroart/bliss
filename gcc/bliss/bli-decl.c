@@ -7522,3 +7522,102 @@ build_void_list_node ()
   tree t = build_tree_list (NULL_TREE, void_type_node);
   return t;
 }
+
+tree
+start_structure (code, name)
+     enum tree_code code;
+     tree name;
+{
+  /* If there is already a tag defined at this binding level
+     (as a forward reference), just return it.  */
+
+  tree ref = 0;
+
+  if (name != 0)
+    ref = lookup_tag (code, name, current_binding_level, 1);
+  if (ref && TREE_CODE (ref) == code)
+    {
+      C_TYPE_BEING_DEFINED (ref) = 1;
+      TYPE_PACKED (ref) = flag_pack_struct;
+      if (TYPE_FIELDS (ref))
+        {
+	  if (code == UNION_TYPE)
+	    error ("redefinition of `union %s'",
+		   IDENTIFIER_POINTER (name));
+          else
+	    error ("redefinition of `struct %s'",
+		   IDENTIFIER_POINTER (name));
+	}  
+
+      return ref;
+    }
+
+  /* Otherwise create a forward-reference just so the tag is in scope.  */
+
+  ref = make_node (code);
+  pushtag (name, ref);
+  C_TYPE_BEING_DEFINED (ref) = 1;
+  TYPE_PACKED (ref) = flag_pack_struct;
+  return ref;
+}
+
+tree
+finish_structure (t, fieldlist, access_formal, allocation_formal, structure_size, structure_body, attributes)
+     tree t;
+     tree fieldlist;
+     tree access_formal;
+     tree allocation_formal;
+     tree structure_size;
+     tree structure_body;
+     tree attributes;
+{
+  tree x;
+  int toplevel = global_binding_level == current_binding_level;
+  int saw_named_field;
+
+  /* If this type was previously laid out as a forward reference,
+     make sure we lay it out again.  */
+
+  TYPE_SIZE (t) = 0;
+
+  decl_attributes (&t, attributes, (int) ATTR_FLAG_TYPE_IN_PLACE);
+
+  /* Install struct as DECL_CONTEXT of each field decl.
+     Also process specified field sizes,m which is found in the DECL_INITIAL.
+     Store 0 there, except for ": 0" fields (so we can find them
+     and delete them, below).  */
+
+  saw_named_field = 0;
+  for (x = fieldlist; x; x = TREE_CHAIN (x))
+    {
+      DECL_CONTEXT (x) = t;
+      DECL_PACKED (x) |= TYPE_PACKED (t);
+
+      /* Any field of nominal variable size implies structure is too.  */
+      if (C_DECL_VARIABLE_SIZE (x))
+	C_TYPE_VARIABLE_SIZE (t) = 1;
+
+      DECL_INITIAL (x) = 0;
+
+      if (DECL_NAME (x))
+	saw_named_field = 1;
+    }
+
+  /* Now we have the nearly final fieldlist.  Record it,
+     then lay out the structure or union (including the fields).  */
+
+  TYPE_FIELDS (t) = fieldlist;
+
+  layout_type (t);
+
+  /* Now we have the truly final field list.
+     Store it in this type and in the variants.  */
+
+  TYPE_FIELDS (t) = fieldlist;
+
+  /* Finish debugging output for this type.  */
+  rest_of_type_compilation (t, toplevel);
+
+  return t;
+}
+
