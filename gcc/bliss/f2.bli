@@ -180,7 +180,7 @@ undecl(d,.d);
 r();
 d=3;
 r();
-undecl(d);
+undecl(d,d);
 undecl(2,3);
 undecl2();
 end;
