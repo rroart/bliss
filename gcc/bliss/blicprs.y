@@ -1175,7 +1175,16 @@ linkage_name: T_NAME
 routine_address: expression 
 ;
 
-field_reference: address '{' field_selector '}' 
+field_reference: 
+/*address*//*makes stuff loop*/
+/*|address field_selector  */
+/*|*/address '<' position_exp ',' size_exp '>'
+{
+  //$$=build_nt(BIT_FIELD_REF,$1,size_int($5),bitsize_int($3));
+  //TREE_TYPE($$)=type_for_mode (TYPE_MODE (integer_type_node), 1);
+  $$=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), $1, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
+  $$=stabilize_reference($$);
+}
 ;
 
 address: 
@@ -1183,8 +1192,8 @@ primary
 | executable_function 
 ;
 
-field_selector: position_exp ',' size_exp '{' ',' sign_ext_flag '}'
-
+field_selector: '<' position_exp ',' size_exp '>' { $$ = 0; }
+| '<' position_exp ',' size_exp ',' sign_ext_flag '>' { $$ = 0; }
 ;
 
 sign_ext_flag: ctce
@@ -1929,7 +1938,7 @@ structure_declaration:
   K_STRUCTURE structure_definition_list ';' { $$ = 0; }
 ;
 
-structure_definition_list: structure_definition_list structure_definition 
+structure_definition_list: structure_definition_list ',' structure_definition 
 |structure_definition 
 ;
 
