@@ -1,10 +1,10 @@
 module f1 (main=r)=
 begin
 own dd;
-!structure
-!vector[i; n, unit=4, ext=0] =
-![n*unit]
-!(vector + i*unit)<0,8*unit,ext>;
+structure
+vector[i; n, unit=4, ext=0] =
+[n*unit]
+(vector + i*unit)<0,8*unit,ext>;
 routine dummy=
 begin
 own def;

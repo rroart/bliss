@@ -1943,31 +1943,30 @@ structure_definition_list: structure_definition_list ',' structure_definition
 ;
 
 structure_definition:
-  T_NAME 
-  access_formal_list  allocation_formal_list 
+  T_NAME '['
+  access_formal_list  ';' allocation_formal_list ']' '='
   structure_size  structure_body
-
-/* nonfin */
 ;
 
-allocation_formal_list: allocation_formal_list allocation_formal 
+allocation_formal_list: allocation_formal_list ',' allocation_formal 
 |allocation_formal  
 ;
 
 allocation_formal:
-allocation_name '{' '=' allocation_default '}' 
+allocation_name '=' allocation_default 
 ;
 
 allocation_default: exp 
 ;
 
-structure_size: expression 
+structure_size: { $$ = 0; }
+|'[' expression ']' { $$ = $2; }
 ;
 
 structure_body: expression 
 ;
 
-access_formal_list: access_formal_list access_formal 
+access_formal_list: access_formal_list ',' access_formal 
 | access_formal_list  
 ;
 
