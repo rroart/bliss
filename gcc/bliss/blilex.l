@@ -1,39 +1,22 @@
 %x macro
 
 %{
+
   /* File lexlex.l
-	* The Unknown Scandinavian was here
-	* 9 Nov 1990
-	*
-	* Taken over by
-	* Roar Thronæs <roart@nvg.ntnu.no>
-	* 7-MAY-2000
-	*
- *
- * Lexically analyzing BLISS using lex
- * lex.yy.c is #included in parse.y
- */
-
-extern int yydebug;
-extern int yy2debug;
-
-char * s;
-
-#if 0
-#define do_build_string(c) do { c=strdup(yytext); yylval=build_string(strlen(c),c); } while(0);
-#endif
-
-#if 0
-static inline char *strdup(const char *s1) {
-return strdup(s1);
-}
-#endif
+   * The Unknown Scandinavian was here
+   * 9 Nov 1990
+   *
+   * Taken over by
+   * Roar Thronæs <roart@nvg.ntnu.no>
+   * 7-MAY-2000
+   *
+   *
+   * Lexically analyzing BLISS using lex
+   * lex.yy.c is #included in parse.y
+   */
 
 #include "config.h"
 #include <stdio.h>
-#if 0
-#include <ctype.h>
-#endif
 
 #undef IN_GCC
 
@@ -42,74 +25,36 @@ return strdup(s1);
 
 #include "parse.h"
 
-#if 0
-#define yylval bli_lval
-#endif
-YYSTYPE yylval;
-#if 0
-static YYSTYPE yy2lval;
-#endif
-#if 0
-static unsigned char *upper_work = NULL;
-static unsigned int upper_work_length = 0;
-#endif
-unsigned int intern_hash_size=0;
-unsigned int estimated_token_count=0;
-#if 0 
-struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
-#endif
+  extern int yydebug;
+  extern int yy2debug;
 
-char *p_title;
+  char * s;
+
+  YYSTYPE yylval;
+  unsigned int intern_hash_size=0;
+  unsigned int estimated_token_count=0;
+
+  char *p_title;
   int undefmode=0;
   int anymode=0;
   int tnamemode=0;
   int macromode=0;
 
-#ifndef NOYTABH
-#if 0
-#include "blippr1.h"
-#endif
-#endif
-#if 0
-#include <string.h>
-#include <strings.h>
-#include <ctype.h>
-#include "blicc1.h"
-#endif
+  int blipre_lineno=1;
+  int blipre_charno=1;
+  int blipre_debug_line=0; 
 
-int blipre_lineno=1;
-int blipre_charno=1;
-int blipre_debug_line=0; 
-
-#if 0
-static struct file_struct * save_file;
-#endif
 #define LEXINIT_INVALID 3
-#if 0
-static int blipre_lexinit=LEXINIT_INVALID;
-#endif
-int which_lex=LEXINIT_INVALID;
-#if 0
-static int next_blicc1_lineno=1;
-static int next_blicc1_charno=1;
-static int next_blicc1_debug_line=0;
-static int first_time_flag=1;
-static int next_char_offset=0;
-#endif
+  int which_lex=LEXINIT_INVALID;
 
-struct bli_token_struct * first_token=NULL;
+  struct bli_token_struct * first_token=NULL;
 
-#if 0
-#define yylval yy2lval
-extern YYSTYPE yy2lval;
-#endif
-
-struct mymacro {
-  struct mymacro * next;
-  char * name;
-  tree param;
-  tree body;
-};
+  struct mymacro {
+    struct mymacro * next;
+    char * name;
+    tree param;
+    tree body;
+  };
 
   static int keyword (char *);
   static int ukeyword (char *);
@@ -127,68 +72,45 @@ struct mymacro {
   int yylex ( void );
   int something_that_uses_yyunput(void);
 
-#if 0
-static char * save_filename=NULL;
-
-/* file length in bytes */
-static int save_buffer_length=0;
-
-/* file buffer */
-static char * save_buffer=NULL;
-#endif
-
 #define MAX_INCLUDE_DEPTH 10
-YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
-int include_stack_ptr = 0;
+  YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+  int include_stack_ptr = 0;
 
-char macrostart=0;
-struct mymacro * macr=0;
-tree macroact=0;
-char macrocomma=1;
+  char macrostart=0;
+  struct mymacro * macr=0;
+  tree macroact=0;
+  char macrocomma=1;
 
-void
-push_macro(char *new)
-{
-include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+  void
+    push_macro(char *new)
+    {
+      include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
  
-yy_switch_to_buffer(yy_scan_string(new));
-}
+      yy_switch_to_buffer(yy_scan_string(new));
+    }
 
-void
-push_req_stack(char *new)
-{
-include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-yyin = fopen( new, "r" );
+  void
+    push_req_stack(char *new)
+    {
+      include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+      yyin = fopen( new, "r" );
      
-#if 0
-if ( ! yyin )
-error( ... );
-#endif
- 
-yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
-}
+      yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
+    }
 
-void
-pop_req_stack(void)
-{
-if ( --include_stack_ptr < 0 )
-{
-fprintf(stderr, "\nempty include stack\n");
-#if 0
-return YY_NULL;
-#endif
-}
-else
-{
-yy_delete_buffer( YY_CURRENT_BUFFER );
-yy_switch_to_buffer(include_stack[include_stack_ptr] );
-}
-}
-
-#if 0
-void *
-find_macro(struct mymacro * s,char * name);
-#endif
+  void
+    pop_req_stack(void)
+    {
+      if ( --include_stack_ptr < 0 )
+	{
+	  fprintf(stderr, "\nempty include stack\n");
+	}
+      else
+	{
+	  yy_delete_buffer( YY_CURRENT_BUFFER );
+	  yy_switch_to_buffer(include_stack[include_stack_ptr] );
+	}
+    }
 
 %}
 
@@ -211,21 +133,11 @@ hexdigit [0-9a-f]
 {delim}				{
 
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-#if 0
-  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
-#endif
-  /*yylval.type_str = strdup(yytext);*/
   return *yytext;
 }
 
 {digit}+			{
-#if 0
-  yylval.type_int = atoi(yytext);
-#endif
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-#if 0
-  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
-#endif
   s=strdup(yytext);
   yylval.type_node_p=copy_node(get_identifier(s));
   return T_DIGITS;
@@ -242,35 +154,29 @@ hexdigit [0-9a-f]
 
   downcase (yytext);
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-#if 0
-  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
-#endif
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
-	 {
-  struct mymacro * m=(void*)find_macro(0,yytext);
-  macr=m;
-  if (m) { 
-    if (m->param==0) goto ifall;
-    BEGIN(macro);
-    continue;
-  }
+    {
+      struct mymacro * m=(void*)find_macro(0,yytext);
+      macr=m;
+      if (m) { 
+	if (m->param==0) goto ifall;
+	BEGIN(macro);
+	continue;
+      }
 #if 0
-  if (m) {
-    push_macro(make_macro_string(m));
-    continue;                   /* not obvious at all... */
-  }
+      if (m) {
+	push_macro(make_macro_string(m));
+	continue;                   /* not obvious at all... */
+      }
 #endif
-	 onlytname:
-#if 0
-		yylval.type_str=strdup(yytext);
-#endif
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
-   if (m==0) return T_NAME;
-	 }
+    onlytname:
+      s=strdup(yytext);
+      yylval.type_node_p=get_identifier(s);
+      if (m==0) return T_NAME;
+    }
   /*yylval.type_str=strdup(yytext);*/
   yylval.type_node_p=get_identifier(yytext);
   return key;
@@ -282,10 +188,10 @@ yylval.type_node_p=get_identifier(s);
   downcase (yytext);
   key = keyword (yytext);
   if (key == -1)
-	 yy2error ("no %");
+    yy2error ("no %");
   switch (key) {
   case P_TITLE:
-	 break;
+    break;
   }
   return key;
 }
@@ -299,13 +205,7 @@ yylval.type_node_p=get_identifier(s);
 {string}			{
   struct mymacro * m;
   /* store that string w/o '' */
-#if 0
-  yylval.type_str = strdup(yytext);
-#endif
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-#if 0
-  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
-#endif
   m=(void*)find_macro(0,yytext);
   macr=m;
   if (m) BEGIN(macro);
@@ -331,27 +231,24 @@ yylval.type_node_p=get_identifier(s);
 }
 
 <<EOF>> { 
-if ( --include_stack_ptr < 0 )
-{
-fprintf(stderr, "\nempty include stack\n");
-return YY_NULL;
-}
-else
-{
-yy_delete_buffer( YY_CURRENT_BUFFER );
-yy_switch_to_buffer(include_stack[include_stack_ptr] );
-}
-#if 0
-pop_req_stack();
-#endif
+  if ( --include_stack_ptr < 0 )
+    {
+      fprintf(stderr, "\nempty include stack\n");
+      return YY_NULL;
+    }
+  else
+    {
+      yy_delete_buffer( YY_CURRENT_BUFFER );
+      yy_switch_to_buffer(include_stack[include_stack_ptr] );
+    }
 } 
 
 <macro>{delim}				{
-int newmacrocomma;
+  int newmacrocomma;
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') { if (macrostart==0) macrostart=*yytext; }
 
- if (macrostart) {
-  switch (*yytext) {
+  if (macrostart) {
+    switch (*yytext) {
     case ']':
       goto ifall;
       break;
@@ -361,18 +258,18 @@ int newmacrocomma;
     case '>': 
       goto ifall;
       break;
+    }
+    goto out;
+  ifall:
+    push_macro(make_macro_string(macr,macroact));
+    macrostart=0;
+    macr=0;
+    macroact=0;
+    macrocomma=1;
+    BEGIN(0);
+    continue;
   }
-goto out;
-ifall:
-  push_macro(make_macro_string(macr,macroact));
-  macrostart=0;
-  macr=0;
-  macroact=0;
-  macrocomma=1;
-  BEGIN(0);
-  continue;
-}
-out:
+ out:
 
   newmacrocomma=*yytext==',';
 
@@ -726,11 +623,11 @@ static int keyword (cp)
       half = (first + last) / 2;
       c = strcmp (cp, keywords[half].d_text);
       if (c == 0)
-		  return keywords[half].d_num;
+	return keywords[half].d_num;
       else if (c < 0)
-		  last = half;
+	last = half;
       else
-		  first = half + 1;
+	first = half + 1;
     }
   if (yy2debug) fprintf(stderr, "keynot\n");
   return -1;				/* Not a keyword */
@@ -749,11 +646,11 @@ static int ukeyword (cp)
       half = (first + last) / 2;
       c = strcmp (cp, ukeywords[half].d_text);
       if (c == 0)
-		  return ukeywords[half].d_num;
+	return ukeywords[half].d_num;
       else if (c < 0)
-		  last = half;
+	last = half;
       else
-		  first = half + 1;
+	first = half + 1;
     }
   if (yy2debug) fprintf(stderr, "ukeynot\n");
   return -1;				/* Not a keyword */
@@ -780,10 +677,6 @@ bli_init_reswords (void)
     {
       /* If a keyword is disabled, do not enter it into the table
          and so create a canonical spelling that isn't a keyword.  */
-#if 0
-      if (reswords[i].disable & mask)
-        continue;
-#endif
 
       id = get_identifier (keywords[i].d_text);
 #if 0

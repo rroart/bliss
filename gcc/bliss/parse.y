@@ -155,9 +155,6 @@ bli_common_parse_file(set_yydebug)
    bitstackno--;
  }
 
-#if 0
-#define yyparse yyparse_2
-#endif
 %}
 
 %start mystart
@@ -3142,12 +3139,6 @@ parse_init ()
 
   bli_init_reswords();
 
-#if 0
-  ggc_add_tree_root (&declspec_stack, 1);
-  ggc_add_tree_root (&current_declspecs, 1);
-  ggc_add_tree_root (&prefix_attributes, 1);
-  ggc_add_tree_root (&all_prefix_attributes, 1);
-#endif  
 }
 
 void yy2error (const char *s)
@@ -3379,19 +3370,6 @@ find_struct(struct structure * s,tree elem) {
   while (t->elem && t->elem->exp.operands[0]!=elem) t=t->next;
   return t->elem;
 }
-
-#if 0
-void
-c_set_yydebug (value)
-     int value;
-{
-#if YYDEBUG != 0
-  yydebug = value;
-#else
-  warning ("YYDEBUG not defined");
-#endif
-}
-#endif
 
 /* The reserved keyword table.  */
 struct resword
