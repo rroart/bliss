@@ -1783,16 +1783,35 @@ own_item_list: own_item_list ',' own_item {
 
 own_item: T_NAME { 
   //$$ = build_decl (VAR_DECL, $1, integer_type_node);
+  tree c, p , d, i;
+  char * s;
+  int e,f;
   TREE_TYPE($1)=integer_type_node;
-  tree p = make_pointer_declarator(0,$1);
-  tree d = start_decl (p, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
+  s=malloc($1->identifier.id.len+2);
+  strcpy(s,$1->identifier.id.str);
+  s[$1->identifier.id.len]='_';
+  s[$1->identifier.id.len+1]=0;
+  c=get_identifier(s);
+  TREE_TYPE(c)=integer_type_node;
 #if 0
-  int f = start_init(d,NULL,global_bindings_p());
-  int e = finish_init();
-  tree i = build_unary_op (ADDR_EXPR, $1, 0);
+  c = copy_node($1);
+  c->identifier.id.str=malloc(c->identifier.id.len+2);
+  strcpy(c->identifier.id.str,$1->identifier.id.str);
+  c->identifier.id.str[c->identifier.id.len]='_';
+  c->identifier.id.len++;
 #endif
+  d = start_decl (c, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
   finish_decl (d, 0, NULL_TREE);
+  p = make_pointer_declarator(0,$1);
+  d = start_decl (p, current_declspecs, 1,
+		       chainon (NULL_TREE, all_prefix_attributes));
+
+  f = start_init(d,NULL,global_bindings_p());
+  e = finish_init();
+  i = build_unary_op (ADDR_EXPR, build_external_ref (c, 0), 0);
+
+  finish_decl (d, i, NULL_TREE);
   // $$ = build_tree_list ($1, NULL_TREE);
   /*  */
   

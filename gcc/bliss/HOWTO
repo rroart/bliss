@@ -12,3 +12,8 @@ NOTE:
 for use with gcc 3.2
 see generated .s and .rtl files
 it is working just a little, and it need a lot of work
+
+EXAMPLE:
+"compile" with ./bli1 f1.bli
+or use gdb bli1 with set arg -dr -fparser-trace f1.bli
+link with gcc -g t.c f1.s

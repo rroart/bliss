@@ -36,8 +36,12 @@ end;
 routine s=
 begin
 external routine undecl;
+external routine amalloc;
 own d,c;
 pppp(1,2);
+undecl(dd,44);
+undecl(c,d);
+c=amalloc();
 undecl(c,d);
 undecl(d,.d);
 d=2;
