@@ -349,8 +349,7 @@ bliss.cp/bliplex.o: $(blibld)/bliplex.c $(blisrc)/blipre.h \
 
 bliss.cp/blipre.o: $(blisrc)/blipre.c $(blisrc)/blipre.h \
 	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h \
-	$(blisrc)/bli_version.h
+	$(blisrc)/blippr1b.h
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
 bliss.cp/blipre1.o: $(blisrc)/blipre1.c $(blisrc)/blipre.h \
@@ -365,7 +364,6 @@ bliss.cp/bliclex.o: $(blibld)/bliclex.c $(blisrc)/bliclex.h \
 
 bliss.cp/blicc1.o: $(blisrc)/blicc1.c \
 	$(blisrc)/blicsyt.h \
-	$(blisrc)/blicsyms.h \
-	$(blisrc)/bli_version.h
+	$(blisrc)/blicsyms.h
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 

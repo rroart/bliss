@@ -431,39 +431,39 @@ enum symtab_entry_type_enum
 };
 
 /* Internal symbol table entry format.  */
-struct symtab_entry GTY(())
+struct symtab_entry
 {
-  uint32 magic;  /* Make sure it really is symtab entry.  */
+  unsigned int magic;  /* Make sure it really is symtab entry.  */
   enum symtab_entry_type_enum symtab_entry_type;
   bli_item *symtab_entry_item;  /* Token or bli_data_item or NULL if neither.  */
   struct symtab_entry *symtab_entry_owner;  /* Hierarchical owner.  */
-  uchar *symtab_entry_name;  /* Name; not protected from ggc.  */
-  uint32 symtab_entry_name_length;  /* Name length; not protected from ggc.  */
-  uint32 symtab_program_count;
-  uint32 symtab_entry_flags;
+  unsigned char *symtab_entry_name;  /* Name; not protected from ggc.  */
+  unsigned int symtab_entry_name_length;  /* Name length; not protected from ggc.  */
+  unsigned int symtab_program_count;
+  unsigned int symtab_entry_flags;
   struct symtab_entry *symtab_hash_next;
 };
 
 /* Mini symbol table management functions.  */
 
-void create_symbol_table (uint32 token_count);
+void create_symbol_table (unsigned int token_count);
 void symbol_table_new_pgm (void);
 void *create_symtab_entry (enum symtab_entry_type_enum type, void *item);
-void put_symtab_entry_attribute_flags (void *entry, uint32 flags,
-                                              uint32 flags_mask);
-uint32 get_symtab_entry_attribute_flags (void *entry, uint32 flags_mask);
-uchar *get_symtab_entry_name (void *entry,  /* Returns.  */uint32 *length);
+void put_symtab_entry_attribute_flags (void *entry, unsigned int flags,
+                                              unsigned int flags_mask);
+unsigned int get_symtab_entry_attribute_flags (void *entry, unsigned int flags_mask);
+unsigned char *get_symtab_entry_name (void *entry,  /* Returns.  */unsigned int *length);
 void *get_symtab_entry_owner (void *entry);
 enum symtab_entry_type_enum get_symtab_entry_type (void *entry);
 void set_symtab_entry_owner (void *entry, void *owner);
 void set_symtab_entry_item (void *entry, void *item);
-void *find_symtab_entry (uchar *name, uint32 name_length);
-void *find_next_symtab_entry (void *entry, uchar *name, uint32 name_length);
-uint32 find_symtab_entry_hierarchy (uint32 nbr_names, uchar **names, 
-                                               uint32 *name_lengths,  /* Return.  */void **entry,
+void *find_symtab_entry (unsigned char *name, unsigned int name_length);
+void *find_next_symtab_entry (void *entry, unsigned char *name, unsigned int name_length);
+unsigned int find_symtab_entry_hierarchy (unsigned int nbr_names, unsigned char **names, 
+                                               unsigned int *name_lengths,  /* Return.  */void **entry,
                                                enum symtab_entry_type_enum type);
-uint32 find_next_symtab_entry_hierarchy (uint32 nbr_names, 
-                                             uchar **names, uint32 *name_lengths,
+unsigned int find_next_symtab_entry_hierarchy (unsigned int nbr_names, 
+                                             unsigned char **names, unsigned int *name_lengths,
                                              /* Input and return.  */void **entry, 
                                              enum symtab_entry_type_enum type);
 
@@ -472,10 +472,10 @@ struct bli_tree_struct_data_division;
 struct bli_tree_struct_procedure_division;
 
 
-uint32 data_item_top_level (struct bli_tree_struct_data_item *var);
-void *get_name_symtab_entry (bli_token *tk, uint32 *status,
+unsigned int data_item_top_level (struct bli_tree_struct_data_item *var);
+void *get_name_symtab_entry (bli_token *tk, unsigned int *status,
                              enum symtab_entry_type_enum type); 
-void *get_next_name_symtab_entry (void *current, bli_token *tk, uint32 *status,
+void *get_next_name_symtab_entry (void *current, bli_token *tk, unsigned int *status,
                              enum symtab_entry_type_enum type); 
 void blicsyt_mark_symbol_table (void *m);
 void cleanup_symbol_table (void);
@@ -483,13 +483,13 @@ void *get_symtab_entry_item (void *entry);
 void validate_data_division (struct bli_tree_struct_data_division *current_data_division);
 void validate_parse_tree_descriptor_array (void);
 void validate_procedure_division (struct bli_tree_struct_procedure_division *current_procedure_division);
-uint32 check_symtab_entry_namespace (bli_token *token, enum symtab_entry_type_enum type);
+unsigned int check_symtab_entry_namespace (bli_token *token, enum symtab_entry_type_enum type);
 
 
 /* Mask for occurs flag for data item.  */
-#define SYMBOL_TABLE_FLAG_OCCURS  ((uint32)0x80000000u)
+#define SYMBOL_TABLE_FLAG_OCCURS  ((unsigned int)0x80000000u)
 /* Global - keep across pgms.  */
-#define SYMBOL_TABLE_FLAG_GLOBAL  ((uint32)0x00000001u)
+#define SYMBOL_TABLE_FLAG_GLOBAL  ((unsigned int)0x00000001u)
 
 /* Parse tree management functions.  */
 
@@ -526,27 +526,27 @@ enum type_token_or_production
 
 /* Interned string.  */
 
-struct interned_token_string GTY(())
+struct interned_token_string 
 {
-  uint32 length;
-  uchar *string;
+  unsigned int length;
+  unsigned char *string;
   struct interned_token_string *string_upper;
 };
 
 /* Prefix for token/language constructs.  */
 
-union bli_item_code_union GTY ((desc ("(((union bli_item_code_union *)&%1).cat)"))) 
+union bli_item_code_union
 {
-  enum bli_prod_type GTY ((tag ("type_token)"))) prod_type;
-  enum bli_tok_type GTY ((tag ("type_production)"))) tok_type;
+  enum bli_prod_type prod_type;
+  enum bli_tok_type tok_type;
 };
 
 typedef union bli_item_code_union bli_item_code;
 
-struct item_prefix_struct GTY(())
+struct item_prefix_struct
 {
   enum type_token_or_production cat;
-  union bli_item_code_union GTY ((desc ("%1.cat"))) type;
+  union bli_item_code_union type;
 };
 
 typedef struct item_prefix_struct item_prefix;
@@ -555,16 +555,16 @@ typedef struct item_prefix_struct item_prefix;
 
 //typedef struct bli_token_struct *ignodeptr;
 
-struct bli_token_struct GTY(())
+struct bli_token_struct 
 {
   item_prefix pfx;
   struct interned_token_string *string_details;
   bli_token *bli_token_next;
   bli_token *bli_token_prev;
-  uint32 bli_token_debug: 1;
-  uint32 bli_token_fileno; 
-  uint32 bli_token_lineno; 
-  uint32 bli_token_charno;
+  unsigned int bli_token_debug: 1;
+  unsigned int bli_token_fileno; 
+  unsigned int bli_token_lineno; 
+  unsigned int bli_token_charno;
 
 #if 0
   int type_int;
@@ -592,7 +592,7 @@ extern tree igroot;
    or 'pointer to child'.  It is used in the parse tree entries proper,
    later on.  */
 
-struct bli_tree_noncons GTY(())
+struct bli_tree_noncons 
 {
   item_prefix pfx;
 };
@@ -601,7 +601,7 @@ struct bli_tree_noncons GTY(())
    but no 'pointer to child'.  It is used in the parse tree entries proper,
    later on.  */
 
-struct bli_tree_cons GTY(())
+struct bli_tree_cons 
 {
   item_prefix pfx;
   bli_item *next;
@@ -612,7 +612,7 @@ struct bli_tree_cons GTY(())
    but if you want a pointer to child you have to have a pointer to
    next. It is used in the parse tree entries proper, later on.  */
 
-struct bli_tree_branch GTY(())
+struct bli_tree_branch 
 {
   item_prefix pfx;
   bli_item *next;
@@ -623,13 +623,13 @@ struct bli_tree_branch GTY(())
 
 /* Root of the parse tree.  */
 
-struct bli_tree_struct_parse_tree_top GTY(())
+struct bli_tree_struct_parse_tree_top 
 {
   struct bli_tree_branch branch;  /* Child is the first program in a linked list.  */
 };
 
 /* Top of a program.  */
-struct bli_tree_struct_program_top GTY(())
+struct bli_tree_struct_program_top 
 {
   struct bli_tree_cons cons;  /* Next is next program.  */
   bli_token *reference_token;  /* First token.  */
@@ -638,13 +638,13 @@ struct bli_tree_struct_program_top GTY(())
 };
 
 /* Generic parse tree for list of things.  */
-struct bli_tree_struct_item_list GTY(())
+struct bli_tree_struct_item_list 
 {
   struct bli_tree_branch branch;
 };
 
 /* PROGRAM ID.  */
-struct bli_tree_struct_program_id GTY(())
+struct bli_tree_struct_program_id 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -658,7 +658,7 @@ struct bli_tree_struct_program_id GTY(())
 
 /* Contains details of WORKING STORAGE LOCAL STORAGE or LINKAGE.  */
 
-struct bli_tree_struct_storage GTY(())
+struct bli_tree_struct_storage 
 {
   struct bli_tree_branch branch;  /* Child is first top level data item.  */
   bli_token *reference_token; 
@@ -668,7 +668,7 @@ struct bli_tree_struct_storage GTY(())
 
 /* EXPRESSION.  */
 
-struct bli_tree_struct_expression GTY(())
+struct bli_tree_struct_expression 
 {
   struct bli_tree_cons cons;  /* Next at same level eg in array reference list.  */
   bli_token *reference_token; 
@@ -676,13 +676,13 @@ struct bli_tree_struct_expression GTY(())
   bli_item *operand1;  /* Operator 1 data item or expression.  */
   bli_item *operand2;  /* Operator 2 data item or expression.  */
   /* Operator token type or pseudo token type - 0 means just the expression in operand1.  */
-  uint32 operator; 
+  unsigned int operator; 
   unsigned save_expr_needed: 1;  /* Item used more than once, save expression value.  */
 };
 
 /* SAVE_DETAILS.  */
 
-struct bli_tree_struct_save_details GTY(())
+struct bli_tree_struct_save_details 
 {
   struct bli_tree_cons noncons;  
   tree save_length;
@@ -692,7 +692,7 @@ struct bli_tree_struct_save_details GTY(())
 
 /* A DATA ITEM - 01 77 88 77 66 nn level item.  */
 
-struct bli_tree_struct_data_item GTY(())
+struct bli_tree_struct_data_item 
 {
   struct bli_tree_branch branch;  /* Next at same level; first child.  */
   bli_token *reference_token;  /* First token.  */
@@ -710,7 +710,7 @@ struct bli_tree_struct_data_item GTY(())
   bli_item *owner;  /* Enclosing data structure, file, report, etc.  */
   struct bli_tree_struct_data_item *level88;  /* Level 88 list.  */
 
-  uint32 data_length_bytes;  /* Length in bytes excluding nested occurs depending on items.  */
+  unsigned int data_length_bytes;  /* Length in bytes excluding nested occurs depending on items.  */
 
   unsigned usage_type: 16;  /* Usage token ID (or DISPLAY if group).  */
   unsigned digits: 16;  /* Digits before decimal point.  */
@@ -739,7 +739,7 @@ struct bli_tree_struct_data_item GTY(())
 };
 
 /* Parse tree for USAGE clause.  */
-struct bli_tree_struct_usage GTY(())
+struct bli_tree_struct_usage 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -748,7 +748,7 @@ struct bli_tree_struct_usage GTY(())
 };
 
 /* PIC clause parse tree.  */
-struct bli_tree_struct_pic GTY(())
+struct bli_tree_struct_pic 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -756,7 +756,7 @@ struct bli_tree_struct_pic GTY(())
 };
 
 /* REDEFINES clause parse tree.  */
-struct bli_tree_struct_redefines GTY(())
+struct bli_tree_struct_redefines 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -765,7 +765,7 @@ struct bli_tree_struct_redefines GTY(())
 };
 
 /* EXTERNAL clause parse tree.  */
-struct bli_tree_struct_external GTY(())
+struct bli_tree_struct_external 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -775,7 +775,7 @@ struct bli_tree_struct_external GTY(())
 };
 
 /* One in list of VALUEs or pairs of values in value clause parse tree.  */
-struct bli_tree_struct_value_item GTY(())
+struct bli_tree_struct_value_item 
 {
   struct bli_tree_cons cons; 
   bli_token *reference_token; 
@@ -787,15 +787,15 @@ struct bli_tree_struct_value_item GTY(())
   union value_number_u
     { /* The tags are irrelevant for ggc as these are embedded scalars
          so just put anything.  */
-      uint64 GTY ((tag ("1"))) value_unsigned;
-      int64 GTY ((tag ("2"))) value_signed;
-    } GTY ((desc ("1"))) value_number;
-  uchar *string;
-  uint32 length;
+      unsigned long long value_unsigned;
+      long long value_signed;
+    } value_number;
+  unsigned char *string;
+  unsigned int length;
 };
 
 /* Details of OCCURS clause.  */
-struct bli_tree_struct_occurs_clause GTY(())
+struct bli_tree_struct_occurs_clause 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token; 
@@ -805,14 +805,14 @@ struct bli_tree_struct_occurs_clause GTY(())
   struct bli_tree_struct_data_item *occurs_depending_item;
   struct bli_tree_struct_occurs_clause *occurs_next;
   struct bli_tree_struct_data_item *owner; 
-  uint32 occurs_from_int;
-  uint32 occurs_to_int;
+  unsigned int occurs_from_int;
+  unsigned int occurs_to_int;
   unsigned occurs_depending: 1;
 };
 
 /* Common statement prefix.  */
 
-struct statement_prefix GTY(())
+struct statement_prefix 
 {
   struct bli_tree_branch branch; 
   bli_token *reference_token;
@@ -820,14 +820,14 @@ struct statement_prefix GTY(())
 
 /* DISPLAY verb details.  */
 
-struct bli_tree_struct_verb_display GTY(())
+struct bli_tree_struct_verb_display 
 {
   struct statement_prefix pfx;  /* Child is first thing to display.  */
 };
 
 /* STOP verb details.  */
 
-struct bli_tree_struct_verb_stop GTY(())
+struct bli_tree_struct_verb_stop 
 {
   struct statement_prefix pfx;
 };
@@ -843,19 +843,19 @@ enum
   set_type_condition
 } set_type;
 
-struct bli_tree_struct_verb_set GTY(())
+struct bli_tree_struct_verb_set 
 {
   struct statement_prefix pfx; 
   /* 'Up' 'down' or 'true' token or null if none of the above.  */
   bli_token *up_down_true_token; 
   bli_item *set_to;  /* Where the result of the expression gets put (list).  */
   bli_item *set_expression;  /* The 'from' expression.  */
-  uchar set_type;  /* See set_type above.  */
+  unsigned char set_type;  /* See set_type above.  */
 };
 
 /* PROCEDURE_REF details.  */
 
-struct bli_tree_struct_procedure_ref GTY(())
+struct bli_tree_struct_procedure_ref 
 {
   struct statement_prefix pfx; 
   bli_token *first_name;
@@ -865,7 +865,7 @@ struct bli_tree_struct_procedure_ref GTY(())
 
 /* GOTO verb details.  */
 
-struct bli_tree_struct_verb_goto GTY(())
+struct bli_tree_struct_verb_goto 
 {
   struct statement_prefix pfx; 
   bli_item *proc;  /* One label or list of them pointed to by 'branch' structs.  */
@@ -874,29 +874,19 @@ struct bli_tree_struct_verb_goto GTY(())
 
 /* LABEL details - paragraph or section, a pseudo verb.  */
 
-struct bli_tree_struct_label GTY(())
+struct bli_tree_struct_label 
 {
   struct statement_prefix pfx; 
   struct bli_tree_struct_label *label_next;
   tree save_decl;  /* GCC decl.  */
   /* Used as index into perform return arrays.  Value is -1 if label
      not subject of perform exit.  */
-  int32 label_exit_number; 
-};
-
-struct bli_tree_struct_section GTY(())
-{
-  struct bli_tree_struct_label l;
-};
-
-struct bli_tree_struct_paragraph GTY(())
-{
-  struct bli_tree_struct_label l;
+  unsigned int label_exit_number; 
 };
 
 /* COMPUTE verb details.  */
 
-struct bli_tree_struct_verb_compute GTY(())
+struct bli_tree_struct_verb_compute 
 {
   struct statement_prefix pfx; 
   bli_item *compute_to;  /* Where the result of the expression gets put (list).  */
@@ -904,7 +894,7 @@ struct bli_tree_struct_verb_compute GTY(())
 };
 
 /* MOVE verb details.  */
-struct bli_tree_struct_verb_move GTY(())
+struct bli_tree_struct_verb_move 
 {
   struct statement_prefix pfx; 
   bli_token *corr_token; 
@@ -914,27 +904,27 @@ struct bli_tree_struct_verb_move GTY(())
 };
 
 /* Generic parse tree for list of things with two things in each entry.  */
-struct bli_tree_struct_double_entry_list GTY(())
+struct bli_tree_struct_double_entry_list 
 {
   struct bli_tree_branch branch;
   bli_item *child2;
 };
 
 /* CONTINUE verb details.  */
-struct bli_tree_struct_verb_continue GTY(())
+struct bli_tree_struct_verb_continue 
 {
   struct statement_prefix pfx; 
  };
 
 /* EXIT verb details.  */
-struct bli_tree_struct_verb_exit GTY(())
+struct bli_tree_struct_verb_exit 
 {
   struct statement_prefix pfx; 
   bli_token *program;
 };
 
 /* NEXT SENTENCE verb details.  */
-struct bli_tree_struct_verb_next_sentence GTY(())
+struct bli_tree_struct_verb_next_sentence 
 {
   struct statement_prefix pfx; 
   struct bli_tree_struct_verb_fullstop *end_of_sentence;
@@ -942,16 +932,16 @@ struct bli_tree_struct_verb_next_sentence GTY(())
 };
 
 /* FULLSTOP pseudo verb details.  */
-struct bli_tree_struct_verb_fullstop GTY(())
+struct bli_tree_struct_verb_fullstop 
 {
   struct statement_prefix pfx; 
   struct bli_tree_struct_verb_fullstop *next_to_make_decls;
   tree save_decl;  /* GCC decl.  */
-  uint32 used; /* Someone wants to jump here.  */
+  unsigned int used; /* Someone wants to jump here.  */
 };
 
 /* IF verb details.  */
-struct bli_tree_struct_verb_if GTY(())
+struct bli_tree_struct_verb_if 
 {
   struct statement_prefix pfx; 
   bli_item *if_condition;  /* Decision expression or conditional variable.  */
@@ -960,7 +950,7 @@ struct bli_tree_struct_verb_if GTY(())
 };
 
 /* One in list of VALUE clauses.  */
-struct bli_tree_struct_value_clause GTY(())
+struct bli_tree_struct_value_clause 
 {
   struct bli_tree_cons cons; 
   bli_token *reference_token; 
@@ -969,17 +959,17 @@ struct bli_tree_struct_value_clause GTY(())
 
 
 /* PERFORM verb details.  */
-struct bli_tree_struct_verb_perform GTY(())
+struct bli_tree_struct_verb_perform 
 {
   struct statement_prefix pfx; 
   bli_item *what_to_perform;  /* label range or first statement.  */
   bli_token *when_to_test;  /* BEFORE/AFTER or NULL.  */
   bli_item *action;  /* varying/after or TIMES details. */
-  uint32 variant; /* TIMES VARYING (token ID) etc.  */
+  unsigned int variant; /* TIMES VARYING (token ID) etc.  */
 };
 
 /* Details of label FROM THRU clause.  */
-struct bli_tree_struct_labels GTY(())
+struct bli_tree_struct_labels 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token;  /* First token.  */
@@ -988,7 +978,7 @@ struct bli_tree_struct_labels GTY(())
 };
 
 /* Details of perform varying / after clause.  */
-struct bli_tree_struct_perform_varying GTY(())
+struct bli_tree_struct_perform_varying 
 {
   struct bli_tree_noncons noncons; 
   bli_token *reference_token;  /* First token.  */
@@ -1002,55 +992,20 @@ struct bli_tree_struct_perform_varying GTY(())
 };
 
 /* CALL verb details.  */
-struct bli_tree_struct_verb_call GTY(())
+struct bli_tree_struct_verb_call 
 {
   struct statement_prefix pfx; 
   bli_item *what_to_call;  /* string or identifier.  */
   bli_item *using_list;  /* TREE_LIST of usings.  */
   bli_token *language_option; 
-  uint32 as; /* Flag to say name is not mapped.  */
+  unsigned int as; /* Flag to say name is not mapped.  */
 };
   
 /* Union for token or language construct.  */
 
-union bli_item_union GTY ((desc ("((((struct bli_token_struct*)&%0)->pfx.cat)|((((struct bli_token_struct*)&%0)->pfx.cat==type_token)?0:(((struct bli_token_struct*)&%0)->pfx.type.prod_type<<16)))")))
+union bli_item_union 
 {
-  bli_token GTY ((tag ("type_token"))) s000;
-  struct bli_tree_struct_parse_tree_top * GTY ((tag ("type_production | (BLI_PROD_TYPE_PARSE_TREE_TOP<<16)"))) s001;
-  struct bli_tree_struct_program_top GTY ((tag ("type_production | (BLI_PROD_TYPE_PROGRAM_TOP<<16)")))  s002;
-  struct bli_tree_struct_program_id GTY ((tag ("type_production | (BLI_PROD_TYPE_PROGRAM_ID<<16)"))) s007;
-  struct bli_tree_struct_storage GTY ((tag ("type_production | (BLI_PROD_TYPE_STORAGE<<16)"))) s008;
-  struct bli_tree_struct_data_item GTY ((tag ("type_production | (BLI_PROD_TYPE_DATA_ITEM<<16)"))) s009;
-  struct bli_tree_struct_usage GTY ((tag ("type_production | (BLI_PROD_TYPE_USAGE<<16)"))) s010;
-  struct bli_tree_struct_pic GTY ((tag ("type_production | (BLI_PROD_TYPE_PIC<<16)"))) s011;
-  struct bli_tree_struct_redefines GTY ((tag ("type_production | (BLI_PROD_TYPE_REDEFINES<<16)"))) s012;
-  struct bli_tree_struct_external GTY ((tag ("type_production | (BLI_PROD_TYPE_EXTERNAL<<16)"))) s013;
-  struct bli_tree_struct_value_item GTY ((tag ("type_production | (BLI_PROD_TYPE_VALUE_ITEM<<16)"))) s014;
-  struct bli_tree_struct_occurs_clause GTY ((tag ("type_production | (BLI_PROD_TYPE_OCCURS_CLAUSE<<16)"))) s015;
-  struct bli_tree_struct_item_list GTY ((tag ("type_production | (BLI_PROD_TYPE_ITEM_LIST<<16)"))) s016; 
-  struct bli_tree_struct_verb_display GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_DISPLAY<<16)"))) s017;
-  struct bli_tree_struct_verb_stop GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_STOP<<16)"))) s018;
-  /*  struct bli_tree_struct_unused18 GTY ((tag ("type_production | (BLI_PROD_TYPE_<<16)"))) s019; */
-  struct bli_tree_struct_expression GTY ((tag ("type_production | (BLI_PROD_TYPE_EXPRESSION<<16)"))) s020;
-  struct bli_tree_struct_verb_set GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_SET<<16)"))) s021;  
-  struct bli_tree_struct_section GTY ((tag ("type_production | (BLI_PROD_TYPE_SECTION<<16)"))) s022;  
-  struct bli_tree_struct_paragraph GTY ((tag ("type_production | (BLI_PROD_TYPE_PARAGRAPH<<16)"))) s023;
-  struct bli_tree_struct_procedure_ref GTY ((tag ("type_production | (BLI_PROD_TYPE_PROCEDURE_REF<<16)"))) s024;
-  struct bli_tree_struct_verb_goto GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_GOTO<<16)"))) s025;
-  struct bli_tree_struct_verb_compute GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_COMPUTE<<16)"))) s026;
-  struct bli_tree_struct_verb_move GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_MOVE<<16)"))) s027;
-  struct bli_tree_struct_double_entry_list GTY ((tag ("type_production | (BLI_PROD_TYPE_ITEM_DOUBLE_ENTRY_LIST<<16)"))) s028;
-  struct bli_tree_struct_verb_continue GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_CONTINUE<<16)"))) s029;
-  struct bli_tree_struct_verb_exit GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_EXIT<<16)"))) s030;
-  struct bli_tree_struct_verb_fullstop GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_FULLSTOP<<16)"))) s031; 
-  struct bli_tree_struct_verb_if GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_IF<<16)"))) s032;
-  struct bli_tree_struct_verb_next_sentence GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_NEXT_SENTENCE<<16)"))) s034;
-  struct bli_tree_struct_save_details GTY ((tag ("type_production | (BLI_PROD_TYPE_SAVE_DETAILS<<16)"))) s035;
-  struct bli_tree_struct_value_clause GTY ((tag ("type_production | (BLI_PROD_TYPE_VALUE_CLAUSE<<16)"))) s036; 
-  struct bli_tree_struct_verb_perform GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_PERFORM<<16)"))) s037; 
-  struct bli_tree_struct_section GTY ((tag ("type_production | (BLI_PROD_TYPE_SECTION<<16)"))) s038a; 
-  struct bli_tree_struct_paragraph GTY ((tag ("type_production | (BLI_PROD_TYPE_PARAGRAPH<<16)"))) s038b; 
-  struct bli_tree_struct_perform_varying GTY ((tag ("type_production | (BLI_PROD_TYPE_PERFORM_VARYING<<16)"))) s039; 
-  struct bli_tree_struct_verb_call GTY ((tag ("type_production | (BLI_PROD_TYPE_VERB_CALL<<16)"))) s040; 
+  bli_token s000;
+  struct bli_tree_struct_parse_tree_top * s001;
 };
 #endif

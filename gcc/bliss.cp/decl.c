@@ -14273,8 +14273,10 @@ finish_function (flags)
   if (current_binding_level->parm_flag != 1)
     {
       /* Make sure we have already experienced errors.  */
+#if 0
       if (errorcount == 0)
 	abort ();
+#endif
 
       /* Throw away the broken statement tree and extra binding
          levels.  */

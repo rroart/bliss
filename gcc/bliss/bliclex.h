@@ -56,15 +56,15 @@ struct posn
 #define YYPOSN struct posn 
 
 /* Function prototypes.  */
-struct keyword *kw_lookup (const char *str, uint32 len);
-extern int32 getcompinput (char *buf, int32 max_size);
+struct keyword *kw_lookup (const char *str, unsigned int len);
+extern int getcompinput (char *buf, int max_size);
 /* Real initial lex routine.  */
-int32 z1zlex (void);
+int z1zlex (void);
 /* Pseudo lexical analysis routine to return tokens to parser.  */
-int32 yylex (void);
-void yylexinit (uchar *filename, uchar *buffer, unsigned length);
-void dump_lex_return (int32 lexret);
-struct bli_token_struct *initial_lexical_analysis (uint32 *token_count);
+int yylex (void);
+void yylexinit (unsigned char *filename, unsigned char *buffer, unsigned length);
+void dump_lex_return (int lexret);
+struct bli_token_struct *initial_lexical_analysis (unsigned int *token_count);
 
 
 

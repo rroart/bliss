@@ -27,16 +27,11 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "langhooks.h"
 #include "langhooks-def.h"
 
-#include "blir_temp_config.h"
-
-#include "blicc1.h"
-
 static const char *c_init PARAMS ((const char *));
 static void c_init_options PARAMS ((void));
 
 /* ### When changing hooks, consider if ObjC needs changing too!! ### */
 
-#if 0
 #undef LANG_HOOKS_NAME
 #define LANG_HOOKS_NAME "GNU C"
 #undef LANG_HOOKS_INIT
@@ -77,11 +72,11 @@ static void c_init_options PARAMS ((void));
 
 /* Each front end provides its own.  */
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
-#endif
 
 /* The front end language hooks (addresses of code for this front
    end).  Mostly just use the C routines.  */
 
+#if 0
 #undef LANG_HOOKS_TRUTHVALUE_CONVERSION
 #define LANG_HOOKS_TRUTHVALUE_CONVERSION c_common_truthvalue_conversion
 #undef LANG_HOOKS_MARK_ADDRESSABLE
@@ -96,18 +91,12 @@ const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 #define LANG_HOOKS_TYPE_FOR_MODE c_common_type_for_mode
 #undef LANG_HOOKS_TYPE_FOR_SIZE
 #define LANG_HOOKS_TYPE_FOR_SIZE c_common_type_for_size
-#undef LANG_HOOKS_PARSE_FILE
-#define LANG_HOOKS_PARSE_FILE bliss_parse_file
+#endif
 
 /* Hook routines and data unique to bliss.  */
 
-#undef LANG_HOOKS_INIT
-#define LANG_HOOKS_INIT bliss_init
 #undef LANG_HOOKS_NAME
 #define LANG_HOOKS_NAME	"GNU BLISS for GCC"
-#undef LANG_HOOKS_DECODE_OPTION	
-#define LANG_HOOKS_DECODE_OPTION bliss_decode_option
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 static void
 c_init_options ()

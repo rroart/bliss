@@ -17,4 +17,5 @@ printf("%x %x\n",&c, &d);
 s();
 t();
 dummy();
+pppp(777,333);
 }

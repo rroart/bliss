@@ -20,20 +20,20 @@ own abc;
 def=1;
 xyz=1;
 abc=3;
-xyz+1=2;
-136000=3;
+!xyz+1=2;
+!136000=3;
 !.136000=3;
 end;
 
 routine zzzz=
 begin
-own mybyte: byte;
-own myword: word;
+!own mybyte: byte;
+!own myword: word;
 external routine undecl;
-mybyte=4;
-myword=3333;
-mybyte=.myword;
-undecl(.mybyte,.myword);
+!mybyte=4;
+!myword=3333;
+!mybyte=.myword;
+!undecl(.mybyte,.myword);
 undecl(65535,1);
 end;
 
@@ -50,7 +50,7 @@ undecl(par1, .myown);
 undecl(64,97);
 end;
 
-routine q=3;
+!routine q=3;
 routine r=
 begin
 external routine undecl;

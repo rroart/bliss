@@ -27,34 +27,28 @@ return strdup(s1);
 }
 #endif
 
-#include "blir_temp_config.h"
 #include "config.h"
 #include <stdio.h>
 //#include <ctype.h>
-#include "gansidecl.h"
 
 #undef IN_GCC
 
 #include "system.h"
 #include "tree.h"
 
-#include "blidebug.h"
-#include "blicc1.h"
 #include "ignorance.h"
 #include "bliclex.h"
-#include "bliumem.h"
-#include "bliumsg.h"
 #include "blicsyt.h"
 #include "blicprs.h"
 
-#define yylval bli_lval
+//#define yylval bli_lval
 YYSTYPE yylval;
 //static YYSTYPE yy2lval;
-static uchar *upper_work = NULL;
-static uint32 upper_work_length = 0;
-uint32 intern_hash_size=0;
-uint32 estimated_token_count=0;
-struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
+static unsigned char *upper_work = NULL;
+static unsigned int upper_work_length = 0;
+unsigned int intern_hash_size=0;
+unsigned int estimated_token_count=0;
+//struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
 
 char *p_title;
   int linenumb;
@@ -631,7 +625,7 @@ lexinit PARAMS((int lexinit_value, struct file_struct * file_ptr))
 }
 
 void 
-yylexinit(uchar * filename, uchar * buffer, unsigned length) 
+yylexinit(unsigned char * filename, unsigned char * buffer, unsigned length) 
 {
   save_filename=filename;  
   save_buffer=buffer;
@@ -644,7 +638,7 @@ yylexinit(uchar * filename, uchar * buffer, unsigned length)
 }
 
 struct bli_token_struct *
-initial_lexical_analysis(uint32 * token_count)
+initial_lexical_analysis(unsigned int * token_count)
 {
   
   int my_token_count = 0;
@@ -660,19 +654,19 @@ initial_lexical_analysis(uint32 * token_count)
   while (yylex ())
     {
       my_token_count ++;
-      new_token = BLI_ALLOC (sizeof (struct bli_token_struct));
+      new_token = malloc (sizeof (struct bli_token_struct));
 //      memcpy (new_token, ((struct bli_token_struct *)(&yylval)), sizeof (struct bli_token_struct));
 //      new_token->type_int=yylval.type_int;
-      BLI_ASSERT (new_token->string_details);
+ //     BLI_ASSERT (new_token->string_details);
 
       if (first_token)
         {
-          BLI_ASSERT (last_token);
+  //        BLI_ASSERT (last_token);
           last_token->bli_token_next = new_token;
           new_token->bli_token_prev = last_token;
-          BLI_ASSERT (new_token->bli_token_prev);
-          BLI_ASSERT (new_token->bli_token_prev != new_token);
-          BLI_ASSERT (new_token->bli_token_prev->bli_token_next == new_token);
+   //       BLI_ASSERT (new_token->bli_token_prev);
+    //      BLI_ASSERT (new_token->bli_token_prev != new_token);
+     //     BLI_ASSERT (new_token->bli_token_prev->bli_token_next == new_token);
         }
       else
         first_token = new_token;
@@ -694,7 +688,7 @@ initial_lexical_analysis(uint32 * token_count)
 }
 
 int
-z1zwrap(void)
+yywrap(void)
 {
 }
 
@@ -710,7 +704,7 @@ intern_string_init ()
   else
     intern_hash_size = 100003;
 
-  intern_hash_table = BLI_ALLOC (intern_hash_size * sizeof (struct inter_hash_entry *));
+  //intern_hash_table = malloc (intern_hash_size * sizeof (struct inter_hash_entry *));
 }
     
 
@@ -719,19 +713,19 @@ intern_string_init ()
 void
 intern_string_wrap ()
 {
-  intern_hash_table = NULL;
+  //intern_hash_table = NULL;
 }
 
-tree *ridpointers;
+tree *bli_ridpointers;
 #define N_reswords (sizeof keywords / sizeof (struct dict))
-init_reswords ()
+bli_init_reswords ()
 {
   unsigned int i;
   tree id;
   /* It is not necessary to register ridpointers as a GC root, because
      all the trees it points to are permanently interned in the
      get_identifier hash anyway.  */
-  ridpointers = (tree *) xcalloc ((int) REALLY_MAX, sizeof (tree));
+  bli_ridpointers = (tree *) xcalloc ((int) REALLY_MAX, sizeof (tree));
   for (i = 0; i < N_reswords && keywords[i].d_num>-1; i++)
     {
       /* If a keyword is disabled, do not enter it into the table
@@ -744,6 +738,6 @@ init_reswords ()
       //C_IS_RESERVED_WORD (id) = 1;
       //TREE_LANG_FLAG_0 (id) = 1;
       //id->common.lang_flag_0 = 1;
-      ridpointers [(int) keywords[i].d_num] = id;
+      bli_ridpointers [(int) keywords[i].d_num] = id;
     }
 }

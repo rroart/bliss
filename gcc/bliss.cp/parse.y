@@ -2209,6 +2209,7 @@ io_list
   DECL_NAME ( TYPE_NAME (myint)) = name;
   void * mynode = build_tree_list (NULL_TREE, myint);
   if (v==0) v=build_tree_list (NULL_TREE, NULL_TREE);
+  else v=tree_cons(v,0,0);
   void * vo = build_nt (CALL_EXPR, $1, v, NULL_TREE);
   if (begin_function_definition (/*mynode*/current_declspecs, vo)==0) exit(42);
   //start_function (current_declspecs, vo, all_prefix_attributes,0);
@@ -2269,10 +2270,19 @@ io_list: { $$=0; }
   //parmlist_tags_warning ();
   //poplevel (0, 0, 0);
   //$$ = $3;
+  extern tree finish_parmlist (tree, int);
+
+#if 0
   tree d = $3;
   printf("dd %x\n",d);
+  TREE_PARMLIST (d) = 1;
+  PARMLIST_ELLIPSIS_P (d) = 0;
+#endif
   $$ = finish_parmlist ($3, 0);
+#if 0
+  $$ = d;
   TREE_PARMLIST ($$) = 1;
+#endif
 }
 /*  |'(' formal_item_list ';' formal_item_list ')' 
     |'(' ';' formal_item_list ')' */
@@ -2280,27 +2290,52 @@ io_list: { $$=0; }
 
 formal_item_list:
 /* empty */ { $$ = 0 ; } 
-|formal_item_list ','  formal_item { $$ = chainon ($3, $1); }
+|formal_item_list ','  formal_item { $$ = chainon ($1 ,$3 ); }
 |formal_item
 ;
 
 formal_item: /*T_NAME ':' formal_attribute_list 
 |*/  T_NAME { 
   tree d, p,q,r,n;
+  tree f,g,h,i,j;
   //TREE_TYPE($1)=integer_type_node;
   //tree p = make_pointer_declarator(0,$1);
   //d = start_decl ($1, current_declspecs, 0,
   //	       chainon (NULL_TREE, all_prefix_attributes),0);
   //finish_decl (d, NULL_TREE, NULL_TREE); 
 
-  //current_declspecs=tree_cons (NULL_TREE, integer_type_node, NULL_TREE);
+  current_declspecs=tree_cons (NULL_TREE, integer_type_node, NULL_TREE);
+
   q=tree_cons (NULL_TREE, integer_type_node, NULL_TREE);
   p=build_nt (ADDR_EXPR, $1);
-  n=tree_cons ($1,0,0);
-  r=build_nt (PARM_DECL, $1, n);
-  TREE_TYPE(p)=integer_type_node;//ptr_type_node;
-  $$ = build_tree_list($1,0);
-  TREE_PARMLIST ($$) = 1;
+  r=build_tree_list (q/*current_declspecs*/,p);
+  n=tree_cons (NULL_TREE, NULL_TREE, NULL_TREE);
+
+   $$ = build_tree_list (r, $1 /*chainon (NULL, all_prefix_attributes)*/);
+  //d = parse_decl ($$, all_prefix_attributes, 0);
+  //parse_end_decl(d, NULL_TREE, 0);
+
+  h = build_reference_type(integer_type_node);
+  i = tree_cons(0,h,0);
+  i = tree_cons(0,integer_type_node,0); //added at the same time as p 
+
+  p=build_nt (ADDR_EXPR, $1);
+
+  $$ = build_tree_list (build_tree_list (current_declspecs,f) ,NULL);
+
+  // this works also:  f = tree_cons(0,get_identifier("int"),0);
+  f = tree_cons(0,integer_type_node,0);
+  g = tree_cons(i/*f*/,p /*$1*/,0); // p instead of $1 last time
+  $$ = tree_cons(0,g,0);
+
+  //  $$=tree_cons(NULL_TREE, $$, NULL_TREE);
+  //$$ = build_tree_list (build_tree_list (current_declspecs,p) ,chainon (NULL, all_prefix_attributes));
+
+  //n=tree_cons ($1,0,0);
+  //r=build_nt (PARM_DECL, $1, n);
+  //TREE_TYPE(p)=integer_type_node;//ptr_type_node;
+  //$$ = build_tree_list($1,0);
+  //TREE_PARMLIST ($$) = 1;
   //$$ = build_tree_list(q,$$);
   //$$ = build_tree_list($$,chainon(0,0));
 		       //$$,chainon (NULL, all_prefix_attributes));
@@ -2312,6 +2347,7 @@ formal_item: /*T_NAME ':' formal_attribute_list
  //$$=make_pointer_declarator(0,$$);
  //TREE_TYPE($$)=build_pointer_type(integer_type_node);
  //push_parm_decl ($$);
+  current_declspecs=0;
 
 }
 ;
@@ -2782,8 +2818,6 @@ parse_init (struct bli_token_struct * first_token, unsigned int parser_trace_fla
   current_token=NULL;
   first_available_token=first_token;
 #ifdef YYDEBUG
-  yydebug=1;
-  bli_debug=parser_trace_flag=1;    
 #else
   if (parser_trace_flag) 
     {
@@ -2858,97 +2892,6 @@ dump_token (FILE * f , const unsigned char *prefix, struct bli_token_struct *t)
         {
           fprintf (f, "%c",t->string_details->string_upper->string[char_ix]);
         }
-    }
-}
-
-void yyerror3 (char *s)
-{
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
-}
-
-void yy2error (char *s)
-{
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
-}
-
-void
-ggc_mark_if_gcable2 (const void * a  ATTRIBUTE_UNUSED)
-{
-}
-
-void
-maybe_apply_pragma_weak2(int a) {
-}
-
-tree
-maybe_apply_renaming_pragma2(tree decl, tree asmname) {
-  return asmname;
-}
-
-void
-c_parse_init2(void) {
-}
-
-void
-c_common_insert_default_attributes2 (decl)
-     tree decl;
-{
-  tree name = DECL_NAME (decl);
-
-#if 0
-  if (!c_attrs_initialized)
-    c_init_attributes ();
-#endif
-
-#if 0
-#define DEF_ATTR_NULL_TREE(ENUM) /* Nothing needed after initialization.  */
-#define DEF_ATTR_INT(ENUM, VALUE)
-#define DEF_ATTR_IDENT(ENUM, STRING)
-#define DEF_ATTR_TREE_LIST(ENUM, PURPOSE, VALUE, CHAIN)
-#define DEF_FN_ATTR(NAME, ATTRS, PREDICATE)                     \
-  if ((PREDICATE) && name == built_in_attributes[(int) NAME])   \
-    decl_attributes (&decl, built_in_attributes[(int) ATTRS],   \
-                     ATTR_FLAG_BUILT_IN);
-#include "builtin-attrs.def"
-#undef DEF_ATTR_NULL_TREE
-#undef DEF_ATTR_INT
-#undef DEF_ATTR_IDENT
-#undef DEF_ATTR_TREE_LIST
-#undef DEF_FN_ATTR
-#endif
-}
-
-int
-cpp_handle_option2 (pfile, argc, argv, ignore)
-     cpp_reader *pfile;
-     int argc;
-     char **argv;
-     int ignore;
-{
-}
-
-int
-defer_fn2 (fn)
-     tree fn;
-{
-  //  VARRAY_PUSH_TREE (deferred_fns, fn);
-
-  return 1;
-}
-
-void
-set_Wformat2 (setting)
-     int setting;
-{
-  warn_format = setting;
-  warn_format_y2k = setting;
-  warn_format_extra_args = setting;
-  if (setting != 1)
-    {
-      warn_format_nonliteral = setting;
-      warn_format_security = setting;
     }
 }
 
@@ -3263,3 +3206,8 @@ check_class_key (key, aggr)
              : key == record_type_node ? "struct" : "class", aggr);
 }
 
+void yy2error (char *s)
+{
+  if (s)fprintf( stderr,"\n\n%s\n",s); 
+  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
+}

@@ -33,8 +33,4 @@ language="bliss"
 
 compilers="bli1\$(exeext) blipre\$(exeext)"
 
-stagestuff=
-
-headers=
-
-gtfiles="\$(srcdir)/bliss/blir_temp_config.h \$(srcdir)/bliss/bliumem.h \$(srcdir)/bliss/bliumem.c \$(srcdir)/bliss/bliumsg.c \$(srcdir)/bliss/blicast.c \$(srcdir)/bliss/blicbei.c \$(srcdir)/bliss/blicc1.h \$(srcdir)/bliss/blicc1.c \$(srcdir)/bliss/blicsyt.h \$(srcdir)/bliss/bliumsc.c \$(srcdir)/bliss/bliclex.c \$(srcdir)/bliss/blicsyt.c \$(srcdir)/bliss/blicast.c"
+#stagestuff=

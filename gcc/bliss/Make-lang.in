@@ -56,6 +56,7 @@ BLI_PRE_LIBS = $(LIBIBERTY)
 #safe-ctype.o
 BLISS_EXTRAS = -B./ -B./bliss/
 blisrc=$(srcdir)/bliss
+blibld = bliss
 #-I./ -I./include
 #GCC_FOR_BLISS = ./xgcc
 #$(CC) 
@@ -70,29 +71,19 @@ GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
 	    echo $(CC) ; \
 	 fi`
 
-BLI_GENERATED = $(blisrc)/blia2e.c $(blisrc)/blie2a.c $(blisrc)/blid2u.c\
-	$(blisrc)/bliu2d.c $(blisrc)/bliutab.c\
-	$(blisrc)/blif2v.c $(blisrc)/blippr1.c $(blisrc)/blippr1.y\
-	$(blisrc)/blippr1.h\
-	$(blisrc)/blickw.txt $(blisrc)/blickw.c\
-	$(blisrc)/blicprs.y $(blisrc)/blicprs.c $(blisrc)/bliclex.c\
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(blisrc)/blictkt.h
+BLI_GENERATED = $(blibld)/blicprs.c $(blibld)/bliclex.c
 
-BLI_EXES = bliss/blia2e$(exeext) bliss/blie2a$(exeext) bliss/blid2u$(exeext) bliss/bliu2d$(exeext) \
-	bliss/bliutab$(exeext)\
-	bliss/blif2v$(exeext) bliss/blipre$(exeext)
+BLI_EXES = bliss/blif2v$(exeext)
 
-BLI_LIBS = bliss/libbli4gcc.a
+BLI_LIBS = 
 
-BLI_NEW_UTIL_H = $(blisrc)/bliumsc.h $(blisrc)/bliumsg.h $(blisrc)/bliumem.h\
-	$(blisrc)/blir_temp_config.h\
-	$(blisrc)/blir_globals.h $(blisrc)/blidebug.h 
+BLI_NEW_UTIL_H = 
 
-BLI_NEW_UTIL_C = $(blisrc)/bliumsc.c $(blisrc)/bliumsg.c $(blisrc)/bliumem.c
+BLI_NEW_UTIL_C = 
 
 BLI_NEW_UTIL = $(BLI_NEW_UTIL_H) $(BLI_NEW_UTIL_C) 
 
-BLI_NEW_UTILS = bliss/bliumsc.o bliss/bliumsg.o bliss/bliumem.o
+BLI_NEW_UTILS = 
 
 #no -Wtraditional warnings, allow long long
 bliss-warn = $(LOOSE_WARN) -pedantic -Wno-long-long -Wmissing-prototypes -Wmissing-declarations
@@ -104,25 +95,17 @@ bliss-warn = $(LOOSE_WARN) -pedantic -Wno-long-long -Wmissing-prototypes -Wmissi
 
 bliss BLISS:bliss.done bliss.check.drivers.done
 
-bliss.done: bliss/blipre$(exeext) bliss/bli1$(exeext)
+bliss.done: bliss/bli1$(exeext)
 	${STAMP} bliss.done
 
-# preprocessor
-
-bliss/blipre$(exeext): bliss/blipre.o bliss/blipre1.o $(BLI_NEW_UTILS)\
-	 bliss/bliplex.o bliss/blippr1.o bliss/blippru.o bliss/blipmsg.o $(BLI_PRE_LIBS)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) $(ALL_CFLAGS) $(LDFLAGS) -o $@ bliss/blipre.o bliss/blipre1.o\
-	 $(BLI_NEW_UTILS)\
-	 bliss/bliplex.o bliss/blippr1.o bliss/blippru.o bliss/blipmsg.o $(BLI_PRE_LIBS)
-
 # core compiler 
-bliss/bli1$(exeext): bliss/blicgty.o bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
-	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
-	 bliss/blicast.o bliss/blicbei.o bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o $(BLI_BE_LIBS)
+bliss/bli1$(exeext): bliss/bliclex.o attribs.o tree.o \
+	 bliss/blicprs.o $(BLI_NEW_UTILS) \
+	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o $(BLI_BE_LIBS)
 	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
-	 bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o tree.o \
-	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o \
-	 bliss/blicast.o bliss/blicbei.o bliss/blicgty.o $(BLI_BE_LIBS)
+	 bliss/bliclex.o attribs.o tree.o \
+	 bliss/blicprs.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o  \
+	 $(BLI_BE_LIBS)
 #c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
 
 
@@ -140,153 +123,46 @@ bliss.check.drivers.done: $(BLISS_TEST_DRIVERS)
 
 # object file makes
 
-bliss/bliutab.o: $(blisrc)/bliutab.c $(BLI_UTIL_H) $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliutil.o: $(blisrc)/bliutil.c $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliplex.o: $(blisrc)/bliplex.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blippr1.o: $(blisrc)/blippr1.c $(blisrc)/blipre.h \
-	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blipre.o: $(blisrc)/blipre.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h \
-	$(BLI_NEW_UTIL_H) $(blisrc)/bli_version.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blipre1.o: $(blisrc)/blipre1.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blippru.o: $(blisrc)/blippru.c $(blisrc)/blipre.h \
-	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
-	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blickw.o: $(blisrc)/blickw.c $(blisrc)/bliclex.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliclex.o: $(blisrc)/bliclex.c $(blisrc)/bliclex.h \
-	 $(blisrc)/blicsymn.h $(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
-	 $(blisrc)/blicpru.h $(BLI_UTIL_H) \
+bliss/bliclex.o: $(blibld)/bliclex.c $(blibld)/bliclex.h bliss/blicprs.h \
+	 $(BLI_UTIL_H) \
 	 $(BLI_NEW_UTIL_H)
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
-bliss/blicpru.o: $(blisrc)/blicpru.c $(blisrc)/blicpru.h \
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyt.h \
-	$(blisrc)/bliclex.h $(blisrc)/blicc1.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+bliss/blicprs.h: bliss/blicprs.c
+bliss/blicprs.c: $(blisrc)/blicprs.y
+	@echo "Expect 33 shift/reduce conflicts and 58 reduce/reduce conflicts."
+	cd bliss && \
+	if $(BISON) $(BISONFLAGS) -d -o p$$$$.c ../$(srcdir)/bliss/blicprs.y; then \
+	  grep '^#define[       ]*YYEMPTY' p$$$$.c >> p$$$$.h ; \
+	  test -f p$$$$.output && mv -f p$$$$.output blicprs.output ; \
+	  mv -f p$$$$.c blicprs.c ; mv -f p$$$$.h blicprs.h ; \
+	else \
+	  rm -f p$$$$.* ; \
+	  false ; \
+	fi
 
-bliss/blicsyt.o: $(blisrc)/blicsyt.c $(blisrc)/blicsyt.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)\
-	$(blisrc)/blicsymn.h 
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+bliss/blicprs.o: bliss/blicprs.c $(BLISS_TREE_H) \
+	$(SYSTEM_H) toplev.h $(GGC_H)
+	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $(BIG_SWITCHFLAG) \
+		bliss/blicprs.c $(OUTPUT_OPTION)
 
-bliss/blicprs.o: $(blisrc)/blicprs.c $(blisrc)/bliclex.h\
-	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h $(blisrc)/blicpru.h $(BLI_UTIL_H)\
-	$(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blicc1.o: $(blisrc)/blicc1.c $(blisrc)/blicc1.h \
-	$(blisrc)/blicsyt.h $(blisrc)/blicpru.h $(blisrc)/blictkt.h \
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_NEW_UTIL_H) \
-	$(blisrc)/bli_version.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blicbei.o: $(blisrc)/blicbei.c $(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
-	$(blisrc)/blicsyt.h\
-	$(blisrc)/blicpru.h $(blisrc)/blictkt.h\
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H)\
-	config.h $(srcdir)/system.h $(srcdir)/tree.h\
-	$(srcdir)/flags.h $(srcdir)/output.h\
-	$(srcdir)/c-tree.h\
-	$(srcdir)/rtl.h tm_p.h $(srcdir)/ggc.h $(srcdir)/toplev.h $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-# $(srcdir)/c-lex.h
-#	config.h $(srcdir)/system.h (srcdir)/ansidecl.h $(srcdir)/tree.h\
-
-bliss/blicgty.o: $(blisrc)/blicgty.c $(blisrc)/blicgty.h \
-	gtype-bliss.h \
-	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
-	$(blisrc)/blicsyt.h $(blisrc)/bliumem.h \
-	$(blisrc)/blicpru.h $(blisrc)/blictkt.h\
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H)\
-	$(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blicast.o: $(blisrc)/blicast.c\
-	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h \
-	$(blisrc)/blicpru.h $(blisrc)/blictkt.h \
-	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliumem.o: $(blisrc)/bliumem.c  $(BLI_NEW_UTIL_H) 
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliumsc.o: $(blisrc)/bliumsc.c $(BLI_NEW_UTIL_H) 
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/bliumsg.o: $(blisrc)/bliumsg.c  $(BLI_NEW_UTIL_H) 
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blipmsg.o: $(blisrc)/blipmsg.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
-bliss/blicmsg.o: $(blisrc)/blicmsg.c  $(BLI_NEW_UTIL_H) $(blisrc)/blicc1.h
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
 
 bliss/bli-semantics.o: $(blisrc)/bli-semantics.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-decl.o: $(blisrc)/bli-decl.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-typeck.o: $(blisrc)/bli-typeck.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-common2.o: $(blisrc)/bli-common2.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-common.o: $(blisrc)/bli-common.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-lang.o: $(blisrc)/bli-lang.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
-
 bliss/bli-convert.o: $(blisrc)/bli-convert.c  $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+bliss/bli-format.o: $(blisrc)/bli-format.c  $(BLI_NEW_UTIL_H)
+bliss/bli-errors.o: $(blisrc)/bli-errors.c  $(BLI_NEW_UTIL_H)
 
 # generated files the files from lex and yacc are put into the source
 # directory in case someone wants to build but does not have
 # lex/yacc/autogen
 
-$(blisrc)/bliutab.c: $(blisrc)/bliutab.l 
-	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliutab.c $(blisrc)/bliutab.l
-
-$(blisrc)/bliplex.c: $(blisrc)/bliplex.l
-	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliplex.c $(blisrc)/bliplex.l
-
-$(blisrc)/blickw.c: $(blisrc)/blickw.txt 
-	gperf -D -t -L ANSI-C -K keyword_name -H kw_hash -N kw_lookup -k '*' \
-	$(blisrc)/blickw.txt >$(blisrc)/blickw.c 
-
-$(blisrc)/blippr1.c: $(blisrc)/blippr1.y
-	$(BISON) $(BISONFLAGS) $(blisrc)/blippr1.y --name-prefix=yy2 \
-	--output=$(blisrc)/blippr1.c
-
-$(blisrc)/bliclex.c: $(blisrc)/bliclex.l
-	$(LEX) $(LEXFLAGS) -Pz1z -o$(blisrc)/bliclex.c $(blisrc)/bliclex.l
-
-$(blisrc)/blicprs.c: $(blisrc)/blicprs.y
-	$(BISON) $(BISONFLAGS) --name-prefix bli_ $(blisrc)/blicprs.y \
-	--output=$(blisrc)/blicprs.c -d -k
+$(blibld)/bliclex.c: $(blisrc)/bliclex.l
+	$(LEX) $(LEXFLAGS) -o$(blibld)/bliclex.c $(blisrc)/bliclex.l
 
 # -v for verbose .output file
 
@@ -468,15 +344,6 @@ TAGS: bliss.tags
 .PHONY: bliss.tags
 
 bliss.tags:
-	cd $(blisrc);						\
-	etags -l c blia2e.l blia2ex.h blicast.c blicbei.c blicc1.c	\
-blicgty.c blibgty.h \
-blicc1.h blickw.tpl bliclex.h bliclex.l blicprs.tpl blicpru.c		\
-blicpru.h blicsymn.tpl blicsyms.tpl blicsyt.c blicsyt.h blictkt.tpl	\
-blid2u.l blidebug.h blie2a.l blie2ax.h blif2v.l bliplexplex.c.l	\
-blippr1.c blippr1.h blippr1.y blippru.c blipre.c blipre.h blipre1.c	\
-blir_globals.h blir_temp_config.h bliu2d.l bliumem.c bliumem.h		\
-bliumsc.c bliumsc.h bliumsg.c bliumsg.h bliutab.l bliutil.c bliutil.h
 
 .PHONY: bliss.html
 

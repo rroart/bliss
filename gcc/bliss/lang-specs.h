@@ -1,8 +1,6 @@
-/* Definitions for specs for BLISS
-
-   The format of the specs file is docuemnted in gcc.c
-
-   Copyright (C) 1995, 96-98, 1999, 2000, 2001 Free Software Foundation, Inc.
+/* Definitions for specs for C++.
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002
+   Free Software Foundation, Inc.
 
 This file is part of GNU CC.
 
@@ -17,96 +15,45 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; see the file COPYING.  If not, write to
+along with GNU CC; see the file COPYING.  If not, write to
 the Free Software Foundation, 59 Temple Place - Suite 330,
 Boston, MA 02111-1307, USA.  */
 
-/* 
-   This is the contribution to the `default_compilers' array in gcc.c for
-   bliss.  
-   
-   This file must compile with 'traditional', so no ANSII string continuations 
-   
-*/
+/* This is the contribution to the `default_compilers' array in gcc.c for
+   g++.  */
 
-{".bli", "@bliss", NULL},
-{".BLI", "@bliss", NULL},
-{"@bliss",
-    "blipre \
-       %{C}\
-       %{I*}\
-       %{P}\
-       %{$}\
-       %{ansi}\
-       %{v}\
-       %{H}\
-       %{--help:--help}\
-       %{W*}\
-       %{w}\
-       %{pedantic*}\
-       %{d*}\
-       %{!E:-o %g.blii}\
-       %{E:%W{o*}}\
-       -i %i\n\
-\
-       %{!E:bli1\
-       %{!Q:-quiet}\
-       %{d*}\
-       %{m*}\
-       %{a}\
-       %{g*}\
-       %{O*}\
-       %{W*}\
-       %{w}\
-       %{--help:--help}\
-       %{pedantic*}\
-       %{ansi}\
-       %{v}\
-       %{pg:-p}\
-       %{p}\
-       %{f*}\
-       %{pg|p:%{fomit-frame-pointer:%e-pg or -p and -fomit-frame-pointer are incompatible}}\
-       %{S:%W{o*}%{!o*:-o %b.s}}\
-       %{!S:-o %g.s}\
-       %g.blii\n\
-\
-       %{!S:as %a\
-       %Y\
-       %{c:%W{o*}%{!o*:-o %w%b%O}}\
-       %{!c:-o %d%w%u%O}\
-       %g.s\
-       %A\n}\
-       }", NULL
-},
-{".blii", "@bliss-preprocessed", NULL},
-{".BLII", "@bliss-preprocessed", NULL},
-{"@bliss-preprocessed",
-    " %{!E:bli1\
-       %{!Q:-quiet}\
-       %{d*}\
-       %{m*}\
-       %{a}\
-       %{g*}\
-       %{O*}\
-       %{W*}\
-       %{w}\
-       %{pedantic*}\
-       %{ansi}\
-       %{v}\
-       %{--help:--help}\
-       %{pg:-p}\
-       %{p}\
-       %{f*}\
-       %{pg|p:%{fomit-frame-pointer:%e-pg or -p and -fomit-frame-pointer are incompatible}}\
-       %{S:%W{o*}%{!o*:-o %b.s}}\
-       %{!S:-o %g.s}\
-       %g.blii\n\
-       %{!S:as %a\
-       %Y\
-       %{c:%W{o*}%{!o*:-o %w%b%O}}\
-       %{!c:-o %d%w%u%O}\
-       %g.s\
-       %A\n}\
-       }", NULL
-},
+#ifndef BLISS_CPP_SPEC
+#define BLISS_CPP_SPEC 0
+#endif
 
+  {".bli",  "@bliss", 0},
+  {".BLI",  "@bliss", 0},
+  {"@bliss",
+   /* cc1plus has an integrated ISO C preprocessor.  We should invoke
+      the external preprocessor if -save-temps is given.  */
+    "%{E|M|MM:cpp0 -lang-c++ %{!no-gcc:-D__GNUG__=%v1}\
+       %{!Wno-deprecated:-D__DEPRECATED}\
+       %{!fno-exceptions:-D__EXCEPTIONS}\
+       %{ansi:-D__STRICT_ANSI__ -trigraphs -$} %(cpp_options)}\
+     %{!E:%{!M:%{!MM:\
+       %{save-temps|no-integrated-cpp:cpp0 -lang-c++ \
+		    %{!no-gcc:-D__GNUG__=%v1}\
+       		    %{!Wno-deprecated:-D__DEPRECATED}\
+		    %{!fno-exceptions:-D__EXCEPTIONS}\
+		    %{ansi:-D__STRICT_ANSI__ -trigraphs -$}\
+		    %(cpp_options) %{save-temps:%b.ii} %{!save-temps:%g.ii} \n}\
+      bli1 %{save-temps|no-integrated-cpp:-fpreprocessed %{save-temps:%b.ii} %{!save-temps:%g.ii}}\
+              %{!save-temps:%{!no-integrated-cpp:%(cpp_unique_options)\
+			    %{!no-gcc:-D__GNUG__=%v1} \
+       			    %{!Wno-deprecated:-D__DEPRECATED}\
+			    %{!fno-exceptions:-D__EXCEPTIONS}\
+			    %{ansi:-D__STRICT_ANSI__}}}\
+       %{ansi:-trigraphs -$}\
+       %(cc1_options) %2 %{+e1*}\
+       %{!fsyntax-only:%(invoke_as)}}}}",
+     CPLUSPLUS_CPP_SPEC},
+  {".ii", "@c++-cpp-output", 0},
+  {"@c++-cpp-output",
+   "%{!M:%{!MM:%{!E:\
+    bli1 -fpreprocessed %i %(cc1_options) %2 %{+e*}\
+    %{!fsyntax-only:%(invoke_as)}}}}", 0},

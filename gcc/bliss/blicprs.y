@@ -12,9 +12,7 @@
 #define YYDEBUG 1
 //#define YYSTYPE struct cmp_token_struct
 
-#include "blir_temp_config.h"
 #include "ignorance.h"
-#include "symbtab.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +23,6 @@
 
 #define malloc xmalloc
 
-#include "gansidecl.h"
 #include "config.h"
 
 #undef IN_GCC
@@ -36,18 +33,13 @@
 
 #include "tree.h"
 
-#include "blidebug.h"
-#include "bliumem.h"
-#include "bliumsg.h"
-
 #include "bliclex.h"
-#include "blicc1.h"
 #include "blicsyt.h"
-#include "blicpru.h"
 
 #include "c-common.h"
 
 #include "bliss-tree.h"
+#include "c-tree.h"
 
 //#define YYSTYPE struct cmp_token_struct
 
@@ -55,7 +47,6 @@ static struct bli_token_struct * current_token=NULL;
 static struct bli_token_struct * first_available_token=NULL;
  static int compstmt_count;
 
-struct bli_tree_struct_parse_tree_top* parse_tree_top=NULL;
  static tree current_declspecs = NULL_TREE;
  static tree prefix_attributes = NULL_TREE;
  static tree all_prefix_attributes = NULL_TREE;
@@ -91,6 +82,17 @@ struct structure {
 
 struct structure * mystructs = 0;
 
+extern FILE *yyin;
+
+int yyparse() {
+  //z1zin=fopen(input_filename,"r");
+  yyin=fopen(input_filename,"r");
+
+  return yyparse_2();
+}
+
+
+#define yyparse yyparse_2
 %}
 
 %start mystart
@@ -462,11 +464,7 @@ mystart: module
 { 
   struct bli_tree_struct_program_top* pgm;
   pgm = $1;
-  BLI_ALLOC_TREE (parse_tree_top, BLI_PROD_TYPE_PARSE_TREE_TOP, 
-                 bli_tree_struct_parse_tree_top);
-  parse_tree_top->branch.child = (bli_item*) pgm;
   $$ = pgm;
-  igroot=parse_tree_top;
   igroot=$1;
 };
 /*module_body*/
@@ -500,7 +498,7 @@ opt_mhargs
   /*ig_name=(char *)$1;*/
   /*   $$->id=$1; */
   char *c=$1;
-  $$=build_string(strlen(c),c);
+  //$$=build_string(strlen(c),c);
 }
 ;
 
@@ -1281,7 +1279,7 @@ operator_expression:
 | opexp9 '/' opexp9 
 | opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
 | opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
-| opexp9 infix_operator opexp9 { $$ = parser_build_binary_op ($2, $1, $3); }
+| opexp9 infix_operator opexp9 {/* $$ = parser_build_binary_op ($2, $1, $3);*/ }
 | K_NOT opexp9 { $$ = 0; }
 | opexp9 K_AND opexp9 
 |  opexp9 K_OR opexp9 
@@ -1870,8 +1868,8 @@ own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
   d = start_decl (p, current_declspecs, 1,
 		       chainon (NULL_TREE, all_prefix_attributes));
 
-  f = start_init(d,NULL,global_bindings_p());
-  e = finish_init();
+   start_init(d,NULL,global_bindings_p());
+  finish_init();
   i = build_unary_op (ADDR_EXPR, build_external_ref (c, 0), 0);
 
   finish_decl (d, i, NULL_TREE);
@@ -2663,10 +2661,9 @@ FILE * myout=stderr;
 #define uplevel prevtop=cur_top_table;newscosym();prev=cur_sym_table;
 #define downlevel cur_sym_table=prev;cur_top_table=prevtop;end_cur();next_sym_table=&(cur_sym_table->next);
 
-symrec *cur_sym_table;
-
 int bli_lex(void) {
-  return z1zlex();
+  //return z1zlex();
+  return yylex();
 }
 
 int bli_lex_not_now(void) 
@@ -2697,13 +2694,12 @@ int bli_lex_not_now(void)
 
 extern FILE *z1zin;
 void 
-parse_init (struct bli_token_struct * first_token, uint32 parser_trace_flag) 
+parse_init ()
 {
-  z1zin=fopen(input_filename,"r");
-  current_token=NULL;
-  first_available_token=first_token;
+  //z1zin=fopen(input_filename,"r");
+  //current_token=NULL;
+  //first_available_token=first_token;
 #ifdef YYDEBUG
-  bli_debug=parser_trace_flag;    
 #else
   if (parser_trace_flag) 
     {
@@ -2715,7 +2711,7 @@ with YYDEBUG set");
     }
 #endif
 
-  init_reswords();
+  bli_init_reswords();
 
   ggc_add_tree_root (&declspec_stack, 1);
   ggc_add_tree_root (&current_declspecs, 1);
@@ -2724,22 +2720,17 @@ with YYDEBUG set");
   
 }
 
-symrec *sym_table = (symrec *)0;
-symrec *cur_sym_table = (symrec *)0;
-symrec *cur_top_table= (symrec*) 0;
-symrec **next_sym_table;
-
 void
-dump_token (FILE * f , const uchar *prefix, struct bli_token_struct *t)
+dump_token (FILE * f , const unsigned char *prefix, struct bli_token_struct *t)
 {
 //fprintf(stderr, "%x\n", yylval);
-  uint32 char_ix;
-  BLI_ASSERT (t);
-  BLI_ASSERT (max_token_nbr >= t->pfx.type.tok_type);
+  unsigned int char_ix;
+  //BLI_ASSERT (t);
+  //BLI_ASSERT (max_token_nbr >= t->pfx.type.tok_type);
   fprintf (f,"%stoken type = %d lit=%s len = %d line = %d char = %d file nbr = %d chars = ", 
           prefix,
           t->pfx.type.tok_type,
-          token_lit_ptrs[t->pfx.type.tok_type],
+          //token_lit_ptrs[t->pfx.type.tok_type],
           t->string_details->length,
           t->bli_token_lineno,
           t->bli_token_charno,
@@ -2790,6 +2781,9 @@ maybe_apply_renaming_pragma(tree decl, tree asmname) {
 
 void
 c_parse_init(void) {
+  init_reswords ();
+
+parse_init();
 }
 
 void
@@ -2837,20 +2831,6 @@ defer_fn2 (fn)
   //  VARRAY_PUSH_TREE (deferred_fns, fn);
 
   return 1;
-}
-
-void
-set_Wformat (setting)
-     int setting;
-{
-  warn_format = setting;
-  warn_format_y2k = setting;
-  warn_format_extra_args = setting;
-  if (setting != 1)
-    {
-      warn_format_nonliteral = setting;
-      warn_format_security = setting;
-    }
 }
 
 void
@@ -2931,26 +2911,6 @@ cpp_errors (pfile)
   //return pfile->errors;
 }
 
-tree
-handle_format_attribute (node, name, args, flags, no_add_attrs)
-     tree *node;
-     tree name ATTRIBUTE_UNUSED;
-     tree args;
-     int flags;
-     bool *no_add_attrs;
-{
-}
-
-tree
-handle_format_arg_attribute (node, name, args, flags, no_add_attrs)
-     tree *node;
-     tree name ATTRIBUTE_UNUSED;
-     tree args;
-     int flags;
-     bool *no_add_attrs;
-{
-}
-
 const char *
 init_c_lex (filename)
      const char *filename;
@@ -3025,4 +2985,146 @@ find_struct(struct structure * s,tree elem) {
   return t->elem;
 }
 
+void
+c_set_yydebug (value)
+     int value;
+{
+#if YYDEBUG != 0
+  yydebug = value;
+#else
+  warning ("YYDEBUG not defined");
+#endif
+}
+
+/* The reserved keyword table.  */
+struct resword
+{
+  const char *word;
+  ENUM_BITFIELD(rid) rid : 16;
+  unsigned int disable   : 16;
+};
+
+extern int flag_no_asm;
+
+/* Disable mask.  Keywords are disabled if (reswords[i].disable & mask) is
+   _true_.  */
+#define D_TRAD  0x01    /* not in traditional C */
+#define D_C89   0x02    /* not in C89 */
+#define D_EXT   0x04    /* GCC extension */
+#define D_EXT89 0x08    /* GCC extension incorporated in C99 */
+#define D_OBJC  0x10    /* Objective C only */
+
+static const struct resword reswords[] =
+{
+  { "_Bool",            RID_BOOL,       0 },
+  { "_Complex",         RID_COMPLEX,    0 },
+  { "__FUNCTION__",     RID_FUNCTION_NAME, 0 },
+  { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
+  { "__alignof",        RID_ALIGNOF,    0 },
+  { "__alignof__",      RID_ALIGNOF,    0 },
+  { "__asm",            RID_ASM,        0 },
+  { "__asm__",          RID_ASM,        0 },
+  { "__attribute",      RID_ATTRIBUTE,  0 },
+  { "__attribute__",    RID_ATTRIBUTE,  0 },
+  { "__bounded",        RID_BOUNDED,    0 },
+  { "__bounded__",      RID_BOUNDED,    0 },
+  { "__builtin_choose_expr", RID_CHOOSE_EXPR, 0 },
+  { "__builtin_types_compatible_p", RID_TYPES_COMPATIBLE_P, 0 },
+  { "__builtin_va_arg", RID_VA_ARG,     0 },
+  { "__complex",        RID_COMPLEX,    0 },
+  { "__complex__",      RID_COMPLEX,    0 },
+  { "__const",          RID_CONST,      0 },
+  { "__const__",        RID_CONST,      0 },
+  { "__extension__",    RID_EXTENSION,  0 },
+  { "__func__",         RID_C99_FUNCTION_NAME, 0 },
+  { "__imag",           RID_IMAGPART,   0 },
+  { "__imag__",         RID_IMAGPART,   0 },
+  { "__inline",         RID_INLINE,     0 },
+  { "__inline__",       RID_INLINE,     0 },
+  { "__label__",        RID_LABEL,      0 },
+  { "__ptrbase",        RID_PTRBASE,    0 },
+  { "__ptrbase__",      RID_PTRBASE,    0 },
+  { "__ptrextent",      RID_PTREXTENT,  0 },
+  { "__ptrextent__",    RID_PTREXTENT,  0 },
+  { "__ptrvalue",       RID_PTRVALUE,   0 },
+  { "__ptrvalue__",     RID_PTRVALUE,   0 },
+  { "__real",           RID_REALPART,   0 },
+  { "__real__",         RID_REALPART,   0 },
+  { "__restrict",       RID_RESTRICT,   0 },
+  { "__restrict__",     RID_RESTRICT,   0 },
+  { "__signed",         RID_SIGNED,     0 },
+  { "__signed__",       RID_SIGNED,     0 },
+  { "__typeof",         RID_TYPEOF,     0 },
+  { "__typeof__",       RID_TYPEOF,     0 },
+  { "__unbounded",      RID_UNBOUNDED,  0 },
+  { "__unbounded__",    RID_UNBOUNDED,  0 },
+  { "__volatile",       RID_VOLATILE,   0 },
+  { "asm",              RID_ASM,        D_EXT },
+  { "auto",             RID_AUTO,       0 },
+  { "break",            RID_BREAK,      0 },
+  { "case",             RID_CASE,       0 },
+  { "char",             RID_CHAR,       0 },
+  { "const",            RID_CONST,      D_TRAD },
+  { "continue",         RID_CONTINUE,   0 },
+  { "default",          RID_DEFAULT,    0 },
+  { "do",               RID_DO,         0 },
+  { "double",           RID_DOUBLE,     0 },
+  { "else",             RID_ELSE,       0 },
+  { "enum",             RID_ENUM,       0 },
+  { "extern",           RID_EXTERN,     0 },
+  { "float",            RID_FLOAT,      0 },
+  { "for",              RID_FOR,        0 },
+  { "goto",             RID_GOTO,       0 },
+  { "if",               RID_IF,         0 },
+  { "inline",           RID_INLINE,     D_TRAD|D_EXT89 },
+  { "int",              RID_INT,        0 },
+  { "long",             RID_LONG,       0 },
+  { "register",         RID_REGISTER,   0 },
+  { "restrict",         RID_RESTRICT,   D_TRAD|D_C89 },
+  { "return",           RID_RETURN,     0 },
+  { "short",            RID_SHORT,      0 },
+  { "signed",           RID_SIGNED,     D_TRAD },
+  { "sizeof",           RID_SIZEOF,     0 },
+  { "static",           RID_STATIC,     0 },
+  { "struct",           RID_STRUCT,     0 },
+  { "switch",           RID_SWITCH,     0 },
+  { "typedef",          RID_TYPEDEF,    0 },
+  { "typeof",           RID_TYPEOF,     D_TRAD|D_EXT },
+  { "union",            RID_UNION,      0 },
+  { "unsigned",         RID_UNSIGNED,   0 },
+  { "void",             RID_VOID,       0 },
+  { "volatile",         RID_VOLATILE,   D_TRAD },
+  { "while",            RID_WHILE,      0 },
+};
+#define N_reswords (sizeof reswords / sizeof (struct resword))
+
+static void
+init_reswords ()
+{
+  unsigned int i;
+  tree id;
+  int mask = (flag_isoc99 ? 0 : D_C89)
+              | (flag_traditional ? D_TRAD : 0)
+              | (flag_no_asm ? (flag_isoc99 ? D_EXT : D_EXT|D_EXT89) : 0);
+
+  if (c_language != clk_objective_c)
+     mask |= D_OBJC;
+
+  /* It is not necessary to register ridpointers as a GC root, because
+     all the trees it points to are permanently interned in the
+     get_identifier hash anyway.  */
+  ridpointers = (tree *) xcalloc ((int) RID_MAX, sizeof (tree));
+  for (i = 0; i < N_reswords; i++)
+    {
+      /* If a keyword is disabled, do not enter it into the table
+         and so create a canonical spelling that isn't a keyword.  */
+      if (reswords[i].disable & mask)
+        continue;
+
+      id = get_identifier (reswords[i].word);
+      C_RID_CODE (id) = reswords[i].rid;
+      C_IS_RESERVED_WORD (id) = 1;
+      ridpointers [(int) reswords[i].rid] = id;
+    }
+}
 
