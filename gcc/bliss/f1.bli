@@ -16,14 +16,15 @@ own c,d;
 r();
 d=3;
 r();
-undecl();
+undecl(d);
+undecl(2);
 undecl2();
 end;
 routine t=
 begin
 own e,f;
 f=3;
-while c do r();
+while f do r();
 return;
 e=2;
 end;

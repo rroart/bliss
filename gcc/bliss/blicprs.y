@@ -762,7 +762,7 @@ lowlevel: T_DIGITS {  }
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
 primary  { $$=$1; }
-| operator_expression  { $$=$1; }
+| operator_expression  { $$=c_expand_expr_stmt($1); }
 | executable_function  { $$=$1; }
 | control_expression   { $$=$1; }
 | p_stuff { $$=$1; };
@@ -786,14 +786,20 @@ numeric_literal  { $$=$1; }
 | codecomment { $$=$1; }
 ;
 numeric_literal: 
-decimal_literal  { $$=$1; TREE_TYPE($1)=integer_type_node; }
+decimal_literal  { $$=$1; /* TREE_TYPE($1)=integer_type_node;*/ }
 | integer_literal { $$=$1; }
 | character_code_literal { $$=$1; }
 | float_literal  { $$=$1; }
 ;
 
 decimal_literal: 
-T_DIGITS
+T_DIGITS { 
+  tree t;
+  t = build_int_2(atoi($1->identifier.id.str),0);
+  TREE_TYPE (t) = widest_integer_literal_type_node;
+  t = convert (integer_type_node, t);
+  $$ = t;
+ }
 ;
 
 opt_sign: { $$=0; }
@@ -1036,7 +1042,7 @@ declaration_list: declaration_list declaration {
 */
 maybe_block_action_list: { $$=0; }
 |maybe_block_action_list block_action { 
-  //$$=chainon($1, $2); 
+  $$=chainon($1, $2); 
 }
 ;
 
@@ -1148,7 +1154,7 @@ io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter {  }
 ;
 
 io_actual_parameter: { $$=0 }
-|expression { $$=$1; }
+|expression { $$ = build_tree_list (NULL_TREE, $1); }
 ;
 
 general_routine_call:
@@ -1222,15 +1228,15 @@ operator_expression:
 |  opexp9 K_OR opexp9 { }
 | opexp9 K_EQV opexp9 { }
 | opexp9 K_XOR  opexp9 { }
-| opexp9 '=' opexp9 { $$=build_modify_expr($1, '=', $3);  }
+| opexp9 '=' opexp9 { $$=build_modify_expr($1, NOP_EXPR, $3);  }
 ;
 
 opexp9:
 primary  { $$=$1; }
-| operator_expression  { $$=$1; }
+| operator_expression  { $$=c_expand_expr_stmt($1); abort(); }
 |executable_function { $$=$1; }
 ;
-infix_expression: op_exp infix_operator op_exp { }
+infix_expression: op_exp infix_operator op_exp { abort(); }
 ;
 
 /*  bplus  { $$='+'; }
@@ -1265,8 +1271,14 @@ K_EQL  { $$=$1; }
  | K_XOR  { $$=$1; }*/
 ;
 
-assign_expression: op_exp '=' op_exp { $$=build_modify_expr($1, '=', $3);  }
+
+assign_expression: K_IF K_RETURN K_IF
+/* op_exp '=' op_exp */
+{
+  // $$=build_modify_expr($1, '=', $3);
+  }
 ;
+
 
 op_exp1: op_exp { $$=$1; }
 ;
