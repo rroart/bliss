@@ -73,6 +73,10 @@ int turn_off_addr_expr = 0;
  static tree all_prefix_attributes = NULL_TREE;
  static tree declspec_stack;
 
+ static tree last_expr = 0;
+
+ int yyrec = 0;
+
 extern tree  build_modify_expr (tree, enum tree_code, tree);
 
 #define symbtabinfo
@@ -94,6 +98,9 @@ bli_lex PARAMS((void));
 int 
 bli_parse PARAMS((void));
 
+ void get_builtin(void);
+ void predef_literal(char * name, int value);
+
  tree igroot;
 
 struct structure {
@@ -106,7 +113,9 @@ struct structure * mystructs = 0;
 struct mymacro {
   struct mymacro * next;
   char * name;
+  int type;
   tree param;
+  tree param2;
   tree body;
 };
 
@@ -139,6 +148,8 @@ bli_common_parse_file(set_yydebug)
 #else
   warning ("YYDEBUG not defined");
 #endif
+
+  get_builtin();
 
   yyin=fopen(input_filename,"r");
 
@@ -194,7 +205,8 @@ bli_common_parse_file(set_yydebug)
  void my_substitute (tree, tree, tree);
  void my_fold (tree);
  tree parm_first_to_last (tree);
- void add_macro (char *,tree,tree);
+ enum{SIMP_MACRO,COND_MACRO,ITER_MACRO,KEYW_MACRO};
+ void add_macro (char *,int,tree,tree,tree);
  char * add_counted_string (tree, int);
  char * add_underscore (tree, int);
  void * find_macro(struct mymacro * s,char * name);
@@ -221,6 +233,8 @@ bli_common_parse_file(set_yydebug)
 /*%token_table yacc*/
 %token <type_node_p> T_DIGITS
 %token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME
+%token <type_node_p> P_SOFTERROR P_SOFTERROR2 P_SOFTERROR3 P_SOFTERROR4
+%token <type_node_p> START_CTCE START_LEX START_EXPR END_EXPR END_BUILTIN
 
 /*%light uplus uminus*/
 %right <type_node_code> '='
@@ -273,7 +287,7 @@ bli_common_parse_file(set_yydebug)
 %token P_IDENTICAL P_IF P_INFORM P_ISSTRING P_LENGTH P_LTCE P_MESSAGE
 %token P_NAME P_NBITS P_NBITSU P_NULL P_NUMBER P_O P_P P_PRINT P_QUOTE
 %token P_QUOTENAME P_RAD50_10 P_RAD50_11 P_REF P_REMAINING P_REMOVE
-%token P_REQUIRE P_SBTTL P_SIXBIT P_SIZE P_STRING P_SWITCHES P_THE
+%token P_REQUIRE P_SBTTL P_SIXBIT P_SIZE P_STRING P_SWITCHES P_THE P_THEN
 %token P_TITLE P_UNQUOTE P_UPVAL P_VARIANT P_WARN P_X
 /* tname related */
 %token CODE NOCODE DEBUG NODEBUG ERRS NOERRS OPTIMIZE NOOPTIMIZE
@@ -320,7 +334,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> declaration special_switch on_off_switch lowlevel
 %type <type_node_p> expression primary operator_expression operator_expression_not
 %type <type_int>  P_TITLE U_CALL U_STANDARD
-%type <type_node_p> linkage_definition_list linkage_definition p_stuff
+%type <type_node_p> linkage_definition_list linkage_definition
 %type <type_int> U_BLISS16 U_BLISS32 U_BLISS36 
 %type <type_int> infix_operator
 /*%type <type_node_p> executable_expression control_expression*/
@@ -493,7 +507,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> keyword_assignments keyword_assignment keyword_formal_name
 %type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
 %type <type_node_p> by_exp k_while_or_until
-%type <type_node_p> if_then
+%type <type_node_p> if_then compile_time_item compile_time_name compile_time_value
+%type <type_node_p> field_definition field_component_list field_component
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -557,6 +572,10 @@ save_location
   finish_fname_decls ();
   finish_file ();
 }
+|
+expression END_EXPR { last_expr = $1; YYACCEPT; }
+|
+maybe_declaration_list END_BUILTIN { last_expr = $1; YYACCEPT; }
 ;
 
 module_head	: T_NAME
@@ -771,7 +790,7 @@ language_name:  U_BLISS16  { $$ = 0; }
 | U_BLISS32   { $$ = 0; }
 | U_BLISS36   { $$ = 0; }
 ;
-list_option_list: list_option_list list_option 
+list_option_list: list_option_list ',' list_option 
 |list_option 
 ;
 list_option:  U_SOURCE    { $$ = 0; }
@@ -796,8 +815,8 @@ list_option:  U_SOURCE    { $$ = 0; }
 | U_NOCOMMENTARY     { $$ = 0; }
 ;
 
-tname_list: tname_list ',' T_NAME { $$ = chainon ($1, $3); }
-|T_NAME 
+tname_list: tname_list ',' T_NAME { $$ = chainon ($1, copy_node($3)); }
+|T_NAME { copy_node($1); }
 ;
 
 tname_list2: tname_list2  T_NAME 
@@ -841,26 +860,28 @@ lowlevel: T_DIGITS
 
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
-primary  
+primary
 | operator_expression
-| executable_function  
-| control_expression   
-| p_stuff ;
-
-p_stuff:
-P_REMAINING  { $$ = 0; }
+| executable_function
+| control_expression
 ;
 
 primary: 
-numeric_literal  
-| string_literal  
+numeric_literal
+| string_literal
 | plit 
 | T_NAME { 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
+  if (TREE_LANG_FLAG_0($1)) {
+	 //fprintf(stderr, "CON\n");
+	 goto myout;
+  }
   if (!turn_off_addr_expr)
 	 $$ = RVAL_ADDR($$);
+ myout:
+  {}
 }
 | block
 | structure_reference 
@@ -871,6 +892,7 @@ numeric_literal
 | codecomment 
 /* | macro_call error { yyerrok; } */
 ;
+
 numeric_literal: 
 decimal_literal  { /* TREE_TYPE($1)=integer_type_node;*/ }
 | integer_literal 
@@ -939,7 +961,13 @@ integer_digit:   digits
 | T_NAME  
 ;
 
-character_code_literal: P_C T_STRING { $$ = 0; }
+character_code_literal: P_C T_STRING { 
+  tree t;
+  t = build_int_2(*(char*)(1+IDENTIFIER_POINTER($2)),0);
+  TREE_TYPE (t) = widest_integer_literal_type_node;
+  t = convert (integer_type_node, t);
+  $$ = t;
+}
 ;
 
 /*The quoted_character is defined in the LEXICAL DEFINITION part of this
@@ -997,6 +1025,7 @@ string_literal:  string_type T_STRING2 {
 	 t = build_int_2(myint,0);
 	 TREE_TYPE (t) = widest_integer_literal_type_node;
 	 t = convert (integer_type_node, t);
+	 TREE_LANG_FLAG_0(t)=1;
 	 $$ = t;
 	 }
 	 break;
@@ -1014,6 +1043,7 @@ string_literal:  string_type T_STRING2 {
 	 t = build_int_2(myint,0);
 	 TREE_TYPE (t) = widest_integer_literal_type_node;
 	 t = convert (integer_type_node, t);
+	 TREE_LANG_FLAG_1(t)=1;
 	 $$ = t;
 	 }
 	 break;
@@ -1068,6 +1098,7 @@ string_literal:  string_type T_STRING2 {
 
 	 $$ = longlong;
 	 $$ = build_unary_op (ADDR_EXPR, longlong, 0);
+	 TREE_LANG_FLAG_2($$)=1;
 
 #if 0
 
@@ -3149,9 +3180,37 @@ access_formal: T_NAME {
 allocation_name: T_NAME
 ;
 
-field_declaration: K_FIELD { $$ = 0; }
- 
+field_declaration: K_FIELD 
+field_set_definition { $$ = 0; }
+|
+K_FIELD field_definition { $$ = 0; }
 ;
+
+field_set_definition:
+field_set_name '=' K_SET field_definition_list K_TES
+;
+
+field_definition_list:
+field_definition_list ',' field_definition
+|
+field_definition
+;
+
+field_definition:
+field_name '=' '[' field_component_list ']'
+{
+  register_field(IDENTIFIER_POINTER($1), $4);
+}
+;
+
+field_component_list:
+field_component_list ',' field_component { $$ = chainon($1, $3);}
+|
+field_component
+;
+
+field_component:
+ctce;
 
 routine_declaration:
 ordinary_routine_declaration 
@@ -3370,8 +3429,11 @@ literal_declaration
 |bind_data_declaration 
 |bind_routine_declaration 
 ;
-compiletime_declaration: K_COMPILETIME { $$ = 0; }
- ;
+compiletime_declaration:
+K_COMPILETIME compile_time_item_list ';'
+{ $$ = 0; }
+;
+
 macro_declaration: 
 positional_macro_declaration 
 |keyword_macro_declaration 
@@ -3400,16 +3462,99 @@ builtin_declaration: K_BUILTIN { $$ = 0; }
 undeclare_declaration: K_UNDECLARE tname_list ';' { $$ = 0; }
  ;
 
-literal_declaration: K_LITERAL literal_item_list ';' { $$ = 0; }
+literal_declaration: K_LITERAL literal_item_list ';' { $$ = $2; }
 | K_GLOBAL K_LITERAL literal_item_list { $$ = 0; }
 ;
 
 literal_item_list: literal_item_list ',' literal_item 
-| literal_item 
+| declspecs_ts setspecs literal_item 
 ;
 
 literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list 
-|T_NAME '=' compile_time_constant_expression 
+|T_NAME '=' compile_time_constant_expression setspecs
+{
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+
+  tree attr = current_declspecs;
+#if 0
+  tree type = $2;
+  tree myattr = $2;
+#else
+  tree type = integer_type_node;
+  tree myattr = integer_type_node;
+#endif
+  
+#ifndef NEW_POINTER
+  cell_=get_identifier(add_underscore($1,1));
+#else
+  cell_=$1;
+#endif
+  if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    tree size, decl, astruct, cell__;
+
+    current_declspecs = 0;
+
+    cell__ = get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0, 0,0,0,0); 
+    size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
+    decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+#ifdef NEW_POINTER
+	 tree byte=build_int_2(8,0);
+	 TREE_TYPE (byte) = widest_integer_literal_type_node;
+	 byte = convert (integer_type_node, byte);
+	 tree newsize = parser_build_binary_op (MULT_EXPR, byte, fold(size));
+	 tree newint=copy_node(integer_type_node);
+	 newsize=fold(newsize);
+	 if (TREE_CODE(newsize)==NON_LVALUE_EXPR)
+		newsize=TREE_OPERAND(newsize, 0);
+	 TYPE_SIZE(newint)=newsize;
+	 TYPE_SIZE_UNIT(newint)=integer_type_node;
+	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
+	 //	 TREE_TYPE(cell_)=newint;
+	 current_declspecs=tree_cons(0, newint, 0);
+	 decl=0; //newint;
+#else
+    //type = char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto own_end;
+#endif
+    cell=cell_;
+  } else {
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
+  }
+
+#if 0
+  cell_decl_p = start_decl (cell, current_declspecs, 0,
+                       chainon (NULL_TREE, all_prefix_attributes));
+  TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+  //printf("xxx %x\n",d);
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+#else
+  $$ = build_enumerator($1, $3);
+  TREE_LANG_FLAG_0($1)=1;
+#endif
+
+#ifndef NEW_POINTER
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+
+  TREE_STATIC(cell_decl)=1;
+  start_init(cell_decl,NULL,global_bindings_p());
+  finish_init();
+
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (cell_decl, init, NULL_TREE);
+#endif
+ lit_end:
+  current_declspecs=attr;
+}
 ;
 
 literal_attribute_list:
@@ -3496,20 +3641,35 @@ simple_macro_definition
 simple_macro_definition: 
 T_NAME '(' tname_list ')'  '=' { macromode=1; } macro_body '%' 
 { 
-  add_macro(IDENTIFIER_POINTER($1),$3,$7);
+  add_macro(IDENTIFIER_POINTER($1),SIMP_MACRO,$3,0,$7);
 }
 | T_NAME  '=' { macromode=1; } macro_body '%'
 { 
-  add_macro(IDENTIFIER_POINTER($1),0,$4);
+  add_macro(IDENTIFIER_POINTER($1),SIMP_MACRO,0,0,$4);
 }
 ;
 conditional_macro_definition:
-T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' 
-|T_NAME '[' ']' '=' macro_body '%'
+T_NAME '(' tname_list ')'  '[' ']' '=' { macromode=1; } macro_body '%' 
+{ 
+  add_macro(IDENTIFIER_POINTER($1),COND_MACRO,$3,0,$9);
+}
+|
+T_NAME '[' ']' '=' { macromode=1; } macro_body '%'
+{ 
+  add_macro(IDENTIFIER_POINTER($1),COND_MACRO,0,0,$6);
+}
 ;
+
 iterative_macro_definition:
-T_NAME '(' tname_list ')' '[' tname_list ']' '=' macro_body '%' 
-|T_NAME '[' tname_list ']' '=' macro_body '%'
+T_NAME '(' tname_list ')' '[' tname_list ']' '=' { macromode=1; } macro_body '%' 
+{ 
+  add_macro(IDENTIFIER_POINTER($1),ITER_MACRO,$3,$6,$10);
+}
+|
+T_NAME '[' tname_list ']' '=' { macromode=1; } macro_body '%'
+{ 
+  add_macro(IDENTIFIER_POINTER($1),ITER_MACRO,0,$3,$7);
+}
 ;
 
 default_actual: { $$=0; }
@@ -3541,7 +3701,10 @@ keyword_macro_definition_list ',' keyword_macro_definition
 ;
 
 keyword_macro_definition:
-T_NAME '(' keyword_pair_list ')' '=' macro_body '%' 
+T_NAME '(' keyword_pair_list ')' '=' { macromode=1; } macro_body '%' 
+{ 
+  add_macro(IDENTIFIER_POINTER($1),KEYW_MACRO,$3,0,$7);
+}
 ;
 
 keyword_pair_list: keyword_pair_list ',' keyword_pair 
@@ -3626,6 +3789,26 @@ U_READ { $$ = 0; }
 
 
 /**** 5.0 LEXICAL PROCESSING FACILITIES *****************************/
+
+compile_time_item_list: compile_time_item_list ',' compile_time_item
+| declspecs_ts setspecs compile_time_item
+;
+
+compile_time_item:
+compile_time_name '=' compile_time_value
+{
+  $$ = set_cti($1, $3);
+}
+;
+
+compile_time_name:
+T_NAME
+;
+
+compile_time_value:
+compile_time_constant_expression
+;
+
 /**** 7.0 MACHINE SPECIFIC NAMES ************************************/
 
 builtin_name: T_NAME  
@@ -3673,6 +3856,10 @@ here
 
 yyerror (char *s)
 {
+  if (yyrec) {
+	 yyrec=0;
+	 return;
+  }
   if (s) error("\n\n%s\n",s); 
   error("Nu b;lev det fel %d\n",input_location.line);
 }
@@ -4262,12 +4449,14 @@ parm_first_to_last(mytree)
 }
 
 void
-add_macro(char * name, tree param, tree body) {
+add_macro(char * name, int type, tree param, tree param2, tree body) {
   struct mymacro * t=xmalloc(sizeof(*t));
   struct mymacro **s=&macros;
   t->next=macros;
   t->name=name;
+  t->type=type;
   t->param=param;
+  t->param2=param2;
   t->body=body;
   macros=t;
 }
@@ -4313,6 +4502,26 @@ make_macro_string(m,r)
 }
 
 char *
+print_remain(r)
+     tree r;
+{
+  char * s=0;
+  tree t;
+  for(t=r;t;t=TREE_CHAIN(t)) {
+    tree old,new;
+    char * l = IDENTIFIER_POINTER(t);
+    if (s==0) s=xstrdup(l);
+    else
+      s=strcat(xstrdup(s),xstrdup(l));  
+    
+  }
+  
+  //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
+
+  return s;
+}
+
+char *
 add_counted_string(t,n)
      tree t;
      int n;
@@ -4326,6 +4535,19 @@ add_counted_string(t,n)
 
 char *
 add_underscore(t,n)
+     tree t;
+     int n;
+{
+    char * ss=xmalloc(IDENTIFIER_LENGTH(t)+n);
+    strcpy(ss,IDENTIFIER_POINTER(t));
+    ss[IDENTIFIER_LENGTH(t)+n]=0;
+    while (n--)
+      ss[IDENTIFIER_LENGTH(t)+n]='_';
+    return ss;
+}
+
+char *
+add_percent(t,n)
      tree t;
      int n;
 {
@@ -4362,8 +4584,305 @@ c_parse_file (void)
     }
 }
 
+set_cti(tree id, tree val) {
+  tree newid=add_percent(id,1);
+  TREE_TYPE(newid)=val; // bad hack?
+  return newid;
+}
+
+int find_skip_mode_not(tree t) {
+  switch (TREE_CODE(t)) {
+  case IDENTIFIER_NODE:
+	 if (strcmp("0",IDENTIFIER_POINTER(t)))
+		return 1;
+	 break;
+  default:
+	 break;
+  }
+  return 0;
+}
+
+int mylast() {
+  return last_expr;
+}
+
 #include "gt-c-parse.h"
 
 const struct ggc_root_tab gt_ggc_r_gt_c_pragma_h[] = {
   LAST_GGC_ROOT_TAB
 };
+
+#if 0
+| primary P_SOFTERROR error
+{
+  fprintf(stderr,"SOFT\n"); 
+  yyclearin;
+  yyerrok;
+  //yychar=0;
+  //YYRECOVERING();
+  yyrec=1;
+//YYBACKUP (YYEMPTY, 0);
+}
+| operator_expression P_SOFTERROR
+{
+  fprintf(stderr,"SOFTA\n"); 
+  yyerrok;
+  yyclearin;
+  //yychar=0;
+  //YYRECOVERING();
+  yyrec=1;
+  //  last_expr = $1;
+}
+ error
+{
+  fprintf(stderr,"SOFTA\n");
+  yyerrok;
+  yyclearin;
+  //yychar=0;
+  //YYRECOVERING();
+}
+| operator_expression_
+P_SOFTERROR3 error 
+{
+#if 0
+  fprintf(stderr,"SOFT3\n");
+  fflush(stderr);
+#endif
+  last_expr = $1; 
+}
+| primary_
+P_SOFTERROR3 error 
+{
+#if 0
+  fprintf(stderr,"PRIM\n");
+  fflush(stderr);
+#endif
+  last_expr = $1; 
+}
+|
+START_CTCE primary_ P_SOFTERROR3 P_SOFTERROR2 error
+{ fprintf(stderr,"s1\n"); fflush(stderr); }
+| p_empty error
+{ fprintf(stderr,"pemtpy\n"); fflush(stderr); }
+| p_stuff
+operator_expression_:
+operator_expression { last_expr = $1; }
+;
+
+primary_:
+primary { last_expr = $1; };
+;
+
+|
+START_CTCE primary__ P_SOFTERROR2 error
+{ fprintf(stderr,"s2\n"); fflush(stderr); }
+| p_lex
+{
+#if 0
+  fprintf(stderr,"PRIM\n");
+  fflush(stderr);
+#endif
+  $$ = $1;
+}
+primary__:
+primary_ P_SOFTERROR3 error
+{ fprintf(stderr,"s3\n"); fflush(stderr); 
+// START_CTCE primary_ P_SOFTERROR3 P_SOFTERROR2 error
+}
+;
+
+p_lex:
+P_ALLOCATION { tnamemode = 1; }
+'(' T_NAME 
+{ tnamemode = 0; }
+')'
+{
+  char * str = IDENTIFIER_POINTER($4);
+  if (strcmp(str,"own")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"global")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"forward")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"local")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"stacklocal")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"register")==0)
+	 $$ = build_int_2(4,0);
+  if (strcmp(str,"global register")==0)
+	 $$ = build_int_2(4,0);
+}
+;
+
+p_empty:
+P_ASSIGN { tnamemode = 1; yyrec=1; }
+'(' T_NAME 
+{ tnamemode = 0; }
+',' expression ')'
+{
+  set_cti($4, $7);
+} error
+;
+
+|
+expression P_SOFTERROR4 error
+{
+  //yyerrok;
+  //yyclearin;
+}
+{
+  if (if_mode)
+	 fprintf(stderr,"BVA\n");
+  if (if_mode)
+	 yyerrok;
+}
+| START_CTCE expression P_SOFTERROR2
+{
+  //yyclearin;
+  //yyerrok;
+}
+|
+p_empty
+start_ctce: START_CTCE ctce P_SOFTERROR3
+
+pif_then:
+P_IF
+{
+  if_mode = 1; 
+}
+exp
+{
+  then_mode=integer_zerop(TREE_OPERAND(fold($3),0))!=0;
+}
+P_THEN
+exp
+{
+  if (then_mode)
+	 $$ = $6;
+  else
+	 $$ = 0;
+}
+;
+
+p_conditional:
+pif_then
+P_ELSE
+exp
+P_FI
+{
+  if_mode = 0;
+  if (!then_mode)
+	 $$ = $3;
+}
+|
+pif_then %prec P_IF
+P_FI
+{
+  if_mode = 0;
+}
+;
+
+p_stuff:
+P_REMAINING  { $$ = 0; }
+;
+
+#endif
+
+
+char * bliss_builtin = "MACRO %BLISS16[] = % , %BLISS36[] = % , %BLISS32[] = %REMAINING % ; ";
+
+void get_builtin(void) {
+  add_macro("%bliss16",SIMP_MACRO,0,0,0);
+  add_macro("%bliss36",SIMP_MACRO,0,0,0);
+  add_macro("%bliss32",SIMP_MACRO,0,0,get_identifier("%remaining"));
+
+  predef_literal("%bpval",32);
+  predef_literal("%bpunit",4);
+  predef_literal("%bpaddr",32);
+  predef_literal("%upval",4);
+
+#if 0
+  do_builtin=1;
+
+  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+  yy_switch_to_buffer(yy_scan_string(bliss_builtin));
+
+  yyparse();
+
+  do_builtin=0;
+#endif
+}
+
+int
+is_on_remaining(c,r)
+     char * c;
+     tree r;
+{
+  char * s=0;
+  tree t;
+  for(t=r;t;t=TREE_CHAIN(t)) {
+    char * l = IDENTIFIER_POINTER(t);
+	 if (0==strcmp(c,l))
+		return 1;
+  }
+  return 0;
+}
+
+struct field_struct {
+  struct field_struct * next;
+  tree t;
+  char * name;
+};
+
+struct field_struct * field_root=0;
+
+register_field(char * s, tree t) {
+  struct field_struct * f = xmalloc(sizeof(struct field_struct));
+  f->name=xstrdup(s);
+  f->t=t;
+  f->next=field_root;
+  field_root=f;
+}
+
+find_field(char * s) {
+  struct field_struct * t = field_root;
+  for (;t;t=t->next) {
+	 if (0==strcmp(t->name,s))
+		return t;
+  }
+  return 0;
+}
+
+char *
+print_tree(r)
+     tree r;
+{
+  char * s=0;
+  tree t;
+  for(t=r;t;t=TREE_CHAIN(t)) {
+    tree old,new;
+    char * l = IDENTIFIER_POINTER(t);
+    if (s==0) s=xstrdup(l);
+    else {
+      s=strcat(xstrdup(s),xstrdup(l));  
+      s=strcat(xstrdup(s),xstrdup(","));
+    }
+	 s[strlen(s)-1]=0;
+  }
+  
+  //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
+
+  return s;
+}
+
+void
+predef_literal(name, value)
+	  char * name;
+	  int value;
+{
+  tree d1 = get_identifier(name);
+  tree d3 = build_int_2(value,0);
+  build_enumerator(d1, d3);
+  TREE_LANG_FLAG_0(d1)=1;
+}
