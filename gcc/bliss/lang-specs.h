@@ -29,4 +29,4 @@ Boston, MA 02111-1307, USA.  */
   {".bli",  "@bliss", 0},
   {".BLI",  "@bliss", 0},
   {"@bliss",
-   "bli1 f771 %i %(cc1_options) %{I*} %{!fsyntax-only:%(invoke_as)}", 0},
+   "bli1 %i %(cc1_options) %{I*} %{!fsyntax-only:%(invoke_as)}", 0},
