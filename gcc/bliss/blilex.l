@@ -12,8 +12,6 @@
  * lex.yy.c is #included in parse.y
  */
 
-//#define YYSTYPE struct bli_token_struct
-
 extern int yydebug;
 extern int yy2debug;
 
@@ -36,9 +34,6 @@ return strdup(s1);
 #include "system.h"
 #include "tree.h"
 
-#include "ignorance.h"
-#include "blilex.h"
-#include "blicsyt.h"
 #include "parse.h"
 
 //#define yylval bli_lval
@@ -600,120 +595,9 @@ yylval.type_node_p=get_identifier(s);
 
 */
 
-#if 0
-void 
-yylexinit(char * filename, char * buffer, int length) 
-{
-  save_filename=filename;  
-  save_buffer=buffer;
-  save_buffer_length=length;
-  first_time_flag=1;
-  next_char_offset=0;
-  next_blicc1_lineno=1;
-  next_blicc1_charno=1;
-  next_blicc1_debug_line=0;
-}
-#endif
-
-void 
-lexinit PARAMS((int lexinit_value, struct file_struct * file_ptr)) 
-//lexinit2 PARAMS((char * filename, char * buffer, int length)) 
-{
-   save_file=file_ptr;
-   blipre_lexinit=lexinit_value;   
-   which_lex=lexinit_value;   
-}
-
-void 
-yylexinit(unsigned char * filename, unsigned char * buffer, unsigned length) 
-{
-  save_filename=filename;  
-  save_buffer=buffer;
-  save_buffer_length=length;
-  first_time_flag=1;
-  next_char_offset=0;
-  next_blicc1_lineno=1;
-  next_blicc1_charno=1;
-  next_blicc1_debug_line=0;
-}
-
-struct bli_token_struct *
-initial_lexical_analysis(unsigned int * token_count)
-{
-  
-  int my_token_count = 0;
-  struct bli_token_struct *last_token = NULL;
-  struct bli_token_struct *new_token = NULL;
-
-  /* Init interned string storage.  */
-  
-  intern_string_init ();
-
-  /* Call flex and link in the tokens.  */
-  
-  while (yylex ())
-    {
-      my_token_count ++;
-      new_token = malloc (sizeof (struct bli_token_struct));
-//      memcpy (new_token, ((struct bli_token_struct *)(&yylval)), sizeof (struct bli_token_struct));
-//      new_token->type_int=yylval.type_int;
- //     BLI_ASSERT (new_token->string_details);
-
-      if (first_token)
-        {
-  //        BLI_ASSERT (last_token);
-          last_token->bli_token_next = new_token;
-          new_token->bli_token_prev = last_token;
-   //       BLI_ASSERT (new_token->bli_token_prev);
-    //      BLI_ASSERT (new_token->bli_token_prev != new_token);
-     //     BLI_ASSERT (new_token->bli_token_prev->bli_token_next == new_token);
-        }
-      else
-        first_token = new_token;
-
-      last_token = new_token;
-    }
-
-  upper_work = NULL;
-  upper_work_length = 0;
-
-  * token_count = my_token_count;
-  
-  /* Wrap interned string storage.  */
-  
-  intern_string_wrap ();
-  
-  return first_token;
-
-}
-
 int
 yywrap(void)
 {
-}
-
-void
-intern_string_init ()
-{
-  estimated_token_count = save_buffer_length / 50;  /* One unique token per line should be enough.  */
-  if (estimated_token_count < 1009) /* Prime numbers.  */
-    intern_hash_size = 1009;
-  else
-    if (estimated_token_count < 10007)
-      intern_hash_size = 10007;
-  else
-    intern_hash_size = 100003;
-
-  //intern_hash_table = malloc (intern_hash_size * sizeof (struct inter_hash_entry *));
-}
-    
-
-/* Wrap up string interning.  */
-
-void
-intern_string_wrap ()
-{
-  //intern_hash_table = NULL;
 }
 
 tree *bli_ridpointers;

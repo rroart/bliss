@@ -123,7 +123,7 @@ bliss.check.drivers.done: $(BLISS_TEST_DRIVERS)
 
 # object file makes
 
-bliss/blilex.o: $(blibld)/blilex.c $(blibld)/blilex.h bliss/parse.h \
+bliss/blilex.o: $(blibld)/blilex.c bliss/parse.h \
 	 $(BLI_UTIL_H) \
 	 $(BLI_NEW_UTIL_H)
 	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
