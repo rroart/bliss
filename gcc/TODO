@@ -19,3 +19,7 @@ rval x[y] does not work properly
 decr loop
 
 incr/decr with implicitly declared count
+
+leave . with ..
+
+if_then with value has problems due to block_value?

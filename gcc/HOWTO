@@ -1,35 +1,31 @@
 COMPILE/INSTALL/RUN:
 unpack a gcc 3.4.2 distribution
 
-put the bliss and bliss.cp directories in gcc (alongside cp ada etc)
-(bliss is based on C routines, while bliss.cp is based on the C++ cp/ stuff)
+put the bliss directories in gcc (alongside cp ada etc)
+by something like ln -s gcc-3.4.2 bliss and untar it right
+(bliss is based on C routines)
 
-make a separate build and build2 directory in the same directory as gcc-3.4.2.
+make a separate build directory in the same directory as gcc-3.4.2.
 
-in each, do a ../configure --enable-languages=bliss or bliss.cp (not both).
-do a make bootstrap in each
-(or just one of them)
+in each, do a ../configure --enable-languages=bliss.
+do a make bootstrap in it
 
-next time, for quicker compile, do make quickstrap
+if necessary, next time, for quicker compile, do make quickstrap
 
 resulting binary compilers are named different (gcc relative directory):
- language=bliss: bliss/bli1
+ language=bliss: bli1
    can only be used with bli1, and it makes only .s -files
    compile with (to make .s): bliss/bli1  bliss/f1.bli
-   link with: ./xgcc -Bbliss -L. -g t.c bliss/f1.s -o t
-   all-in-one: ./xgcc -Bbliss -L. -g t.c bliss/f2.bli -o t
- language=bliss.cp: bliss, bli1
-   can be used with xgcc, and can make both .s and .o.
-   the output is mangled, so use nm *.o when you are going to link
+	example files are in testsuite
+   link with: ./xgcc -Bbliss -L. f1.s -o t
+   all-in-one: ./xgcc -Bbliss -L. f2.bli -o t
 
 NOTE:
 see generated .s and .rtl files
 it is working just a little, and it need a lot of work
-the bliss.cp based stuff is much less developed (will be removed some time)
 
 EXAMPLE:
-there are two files f1.bli and f2.bli
-use gdb bliss/bli1 with set arg -dr f1.bli (bliss.cp needs simpler files)
+use gdb bliss/bli1 with set arg -dr f1.bli
 useful compiler paramters:
 -c,-L: usual ones
 -B: for setting binary compiler searchpatch
@@ -107,24 +103,76 @@ TODO:
 split this howto
 
 IMPLEMENTATION ISSUES:
-local, own etc:
+addressing:
+previously,
 we have a name_ which contains something, and name which is a address to it.
+now,
+we just use name, which is done ADDR_EXPR on, and it is dereferenced
+if it is an lval.
 
 bit field references:
 there are three possibilities, according to which context it is in.
+action on what to do with it are delayed.
 thereby a new def BIT_FIELD_REFS.
+In the 'o' part we add the address to the offset into it.
+In the 'f' part we might dereference the address if needed
+and build a bit_field_ref on it.
 
 structures:
 are done some sort of macroish.
 (structure decls)
+if this is used with the new pointer/address implementation, do not
+take the ADDR_EXPR.
 for structure_size and structure_body we need two dummy functions,
 because you need a function context for expressions.
+The T_NAME is pushparm-ed because it will be used to accessing itself.
 the structure-name is at the head of the access_formal list
 dummy functions are named -_  and -__.
-grokfield stuff is not used, and will be removed sometime.
+One (-__) gets the to be used with itself and the access_actual.
+The other (-_) will be used with the alloc_actuals.
+With access-__ start_function is done as usual, and the current_decl is saved in afun.
+The two pushlevel are new to 3.4.2 implementation, because something
+changed you need not one but two to separate the two parameter lists.
+(Before that no pushlevel was used).
+Also needed(?) with 3.4.2 a new pushlevel before the next start_function.
+The alloc -_ start_function is now done in the usual way.
+The body is structure_size, and then it finishes off.
+Then we reset to afun (still needed? check).
+The structure_body is its body.
+Then we finish off and pops a lot.
+!grokfield stuff is not used, and will be removed sometime.
+Grokfield it is still needed, it seems.
+We do not use actual fields, just borrows the defs.
+(Not sure) The next we do is concatenate the to parameter lists.
 the parm_first_to_last puts structure-name at the back (originally it was
 first, but because it has chains it would then be copied, and a local
 variable would then get no rtl-code (->compiler crash)).
+Next we call a modified c routine start_structure, with our name.
+Start_structure makes a tag too.
+At last we call a (modified) finish structure which inserts our
+beautiful comp2 structure tree.
+A lot of TREE-macros will be needed to access the contents.
+
+(structure attribute)
+If the structure name is used as an attribute, we get referenced the tag
+and gets the structure with comp2 back, and extracting them.
+We use copies because something will be done to them.
+Then we substitute the two bodies with what is actually used now.
+Then we return the structure attribute.
+
+(local, own with structure attribute)
+When we get a local, own or such with a structure attribute, we basically
+have to allocate space of the right size.
+With the old address/pointer implementation, this was done by making an array.
+With the new implementation array did not work well with bit field refs,
+so instead a declaration of an int with some bigger size was done.
+Also, the variable is marked with the structure attribute.
+
+(structure reference)
+The variable name is tagged with the structure attribute.
+We just extract the trees and do substitution.
+
+(old description, cut and paste them later)
 the structure-name last may lead to some vulnerability with regard to
 substitution, but that will be fixed later.
 we make ourselves a STRUCTURE_TYPE and put body, size and formals there. 
@@ -137,7 +185,25 @@ declaration, and an array for the contents (4x too big yet).
 (ordinary structure ref)
 a STRUCTURE_ATTR is found, and the final copies and substitutions are made.
 
+if_then_else:
+Here too, c_expand_expr_stmt is used in case of non ( ) parts?
+
+routine calls:
+With the new implementation, we do not do ADDR_EXPR.
+
+loops:
+straigh forward, but remember that c_expand_expr_stmt($3) for post tested
+loops needs it in case there is no block.
+
+TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
+
 NEWS:
+0.004
+Strings and numeric literals
+PLIT
+More loop conditionals
+New basic addressing implementation
+
 0.003:
 mainly macros and require
 
