@@ -13,8 +13,6 @@ int yydebug=0;
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
 
-#include "ignorance.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,10 +31,6 @@ int yydebug=0;
 #define malloc xmalloc
 
 #include "tree.h"
-
-#include "blilex.h"
-
-#include "blicsyt.h"
 
 #include "c-common.h"
 
@@ -483,7 +477,7 @@ save_filename save_lineno
  start_block K_ELUDOM
 {
   $$=$7;
-  fprintf (stderr, "%s\n",OK);
+  fprintf (stderr, "\n%BLS-I-PARSED-OK-That's a module alright\n");
   while (! global_bindings_p ())
     poplevel (0, 0, 0);
   finish_fname_decls ();
@@ -1354,7 +1348,17 @@ operator_expression:
 /*
 | '+' opexp9 %prec UNARY { $$ = build_unary_op (CONVERT_EXPR, $2, 0); }
 | '-' opexp9 %prec UNARY { $$ = build_unary_op (NEGATE_EXPR, $2, 0); }*/
-| opexp9 '^' opexp9 { $$ = parser_build_binary_op (LSHIFT_EXPR, $1, $3); }
+| opexp9 '^' opexp9 { 
+  tree d3 = fold ( $3 );
+  //  if (tree_int_cst_sgn (d3) < 0) 
+  if (!tree_expr_nonnegative_p(d3)) {
+    $$ = parser_build_binary_op (RSHIFT_EXPR, $1, build_unary_op( NEGATE_EXPR, d3, 0)); 
+    fprintf (stderr, "\n%BLS-I-NOTHING rshift %x\n", lineno);
+  } else {
+    $$ = parser_build_binary_op (LSHIFT_EXPR, $1, d3); 
+    fprintf (stderr, "\n%BLS-I-NOTHING lshift %x\n", lineno);
+  }
+}
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
 | opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
 | opexp9 '/' opexp9 { $$ = parser_build_binary_op (TRUNC_DIV_EXPR, $1, $3); }
@@ -1788,6 +1792,7 @@ structure_attribute:
   tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
   my_substitute(size,alloc,$3);
   my_substitute(body,alloc,$3);
+  my_fold(size);
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
   tree type=char_type_node;
@@ -3355,3 +3360,24 @@ my_do_parm(t)
   if (t==0) return 0;
   return tree_cons(0, build_decl (STRUCTURE_DECL, t, 0)  , my_do_parm(TREE_CHAIN(t)));
 }
+
+tree
+my_fold_fn  (tp, walk_subtrees, data) 
+     tree *tp;
+     int *walk_subtrees;
+     void *data;
+{
+  *tp=fold(*tp);
+
+  /* Keep iterating.  */
+  return NULL_TREE;
+
+}
+
+void
+my_fold (mytree)
+  tree mytree;
+{
+  walk_tree (&mytree, my_fold_fn, 0, 0);
+}
+
