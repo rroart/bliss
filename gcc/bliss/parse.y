@@ -6,20 +6,22 @@
 	* 7-MAY-2000
 	*
 */
-  int yy2debug=0;
-  int yydebug=0;
+
+int yy2debug=0;
+int yydebug=0;
+
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
-//#define YYSTYPE struct cmp_token_struct
 
 #include "ignorance.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-  extern int undefmode;
-  extern int tnamemode;
-  extern int linenumb;
+ extern int undefmode;
+ extern int tnamemode;
+ extern int linenumb;
 
 #define malloc xmalloc
 
@@ -34,6 +36,7 @@
 #include "tree.h"
 
 #include "blilex.h"
+
 #include "blicsyt.h"
 
 #include "c-common.h"
@@ -41,10 +44,6 @@
 #include "bliss-tree.h"
 #include "c-tree.h"
 
-//#define YYSTYPE struct cmp_token_struct
-
-static struct bli_token_struct * current_token=NULL;
-static struct bli_token_struct * first_available_token=NULL;
  static int compstmt_count;
 
  static tree current_declspecs = NULL_TREE;
@@ -462,28 +461,16 @@ save_lineno:
 
 mystart: module
 { 
-  struct bli_tree_struct_program_top* pgm;
-  pgm = $1;
-  $$ = pgm;
-  igroot=$1;
 };
 /*module_body*/
 module		: K_MODULE module_head '=' 
 {
   last_expr_filename=input_filename;
-  //last_expr_type = NULL_TREE;
-  //current_function_decl=$2;
-  //  bli_start_function (current_declspecs, , all_prefix_attributes);
-  // store_parm_decls();
 }
 save_filename save_lineno
  start_block K_ELUDOM
 {
   $$=$7;
-  //  DECL_SOURCE_FILE (current_function_decl) = $5;
-  //  DECL_SOURCE_LINE (current_function_decl) = $6;
-  //  bli_finish_function (0, 1); 
-  //  POP_DECLSPEC_STACK;
   fprintf (stderr, "%s\n",OK);
   while (! global_bindings_p ())
     poplevel (0, 0, 0);
@@ -498,7 +485,7 @@ opt_mhargs
   /*ig_name=(char *)$1;*/
   /*   $$->id=$1; */
   char *c=$1;
-  //$$=build_string(strlen(c),c);
+  $$=build_string(strlen(c),c);
 }
 ;
 
@@ -775,7 +762,7 @@ lowlevel: T_DIGITS
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
 primary  
-| operator_expression  { /* $$=c_expand_expr_stmt($1); */ }
+| operator_expression { $$ = $1; }
 | executable_function  
 | control_expression   
 | p_stuff ;
@@ -1029,9 +1016,6 @@ $$=poplevel (kept_level_p (), 1, 0);
 ;
 
 start_block: K_BEGIN { 
-  // find out how to do with/without $$=c_begin_compound_stmt ();
-  // RECHAIN_STMTS ($$, COMPOUND_BODY ($$)); 
-  //last_expr_type = NULL_TREE;
 }
 block_body K_END
 { 
@@ -1047,13 +1031,6 @@ maybe_block_action_list
 maybe_block_value /*  $$->middle=$2;  */
 /* */
 {
-  //tree decl;
-  //DECL_NAME(decl)=
-  //$$=decl;
-  void * v = $1;
-  void * w = $3;
-  fprintf(stderr,"vw %x %x\n",v,w);
-  //  $$ = chainon(0, $3);
   $$=$3;
 }
 ;
@@ -1202,7 +1179,9 @@ io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { cha
 ;
 
 io_actual_parameter: { $$=0 }
-|expression 
+|expression { $$ = build_unary_op(ADDR_EXPR, $1, 0);
+/* $$ =build_nt (ADDR_EXPR, $1); */
+} 
 ;
 
 general_routine_call:
@@ -1222,8 +1201,6 @@ field_reference:
 /*|address field_selector  */
 /*|*/address '<' position_exp ',' size_exp '>'
 {
-  //$$=build_nt(BIT_FIELD_REF,$1,size_int($5),bitsize_int($3));
-  //TREE_TYPE($$)=type_for_mode (TYPE_MODE (integer_type_node), 1);
   $$=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), $1, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
   $$=stabilize_reference($$);
 }
@@ -1289,13 +1266,11 @@ operator_expression:
   tree t=$1;
   if (TREE_CODE(t) == INTEGER_CST) {
     t=make_pointer_declarator(0,$1);
-    //t=build_pointer_type(integer_type_node);
     TREE_TYPE(t)=build_pointer_type(integer_type_node);
     $$=build_modify_expr(t, NOP_EXPR, $3);
   } else {
     $$=build_modify_expr(build_indirect_ref (t, "unary *"), NOP_EXPR, $3);
   }
-  //$$=build_modify_expr($1, NOP_EXPR, $3);  
 }
 ;
 
@@ -1343,8 +1318,7 @@ K_EQL   { $$ = 0; }
 assign_expression: K_IF K_RETURN K_IF
 /* op_exp '=' op_exp */
 {
-  // $$=build_modify_expr($1, '=', $3);
-  }
+}
 ;
 
 
@@ -1629,7 +1603,6 @@ declaration: data_declaration
 ;
 
 attribute_list:attribute_list attribute { 
-  //$$ = chainon ($1, $2); 
 $$ = tree_cons (NULL_TREE, $1, $2); 
 }
 |attribute 
@@ -1839,43 +1812,36 @@ own_item_list: own_item_list ',' own_item
 ;
 
 own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
-  //$$ = build_decl (VAR_DECL, $1, integer_type_node);
   tree c, p , d, i, t;
   char * s;
   int e,f;
 
-  t = tree_cons (NULL_TREE, $2, NULL_TREE); 
+  tree type = $2;
+
+  if ($2==0) type = integer_type_node;
+
+  t = tree_cons (NULL_TREE, type, NULL_TREE); 
   TREE_STATIC ($$) = 0;
 
-  //TREE_TYPE($1)=t;
   s=malloc($1->identifier.id.len+2);
   strcpy(s,$1->identifier.id.str);
   s[$1->identifier.id.len]='_';
   s[$1->identifier.id.len+1]=0;
   c=get_identifier(s);
   TREE_TYPE(c)=integer_type_node;
-#if 0
-  c = copy_node($1);
-  c->identifier.id.str=malloc(c->identifier.id.len+2);
-  strcpy(c->identifier.id.str,$1->identifier.id.str);
-  c->identifier.id.str[c->identifier.id.len]='_';
-  c->identifier.id.len++;
-#endif
+
   d = start_decl (c, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
+                       chainon (NULL_TREE, all_prefix_attributes));
   finish_decl (d, 0, NULL_TREE);
   p = make_pointer_declarator(0,$1);
   d = start_decl (p, current_declspecs, 1,
-		       chainon (NULL_TREE, all_prefix_attributes));
+                       chainon (NULL_TREE, all_prefix_attributes));
 
-   start_init(d,NULL,global_bindings_p());
+  start_init(d,NULL,global_bindings_p());
   finish_init();
   i = build_unary_op (ADDR_EXPR, build_external_ref (c, 0), 0);
 
   finish_decl (d, i, NULL_TREE);
-  // $$ = build_tree_list ($1, NULL_TREE);
-  /*  */
-  
 }
 ;
 
@@ -1885,7 +1851,6 @@ maybe_own_attribute_list: { $$ = 0; }
 
 own_attribute_list:
 own_attribute_list own_attribute { 
-  //$$ = chainon($1,$2); 
   $$= tree_cons (NULL_TREE, $2, $1);
 }
 |own_attribute 
@@ -2002,125 +1967,174 @@ structure_definition:
   declspecs_ts setspecs T_NAME '['
 {
   //$5
-  $$ = start_structure(RECORD_TYPE, $3);
-
-  // trying a dummy function?
-
+  $$ = start_struct(RECORD_TYPE, $3);
 }
   access_formal_list  ';' 
 {
   //$8
-  //tree accesslist = $6;
-  //if (accesslist==0) accesslist=build_tree_list(NULL_TREE, NULL_TREE);
-  //$<type_node_p>$ = accesslist;
 }
 allocation_formal_list ']' '='
 {
   //$12
-  //tree alloclist = $9;
-  //if (alloclist==0) alloclist=build_tree_list(NULL_TREE, NULL_TREE);
-  //tree v=alloclist;
-  //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
-  //start_function (current_declspecs, vo, all_prefix_attributes);
-  tree c;
-  tree d = start_decl ($3, current_declspecs, 0,
-  	       chainon (NULL_TREE, all_prefix_attributes));
-  finish_decl (d, 0, NULL_TREE);
-  char *s=malloc($3->identifier.id.len+2);
-  strcpy(s,$3->identifier.id.str);
-  s[$3->identifier.id.len]='_';
-  s[$3->identifier.id.len+1]=0;
-  c=get_identifier(s);
+  tree allocfn;
+  tree allocid;
+  char *allocfnname=malloc($3->identifier.id.len+2);
+  strcpy(allocfnname,$3->identifier.id.str);
+  allocfnname[$3->identifier.id.len]='_';
+  allocfnname[$3->identifier.id.len+1]=0;
+  allocid=get_identifier(allocfnname);
   tree v = build_tree_list (NULL_TREE, NULL_TREE);
+  //mydeclares($9);
   v = $9;
-  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
-  start_function (current_declspecs, vo, all_prefix_attributes);
+  allocfn = build_nt (CALL_EXPR, allocid, v, NULL_TREE);
+  start_function (current_declspecs, allocfn, all_prefix_attributes);
   store_parm_decls ();
-  begin_stmt_tree(&$<type_node_p>$);
+  //begin_stmt_tree(&$<type_node_p>$);
+  $<type_node_p>12=allocfn;
 }
 structure_size
 {
   //$14
-  //store_parm_decls ();
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
 
-  PUSH_DECLSPEC_STACK;
-  tree c;
-  tree d = start_decl ($3, current_declspecs, 0,
-  	       chainon (NULL_TREE, all_prefix_attributes));
-  finish_decl (d, 0, NULL_TREE);
-  char *s=malloc($3->identifier.id.len+3);
-  strcpy(s,$3->identifier.id.str);
-  s[$3->identifier.id.len]='_';
-  s[$3->identifier.id.len+1]='_';
-  s[$3->identifier.id.len+2]=0;
-  c=get_identifier(s);
-  tree v = build_tree_list (NULL_TREE, NULL_TREE);
-  v = $9;
-  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
-  start_function (current_declspecs, vo, all_prefix_attributes);
-  store_parm_decls ();
-  begin_stmt_tree(&$<type_node_p>$);
+  tree accessfn;
+  tree accessid;
+  char *accessfnname=malloc($3->identifier.id.len+2);
+  strcpy(accessfnname,$3->identifier.id.str);
+  accessfnname[$3->identifier.id.len]='_';
+  accessfnname[$3->identifier.id.len+1]='_';
+  accessfnname[$3->identifier.id.len+2]=0;
+  accessid=get_identifier(accessfnname);
 
+  PUSH_DECLSPEC_STACK;
+  //mydeclares($6);
+  tree v = $9;
+  accessfn = build_nt (CALL_EXPR, accessid, v, NULL_TREE);
+  start_function (current_declspecs, accessfn, all_prefix_attributes);
+  store_parm_decls ();
+  //begin_stmt_tree(&$<type_node_p>$);
+  $<type_node_p>14=accessfn;
 }
 structure_body
 {
   //$16
-  //tree v=$<type_node_p>8; //accesslist;
-  //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
-  //start_function (current_declspecs, vo, all_prefix_attributes);
-  //store_parm_decls ();
 
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
 
-  $$ = finish_structure ( $<type_node_p>5, 0, $6, $9 ,$13, $15, 0);
+  tree comp;  
+  tree alloc;
+  tree access;
 
-  $$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
-  add_struct(&mystructs,$$); 
+  alloc = grokfield (input_filename, lineno, $<type_node_p>12, 0, 0);
+  access = grokfield (input_filename, lineno, $<type_node_p>14, 0, 0);
+
+  //$$ = finish_structure ( $<type_node_p>5, 0, $6, $9 ,$13, $15, 0);
+
+  comp=alloc;
+  chainon(alloc,access);
+
+  $$ = finish_struct ($<type_node_p>5, comp, NULL);
+
+  //$$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
+  //add_struct(&mystructs,$$); 
 }
 ;
 
 allocation_formal_list: allocation_formal_list ',' allocation_formal 
 { 
   //$$=chainon ($1, $3); 
-  $$ = tree_cons (NULL_TREE, $1, $3);
+//$$ = tree_cons (NULL_TREE, $1, $3);
+  $$ = get_parm_info (1);
 }
-|allocation_formal  
+|allocation_formal { 
+  //$$=$1; 
+$$ = get_parm_info (1);
+ }
 ;
 
 allocation_formal:
-allocation_name { $$ = tree_cons (NULL_TREE, $1, NULL_TREE); }
-|allocation_name '=' allocation_default { $$ = tree_cons (NULL_TREE, $1, $3); }
+allocation_name { 
+#if 1
+  tree t = tree_cons (0, integer_type_node, 0);   
+  tree d = tree_cons (t, $1, 0);
+ $$ = tree_cons (d, 0, 0);
+ push_parm_decl($$);
+#else
+  tree e=tree_cons(0,integer_type_node,0);
+  tree f=tree_cons(e,$1,0); 
+  $$ = tree_cons (f,0,0);
+#endif
+}
+|allocation_name '=' allocation_default { $$ = tree_cons ($3, $1, NULL_TREE); }
 ;
 
 allocation_default: exp 
 ;
 
 structure_size: { $$ = 0; }
-|'[' expression ']' { $$ = $2; }
+|
+{
+  $<type_node_p>1=c_begin_compound_stmt ();
+}
+pushlevel '[' expression ']' poplevel { 
+  //$$ = $2; 
+$$=poplevel (kept_level_p (), 1, 0);
+ SCOPE_STMT_BLOCK (TREE_PURPOSE ($6))
+   = SCOPE_STMT_BLOCK (TREE_VALUE ($6))
+   = $$;
+ RECHAIN_STMTS ($<type_node_p>1, COMPOUND_BODY ($<type_node_p>1)); 
+ last_expr_type = NULL_TREE;
+ $$=$<type_node_p>1;
+
+}
 ;
 
-structure_body: expression 
-;
+structure_body: 
+{ $<type_node_p>1 = c_begin_compound_stmt; }
+pushlevel expression poplevel
+{
+$$=poplevel (kept_level_p (), 1, 0);
+ SCOPE_STMT_BLOCK (TREE_PURPOSE ($4))
+   = SCOPE_STMT_BLOCK (TREE_VALUE ($4))
+   = $$;
+ RECHAIN_STMTS ($<type_node_p>1, COMPOUND_BODY ($<type_node_p>1)); 
+ last_expr_type = NULL_TREE;
+ $$=$<type_node_p>1;
+} 
 
-access_formal_list: access_formal_list ',' access_formal { $$=chainon($1,$3); }
+
+access_formal_list: access_formal_list ',' access_formal { 
+  //$$=chainon($1,$3); 
+  $$ = get_parm_info (1);
+}
 | access_formal 
+{
+  $$ = get_parm_info (1);
+  //$$=$1;
+}
 ;
 
 access_formal: T_NAME {
-  tree d = start_decl ($1, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
-  finish_decl (d, 0, NULL_TREE);
+//tree d = start_decl ($1, current_declspecs, 0,
+//  chainon (NULL_TREE, all_prefix_attributes));
+//finish_decl (d, 0, NULL_TREE);
+#if 1
+  tree e=tree_cons(0,integer_type_node,0);
+  tree f=tree_cons(e,$1,0); 
+  $$ = tree_cons (f,0,0);
+  push_parm_decl($$); 
+#else
+  tree e=tree_cons(0,integer_type_node,0);
+  tree f=tree_cons(e,$1,0); 
+  $$ = tree_cons (f,0,0);
+#endif
 }
 ;
 
 allocation_name: T_NAME {
   $$ = $1;
-  //tree d = start_decl ($1, current_declspecs, 0,
-  //	       chainon (NULL_TREE, all_prefix_attributes));
-  //finish_decl (d, 0, NULL_TREE);
 }
 ;
 
@@ -2136,7 +2150,6 @@ ordinary_routine_declaration
 ;
 ordinary_routine_declaration: 
 K_ROUTINE routine_definition_list ';' { 
-  //
   $$ = $2;
 }
 ;
@@ -2147,8 +2160,6 @@ routine_definition_list: routine_definition_list ',' routine_definition
 
 routine_definition: declspecs_ts setspecs T_NAME 
 {
-  //current_function_decl=$3;
-  //void * ref = build_external_ref ($3, 1);
 }
 io_list 
 {
@@ -2161,16 +2172,8 @@ io_list
 }
 routine_attributes '=' save_filename save_lineno exp 
 { 
-  /* $$->id=$1;  */
-  //DECL_SOURCE_FILE (current_function_decl) = $6;
-  //DECL_SOURCE_LINE (current_function_decl) = $7;
-  //$$=chainon($3,$10);
-  //  DECL_SAVED_TREE (current_function_decl) = $$;
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
-  //tree decl=$3;
-  //DECL_NAME(decl)=$3;
-  //$$=decl;
 }
 ;
 
@@ -2215,26 +2218,25 @@ io_list: { $$=0; }
 
 formal_item_list:
 /* empty */ { $$ = 0 ; } 
-|formal_item_list ','  formal_item { $$ = get_parm_info (1); /* $$=chainon($1,build_tree_list(NULL_TREE,$3)); */ }
-|formal_item { $$ = get_parm_info (1); /* $$=build_tree_list(NULL_TREE,$1); */ }
+|formal_item_list ','  formal_item { $$ = get_parm_info (1); }
+|formal_item { $$ = get_parm_info (1);  }
 ;
 
 formal_item: /*T_NAME ':' formal_attribute_list 
 |*/declspecs_ts setspecs  T_NAME { 
-  tree d, p;
-  //TREE_TYPE($1)=integer_type_node;
-  //tree p = make_pointer_declarator(0,$1);
-  //d = start_decl ($3, current_declspecs, 0,
-  //	       chainon (NULL_TREE, all_prefix_attributes));
-  //finish_decl (d, NULL_TREE, NULL_TREE); 
 
-  $$ = build_tree_list (build_tree_list (current_declspecs,build_nt (ADDR_EXPR, $3)),
-//$$ = build_tree_list (build_tree_list (current_declspecs,build_unary_op (ADDR_EXPR, build_external_ref($3, 0), 0)),
-//$$ = build_tree_list (build_tree_list (current_declspecs,$3),
-		       chainon (NULL, all_prefix_attributes));
+  tree type = integer_type_node;
+  tree t = tree_cons (NULL_TREE, type, NULL_TREE);
+  tree p = make_pointer_declarator (0, $3);
+
+  tree e = tree_cons (t, p, 0);
+
+  $$ = tree_cons (e, 0, chainon (NULL, all_prefix_attributes));
+
+
+
+
  POP_DECLSPEC_STACK;
- //$$=make_pointer_declarator(0,$$);
- //TREE_TYPE($$)=build_pointer_type(integer_type_node);
  push_parm_decl ($$);
 
 }
@@ -2634,65 +2636,6 @@ yyerror (char *s)
   fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
 }
 
-int numbFors=0;
-
-/*#define fprinto(x) fprintf(stdout,x)
-#define fprinte(x) fprintf(stderr,x)
-#define fprinte(x,y) fprintf(stderr,x,y)*/
-
-extern int p;
-extern int c;
-
-/*
-void fprinte(int p,...) {
-va_list argptr ;
-va_start(argptr,
-if (p) fprintf(stderr,argptr);
-va_end(argptr);
-}
-void fprinto(int c,...) {
-va_list argptr ;
-if (c) fprintf(stdout,argptr);
-}
-*/
-
-FILE * myout=stderr;
-
-#define uplevel prevtop=cur_top_table;newscosym();prev=cur_sym_table;
-#define downlevel cur_sym_table=prev;cur_top_table=prevtop;end_cur();next_sym_table=&(cur_sym_table->next);
-
-int bli_lex(void) {
-  //return z1zlex();
-  return yylex();
-}
-
-int bli_lex_not_now(void) 
-{
-  struct bli_token_struct* prev;
-  prev=current_token;
-  
-  if (current_token==NULL) 
-    {
-      current_token=first_available_token;
-    } 
-  else 
-    {
-      current_token=current_token->bli_token_next;
-    }
-  
-  if (!current_token) 
-    {
-//      bli_lval=NULL;
-      return 0;
-    }
-  
-  current_token->bli_token_prev=prev;
-  
-  //  bli_lval.type_node_p=current_token;
-  return current_token->pfx.type.tok_type;
-}
-
-extern FILE *z1zin;
 void 
 parse_init ()
 {
@@ -2720,54 +2663,10 @@ with YYDEBUG set");
   
 }
 
-void
-dump_token (FILE * f , const unsigned char *prefix, struct bli_token_struct *t)
-{
-//fprintf(stderr, "%x\n", yylval);
-  unsigned int char_ix;
-  //BLI_ASSERT (t);
-  //BLI_ASSERT (max_token_nbr >= t->pfx.type.tok_type);
-  fprintf (f,"%stoken type = %d lit=%s len = %d line = %d char = %d file nbr = %d chars = ", 
-          prefix,
-          t->pfx.type.tok_type,
-          //token_lit_ptrs[t->pfx.type.tok_type],
-          t->string_details->length,
-          t->bli_token_lineno,
-          t->bli_token_charno,
-          t->bli_token_fileno);
-  for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-    {
-      fprintf (f,"%c",t->string_details->string[char_ix]);
-    }
-  for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-    {
-      fprintf (f," %2.2x",t->string_details->string[char_ix]);
-    }
-  if (t->string_details->string_upper->string)
-    {
-      fprintf (f," uc = ");
-      for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-        {
-          fprintf (f, "%c",t->string_details->string_upper->string[char_ix]);
-        }
-    }
-}
-
-void yyerror3 (char *s)
-{
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
-}
-
 void yy2error (char *s)
 {
   if (s)fprintf( stderr,"\n\n%s\n",s); 
   fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
-}
-
-void
-ggc_mark_if_gcable (const void * a  ATTRIBUTE_UNUSED)
-{
 }
 
 void
@@ -2786,35 +2685,6 @@ c_parse_init(void) {
 parse_init();
 }
 
-void
-c_common_insert_default_attributes2 (decl)
-     tree decl;
-{
-  tree name = DECL_NAME (decl);
-
-#if 0
-  if (!c_attrs_initialized)
-    c_init_attributes ();
-#endif
-
-#if 0
-#define DEF_ATTR_NULL_TREE(ENUM) /* Nothing needed after initialization.  */
-#define DEF_ATTR_INT(ENUM, VALUE)
-#define DEF_ATTR_IDENT(ENUM, STRING)
-#define DEF_ATTR_TREE_LIST(ENUM, PURPOSE, VALUE, CHAIN)
-#define DEF_FN_ATTR(NAME, ATTRS, PREDICATE)                     \
-  if ((PREDICATE) && name == built_in_attributes[(int) NAME])   \
-    decl_attributes (&decl, built_in_attributes[(int) ATTRS],   \
-                     ATTR_FLAG_BUILT_IN);
-#include "builtin-attrs.def"
-#undef DEF_ATTR_NULL_TREE
-#undef DEF_ATTR_INT
-#undef DEF_ATTR_IDENT
-#undef DEF_ATTR_TREE_LIST
-#undef DEF_FN_ATTR
-#endif
-}
-
 int
 cpp_handle_option (pfile, argc, argv, ignore)
      cpp_reader *pfile;
@@ -2822,15 +2692,6 @@ cpp_handle_option (pfile, argc, argv, ignore)
      char **argv;
      int ignore;
 {
-}
-
-int
-defer_fn2 (fn)
-     tree fn;
-{
-  //  VARRAY_PUSH_TREE (deferred_fns, fn);
-
-  return 1;
 }
 
 void
@@ -2881,12 +2742,6 @@ gen_aux_info_record (fndecl, is_definition, is_implicit, is_prototyped)
 #endif
 }
 
-void
-cpp_finish_options (pfile)
-     cpp_reader *pfile;
-{
-}
-
 cpp_reader *
 cpp_create_reader (lang)
      enum c_lang lang;
@@ -2896,11 +2751,6 @@ cpp_create_reader (lang)
 void
 cpp_post_options (pfile)
      cpp_reader *pfile;
-{
-}
-
-void
-cpp_error VPARAMS ((cpp_reader * pfile, const char *msgid, ...))
 {
 }
 
@@ -2928,7 +2778,7 @@ cpp_finish (pfile)
 {
 }
 
-/* This is actually the bliss default */
+/* This is actually the C default */
 
 tree
 make_pointer_declarator (type_quals_attrs, target)
@@ -3128,3 +2978,16 @@ init_reswords ()
     }
 }
 
+tree
+mydeclares (tree t) {
+  tree tmp;
+  if (!t) return 0;
+  for(tmp=t;tmp;tmp=TREE_CHAIN(tmp)) {
+    tree c = tree_cons (0, integer_type_node, 0);   
+    tree d = tree_cons (c, TREE_VALUE(tmp), 0);
+    tree dd = tree_cons (d, 0, 0);
+    push_parm_decl(dd);
+    get_parm_info(1);
+  }
+  return 0;
+}
