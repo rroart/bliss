@@ -248,8 +248,8 @@ bli_common_parse_file(set_yydebug)
 %left <type_node_code> K_MOD '*' '/'
 %left <type_node_code> '^'
 %right <type_node_code> UMINUS UPLUS
-%right <type_node_code> '.'
 %right <type_node_code> UNARY
+%right <type_node_code> '.'
 /*%token apo ''' yacc*/
 /* You won't see these tokens
 * %token EOF NIL ECOMM TCOMM
@@ -342,7 +342,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> input_parameter_location_list input_parameter_location
 %type <type_node_p>  output_parameter_location_list output_parameter_location
 %type <type_node_p> linkage_type maybe_forward_routine_attribute_list
-%type <type_node_p> routine_attributes
+%type <type_node_p> routine_attributes global_routine_attributes
 %type <type_node_p> control_expression language_list list_option_list
 %type <type_node_p> numeric_literal decimal_literal character_code_literal
 %type <type_node_p> float_literal integer_literal language_name_list
@@ -1810,9 +1810,12 @@ operator_expression:
   setbitcontext('o');
   popbitstack();
 }
+| UPLUS opexp9 %prec UNARY { $$ = build_unary_op (CONVERT_EXPR, $2, 0); }
+| UMINUS opexp9 %prec UNARY { $$ = build_unary_op (NEGATE_EXPR, $2, 0); }
 /*
 | '+' opexp9 %prec UNARY { $$ = build_unary_op (CONVERT_EXPR, $2, 0); }
-| '-' opexp9 %prec UNARY { $$ = build_unary_op (NEGATE_EXPR, $2, 0); }*/
+| '-' opexp9 %prec UNARY { $$ = build_unary_op (NEGATE_EXPR, $2, 0); }
+*/
 | opexp9 '^' opexp9 { 
   tree d3 = fold ( $3 );
   //  if (tree_int_cst_sgn (d3) < 0) 
@@ -2696,11 +2699,21 @@ own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
     cell=cell_;
   }
 
-  cell_decl_p = start_decl (cell, current_declspecs, 0,
+  init = find_init_attr(myattr);
+  if (init)
+	 init = TREE_OPERAND(init, 0);
+
+  int do_init = 0;
+  if (init)
+	 do_init=1;
+
+  cell_decl_p = start_decl (cell, 0/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
   //printf("xxx %x\n",d);
-  finish_decl (cell_decl_p, 0, NULL_TREE);
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+  finish_decl (cell_decl_p, init, NULL_TREE);
 
 #ifndef NEW_POINTER
   decl_p = make_pointer_declarator(0,$1);
@@ -3274,20 +3287,24 @@ ordinary_routine_declaration
 |external_routine_declaration 
 ;
 ordinary_routine_declaration: 
-K_ROUTINE routine_definition_list ';' { 
+K_ROUTINE routine_definition_list ';'
+{ 
   $$ = $2;
 }
 ;
 
-routine_definition_list: routine_definition_list ',' routine_definition 
-|routine_definition 
+routine_definition_list:
+routine_definition_list ',' routine_definition 
+|
+routine_definition 
 ;
 
-routine_definition: declspecs_ts setspecs T_NAME 
+routine_definition: declspecs_ts setspecs routine_name
 {
 }
 io_list 
 {
+  // mark this as static?
   void * io_list = $5;
   void * fn;
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
@@ -3405,14 +3422,46 @@ routine_attribute: novalue_attribute
 ;
 
 global_routine_declaration:
-K_GLOBAL K_ROUTINE global_routine_definition_list ';' { $$ = 0; }
+K_GLOBAL K_ROUTINE global_routine_definition_list ';'
+{ $$ = $3; }
 ;
+
 global_routine_definition_list: global_routine_definition_list ',' global_routine_definition 
 |global_routine_definition 
 ;
-global_routine_definition: T_NAME io_list ':' global_routine_attribute_list '=' exp 
-|T_NAME io_list '=' exp 
+
+global_routine_definition: declspecs_ts setspecs routine_name
+{
+}
+io_list 
+{
+  void * io_list = $5;
+  void * fn;
+  if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
+  fn = build_nt (CALL_EXPR, $3, io_list, NULL_TREE);
+  start_function (current_declspecs, fn, all_prefix_attributes);
+  store_parm_decls ();
+}
+global_routine_attributes '=' save_location exp 
+{ 
+  tree block_value = $10; 
+  if (block_value) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$10))); $$=0;
+  finish_function (); 
+  POP_DECLSPEC_STACK;
+}
 ;
+
+global_routine_attributes:
+{
+  $$=0;
+}
+|
+':' global_routine_attribute_list
+{
+  $$=$2;
+}
+;
+
 
 global_io_list2: 
 io_list ':'  global_routine_attribute_list 
@@ -3502,19 +3551,47 @@ macro_declaration:
 positional_macro_declaration 
 |keyword_macro_declaration 
 ;
-require_declaration: K_REQUIRE T_STRING ';' {
+require_declaration: K_REQUIRE T_STRING ';'
+{
   //push_srcloc($2,0);
   //pushfilestack();
   char *new=xstrdup(IDENTIFIER_POINTER($2)+1);
   new[strlen(new)-1]=0;
-  push_req_stack(new);
+  char * colon = strchr(new,':');
+  if (colon)
+	 new=colon+1;
+  char * brack = strchr(new,']');
+  if (brack)
+	 new=brack+1;
+  char * new2 = strcat(new,".req");
+  push_req_stack(new2);
 
   //  pop_srcloc();
   $$ = 0;
 }
- ;
-library_declaration: K_LIBRARY T_STRING ';' { $$ = 0; }
- ;
+;
+
+library_declaration: K_LIBRARY T_STRING ';'
+{
+  // approx. doing the same as require, since we have no librarian utility
+  //push_srcloc($2,0);
+  //pushfilestack();
+  char *new=xstrdup(IDENTIFIER_POINTER($2)+1);
+  new[strlen(new)-1]=0;
+  char * colon = strchr(new,':');
+  if (colon)
+	 new=colon+1;
+  char * brack = strchr(new,']');
+  if (brack)
+	 new=brack+1;
+  char * new2 = strcat(new,".req");
+  push_req_stack(new2);
+
+  //  pop_srcloc();
+  $$ = 0;
+}
+;
+
 psect_declaration: K_PSECT psect_item_list ';' { $$ = 0; }
  ;
 switches_declaration: K_SWITCHES { $$ = 0; }
