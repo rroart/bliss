@@ -101,10 +101,10 @@ bliss.done: bliss/bli1$(exeext)
 # core compiler 
 bliss/bli1$(exeext): bliss/blilex.o attribs.o tree.o \
 	 bliss/parse.o $(BLI_NEW_UTILS) \
-	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o $(BLI_BE_LIBS)
+	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o $(BLI_BE_LIBS)
 	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
 	 bliss/blilex.o attribs.o tree.o \
-	 bliss/parse.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o  \
+	 bliss/parse.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o \
 	 $(BLI_BE_LIBS)
 #c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
 
@@ -156,6 +156,7 @@ bliss/bli-lang.o: $(blisrc)/bli-lang.c  $(BLI_NEW_UTIL_H)
 bliss/bli-convert.o: $(blisrc)/bli-convert.c  $(BLI_NEW_UTIL_H)
 bliss/bli-format.o: $(blisrc)/bli-format.c  $(BLI_NEW_UTIL_H)
 bliss/bli-errors.o: $(blisrc)/bli-errors.c  $(BLI_NEW_UTIL_H)
+bliss/bli-opts.o: $(blisrc)/bli-opts.c  $(BLI_NEW_UTIL_H)
 
 # generated files the files from lex and yacc are put into the source
 # directory in case someone wants to build but does not have
