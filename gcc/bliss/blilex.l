@@ -28,12 +28,14 @@
 
 #define my_isblank(c) ((c) == ' ' || (c) == '\t')
 #define my_isletter(c) ( ((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') || (c)=='$' || (c)=='_')
+#define my_isend(c) ((c) == '\n' || (c) == 0)
 
   void error(),warning(),inform();
   tree parse_this (char * this);
   tree parse_this_n (char * this, int n);
   tree parse_this_range (char * this, char * end);
-
+  char * my_strcasestr(const char *, const char *);
+  char * my_strstrend(const char *, const char *);
 
   extern int yydebug;
   extern int yy2debug;
@@ -123,6 +125,7 @@
     push_req_stack(char *new)
     {
       include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+		downcase(new);
       yyin = fopen( new, "r" );
      
       yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
@@ -221,6 +224,20 @@ hexdigit [0-9a-f]
 #endif
   }
 
+  if (*yytext=='+' || *yytext=='-') {
+	 // workaround because shift/reduce etc with plain chars
+	 char * text = yytext - 1;
+	 while (my_isblank(*text))
+      text--;
+
+	 if (*text=='=') {
+		if (*yytext=='+')
+		  return UPLUS;
+		else
+		  return UMINUS;
+	 }
+  }
+
   return *yytext;
 }
 
@@ -316,7 +333,7 @@ hexdigit [0-9a-f]
 		//yyless(yyleng);
 		return START_CTCE;
 #endif
-		char * my_end=strstr(my_yytext, "%THEN");
+		char * my_end=my_strcasestr(my_yytext, "%then");
 		int my_yyleng=5+my_end-my_yytext;
 		char myline[255];
 		memset(myline, 0, 255);
@@ -1083,6 +1100,7 @@ hexdigit [0-9a-f]
 	 {
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
+		my_end=my_strstrend(my_yytext,0);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -2053,3 +2071,99 @@ tree parse_this_range (char * this, char * end) {
   return mylast();
 }
 
+typedef char chartype;
+
+char *
+my_strcasestr (phaystack, pneedle)
+     const char *phaystack;
+     const char *pneedle;
+{
+  register const unsigned char *haystack, *needle;
+  register chartype b, c;
+
+  haystack = (const unsigned char *) phaystack;
+  needle = (const unsigned char *) pneedle;
+
+  b = _tolower (*needle);
+  if (b != '\0')
+    {
+      haystack--;                               /* possible ANSI violation */
+      do
+        {
+          c = *++haystack;
+          if (c == '\0')
+            goto ret0;
+        }
+      while (_tolower (c) != (int) b);
+
+      c = _tolower (*++needle);
+      if (c == '\0')
+        goto foundneedle;
+      ++needle;
+      goto jin;
+
+      for (;;)
+        {
+          register chartype a;
+          register const unsigned char *rhaystack, *rneedle;
+
+          do
+            {
+              a = *++haystack;
+              if (a == '\0')
+                goto ret0;
+              if (_tolower (a) == (int) b)
+                break;
+              a = *++haystack;
+              if (a == '\0')
+                goto ret0;
+				shloop:
+              ;
+            }
+          while (_tolower (a) != (int) b);
+
+		  jin:      a = *++haystack;
+          if (a == '\0')
+            goto ret0;
+
+          if (_tolower (a) != (int) c)
+            goto shloop;
+
+          rhaystack = haystack-- + 1;
+          rneedle = needle;
+          a = _tolower (*rneedle);
+
+          if (_tolower (*rhaystack) == (int) a)
+            do
+              {
+                if (a == '\0')
+                  goto foundneedle;
+                ++rhaystack;
+                a = _tolower (*++needle);
+                if (_tolower (*rhaystack) != (int) a)
+                  break;
+                if (a == '\0')
+                  goto foundneedle;
+                ++rhaystack;
+                a = _tolower (*++needle);
+              }
+				while (_tolower (*rhaystack) == (int) a);
+
+          needle = rneedle;             /* took the register-poor approach */
+
+          if (a == '\0')
+            break;
+        }
+    }
+ foundneedle:
+  return (char*) haystack;
+ ret0:
+  return 0;
+}
+
+char * my_strstrend(const char * s, const char * t) {
+  char * e = strchr(s, '\n');
+  if (e)
+	 return e;
+  return s + strlen(s);
+}
