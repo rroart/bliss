@@ -51,6 +51,7 @@
 
 static struct bli_token_struct * current_token=NULL;
 static struct bli_token_struct * first_available_token=NULL;
+ static int compstmt_count;
 
 struct bli_tree_struct_parse_tree_top* parse_tree_top=NULL;
  static tree current_declspecs = NULL_TREE;
@@ -200,6 +201,7 @@ bli_parse PARAMS((void));
 %type <type_node_p> pushlevel poplevel
 %type <type_node_p> mystart module module_head module_body opt_mhargs ms_list
 %type <type_node_p> decl_list module_switch unlabeled_block start_block
+%type <type_node_p> unlabeled_block_start
 %type <type_node_p> environ_16_option mode_spec mode_spec_list
 %type <type_node_p>  common_switch bliss_16_switch bliss_32_switch bliss_36_switch
 /*%type <type_int> T_NAME T_STRING T_DIGITS*/
@@ -772,7 +774,11 @@ primary:
 numeric_literal  { $$=$1; }
 | string_literal  { $$=$1; }
 | plit { $$=$1; }
-| T_NAME { $$=$1; }
+| T_NAME { 
+  if (yychar == YYEMPTY)
+    yychar = YYLEX;
+  $$ = build_external_ref ($1, yychar == '(');
+}
 | block  { $$=$1; }
 | structure_reference { $$=$1; }
 | routine_call  { $$=$1; }
@@ -957,17 +963,21 @@ attached_label:
 T_NAME ':' { $$=creatid($1); }
 ;
 
-unlabeled_block: K_BEGIN { 
+unlabeled_block_start: K_BEGIN { 
 $$=c_begin_compound_stmt ();
- RECHAIN_STMTS ($$, COMPOUND_BODY ($$)); 
- last_expr_type = NULL_TREE;
 }
+
+unlabeled_block: unlabeled_block_start
 pushlevel block_body K_END poplevel
 { 
 $$=poplevel (kept_level_p (), 1, 0);
- SCOPE_STMT_BLOCK (TREE_PURPOSE ($6))
-   = SCOPE_STMT_BLOCK (TREE_VALUE ($6))
+ SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
+   = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
    = $$;
+
+ RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
+ last_expr_type = NULL_TREE;
+ $$=$1;
 }
 | '(' block_body ')' { $$=$2;} 
 ;
@@ -994,6 +1004,9 @@ maybe_block_value /* $$=creatnode(block_body,$1,$3); $$->middle=$2;  */
   //tree decl;
   //DECL_NAME(decl)=
   //$$=decl;
+  void * v = $1;
+  void * w = $3;
+  fprintf(stderr,"vw %x %x\n",v,w);
   $$ = chainon($1, $3);
 }
 ;
@@ -1194,7 +1207,7 @@ operator_expression:
 | opexp9 '/' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="/";  */}
 | opexp9 '+' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="+";  */}
 | opexp9 '-' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="-";  */}
-| opexp9 infix_operator opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=$2;  */}
+| opexp9 infix_operator opexp9 { $$ = parser_build_binary_op ($2, $1, $3); }
 | K_NOT opexp9 { $$=creatnode(opexp4,0,$2); }
 | opexp9 K_AND opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_AND;  */}
 |  opexp9 K_OR opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_OR;  */}
@@ -1375,8 +1388,20 @@ control_expression:  conditional_expression  { $$=$1; }
 
 
 conditional_expression: 
-K_IF exp K_THEN exp  K_ELSE exp { $$=creatnode(conditional_expression,$2,$6);/* $$->middle=$4;  */}
-|K_IF exp K_THEN exp { $$=creatnode(conditional_expression,$2,0);/* $$->middle=$4;  */} 
+/* K_IF exp K_THEN exp  K_ELSE exp ';' { }
+| */K_IF 
+{
+  $<type_node_p>$ = c_begin_if_stmt (); 
+}
+exp
+{
+  c_expand_start_cond (truthvalue_conversion ($3), 
+		       compstmt_count,$<type_node_p>2);
+}
+K_THEN exp
+{
+  c_finish_then ();
+}
 /*K_IF exp K_THEN exp  K_ELSE exp { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,$6)); }
 |K_IF exp K_THEN exp  { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,0)); }*/
 ;
@@ -1436,12 +1461,19 @@ select_action: expression { $$=$1; }
 ;
 
 
-loop_expression:  indexed_loop_expression  { $$=$1; }
+loop_expression:  indexed_loop_expression  {  }
 | tested_loop_expression  { $$=$1; }
 ;
 indexed_loop_expression:
-indexed_loop_type T_NAME
-K_FROM exp   K_TO exp   K_BY exp  K_DO exp { $$=creatvalue($1); }
+indexed_loop_type
+{
+  $<type_node_p>$ = build_stmt (FOR_STMT, NULL_TREE, NULL_TREE,
+			  NULL_TREE, NULL_TREE);
+  add_stmt ($<type_node_p>$);  
+
+}
+ T_NAME
+K_FROM exp   K_TO exp   K_BY exp  K_DO exp { }
 ;
 indexed_loop_type:
 K_INCR | K_INCRA | K_INCRU  | K_DECR | K_DECRA | K_DECRU 
@@ -1473,8 +1505,8 @@ K_EXITLOOP  exp  { $$=$2; }
 ;
 
 return_expression: 
-K_RETURN  exp { $$=creatnode(return_expression,0,$2); }
-|K_RETURN { $$=creatnode(return_expression,0,0); }
+K_RETURN  exp { $$ = c_expand_return ($2); }
+|K_RETURN { $$ = c_expand_return (NULL_TREE); }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
 /**** 4.0 DECLARATIONS **********************************************/
