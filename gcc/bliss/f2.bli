@@ -10,13 +10,13 @@ structure myvector[i; n, unit, ext] =
 own i;
 
 structure
-mybitvector[i; n, unit, ext] =
-[n*unit]
-(mybitvector+i^(0-5))<i and 31,1>;
+mybitvector[i; n] =
+[(n+7)/8]
+mybitvector<i,1>;
 
-!structure mydda[i;n]=
-![(n+1)/2]
-!mydda<4*i,4>;
+structure mydda[i;n]=
+[(n+1)/2]
+mydda<4*i,4>;
 
 structure
 block_byte[o,p,s,e; bs] =
@@ -24,15 +24,15 @@ block_byte[o,p,s,e; bs] =
 (block_byte + o)<p,s>;
 
 structure
-block[o,p,s,e; bs] =
-[1*bs]
-(block + o)<p,s>;
+block[o,p,s,e; bs, unit] =
+[bs*unit]
+(block + o*unit)<p,s>;
 
 own def : myvector[15,4];
 own def2 : myvector[15,4];
-own abit : mybitvector[77,4];
-!own adda : mydda[4];
-own ablock : block[8];
+own abit : mybitvector[77];
+own adda : mydda[4];
+own ablock : block[8,4];
 
 routine dummy2=
 begin
@@ -68,12 +68,14 @@ data=.def[0];
 undecl(data,.data);
 abit=0;
 abit+1=0;
-abit[0]=1;
+abit[67]=1;
 undecl(.abit,.(abit+1));
-!adda=0;
-!adda+1=0;
-!adda[2]=4;
-!undecl(.adda,.(adda+1));
+undecl(.(abit+2),.(abit+3));
+undecl(256,256);
+adda=0;
+adda+1=0;
+adda[2]=4;
+undecl(.adda,.(adda+1));
 ablock=0;
 ablock+1=0;
 undecl(.ablock,.(ablock+1));
@@ -132,7 +134,9 @@ undecl(130,130);
 if .a then ( own a; a=3; 7);
 if .a eql 1 then ( undecl (43,44); );
 if .b geq 2 then ( undecl (45,46); );
-undecl(128^(0-3),16^3);
+undecl(128^(0-3),0);
+undecl(0,16^3);
+undecl(129,16^(0-.b));
 undecl(130,130);
 undecl(a,b);
 undecl(c,d);
