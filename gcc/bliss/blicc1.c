@@ -211,9 +211,9 @@ bliss_parse_file (int flag)
       option_immediate_msg_output = 1;
       option_parser_trace = 1;
       option_lexer_trace = 1;
-      output_fyi ();
-      output_eff ();
-      output_obs ();
+      //output_fyi ();
+      //output_eff ();
+      //output_obs ();
     }
 
   /* No input file and help.  */
@@ -223,7 +223,7 @@ bliss_parse_file (int flag)
 
   /* Init message processing.  */
 
-  message_init ();
+  //message_init ();
 
   /* Input options and names.  */
 
@@ -269,8 +269,8 @@ bliss_parse_file (int flag)
   main_file_ptr->bli_file_name = in_fname;
   cmp_process_file (main_file_ptr,  & parse_tree);
 
-  output_msgs ();
-  output_summary ();
+  //output_msgs ();
+  //output_summary ();
 }
 
 
@@ -381,12 +381,12 @@ bliss_decode_option (int32 num_options_left ATTRIBUTE_UNUSED,
     case 'p' :
       if (!strcmp (first_option_left[0], "-pedantic"))
         {
-          output_pedantic ();
+          //output_pedantic ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-pedantic-errors"))
         {
-          error_pedantic ();
+          //error_pedantic ();
           token_mask = TOKEN_FLAG_STD;
           return 1;
         }
@@ -395,7 +395,7 @@ bliss_decode_option (int32 num_options_left ATTRIBUTE_UNUSED,
     case 'w' :
       if (!strcmp (first_option_left[0], "-w"))
         {
-          no_output_warning ();
+          //no_output_warning ();
           return 1;
         }
       return 0;
@@ -403,71 +403,71 @@ bliss_decode_option (int32 num_options_left ATTRIBUTE_UNUSED,
     case 'W' :
       if (!strcmp (first_option_left[0], "-Wall"))
         {
-          output_fyi ();
-          output_eff ();
-          output_obs ();
+          //output_fyi ();
+          //output_eff ();
+          //output_obs ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WFYI"))
         {
-          output_fyi ();
+          //output_fyi ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WEfficiency"))
         {
-          output_eff ();
+          //output_eff ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WObsolete"))
         {
-          output_obs ();
+          //output_obs ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WNonStandard"))
         {
-          output_pedantic ();
+          //output_pedantic ();
           return 1;
         }
 
       if (!strcmp (first_option_left[0], "-WnoWarning"))
         {
-          no_output_warning ();
+          //no_output_warning ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WnoUnsupported"))
         {
-          no_output_unsupported ();
+          //no_output_unsupported ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WWarning-error"))
         {
-          error_warning ();
+          //error_warning ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WFYI-error"))
         {
-          error_fyi ();
+          //error_fyi ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WEfficiency-error"))
         {
-          error_eff ();
+          //error_eff ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WObsolete-error"))
         {
-          error_obs ();
+          //error_obs ();
           return 1;
         }
       if (!strcmp (first_option_left[0], "-WNonStandard-error"))
         {
-          error_pedantic ();
+          //error_pedantic ();
           return 1;
         }
 
       if (!strcmp (first_option_left[0], "-WUnsupported-no-error"))
         {
-          no_error_unsupported ();
+          //no_error_unsupported ();
           return 1;
         }
 
@@ -488,7 +488,7 @@ bliss_decode_option (int32 num_options_left ATTRIBUTE_UNUSED,
 const char *
 bliss_init (const char *filename)
 {
-  bliumsc_set_progname ((uchar *)"bli1");
+  //bliumsc_set_progname ((uchar *)"bli1");
 
   bliss_init_decl_processing ();
   add_c_tree_codes ();
@@ -498,8 +498,8 @@ bliss_init (const char *filename)
   if (!filename || (filename[0] == ' ') || (!filename[0]))
     {
       if (!version_done)
-        bliumsc_fatal ("no input file specified, try --help for help");
-
+        //bliumsc_fatal ("no input file specified, try --help for help");
+	exit (EXIT_FAILURE);
       in_fname = NULL;
       return NULL;
     }
@@ -525,6 +525,7 @@ cmp_process_file (struct bli_file_struct *file_ptr,
   struct bli_token_struct *current;
   uint32 token_count;
 
+#if 0
   if (!file_names)
     {
 
@@ -551,6 +552,8 @@ cmp_process_file (struct bli_file_struct *file_ptr,
   file_names_copied_original_lengths->elem[1] = 0;
   file_structs_ptrs[1] = file_ptr;
   file_count = 1;
+#endif
+
   current_file_nbr = 1;  /* 0 Entry unused.  */
 
   /*
@@ -562,8 +565,10 @@ cmp_process_file (struct bli_file_struct *file_ptr,
 
   if (!file_ptr->bli_file_buffer)
     {
+#if 0
       if (!version_done)
         MSG (MSGID (101), 1, 1, 0, NULL, NULL);
+#endif
       return;
     }
 
@@ -589,7 +594,7 @@ cmp_process_file (struct bli_file_struct *file_ptr,
 
   token_count=1000;
 
-  create_symbol_table (token_count);
+  //create_symbol_table (token_count);
 
   /*
    * Parse it.  */
@@ -603,7 +608,7 @@ cmp_process_file (struct bli_file_struct *file_ptr,
       bli_parse ();
       if (option_main && !option_main_found)
         {
-          MSG (MSGID (133), 1, 1, 0, NULL, NULL);
+          //MSG (MSGID (133), 1, 1, 0, NULL, NULL);
         }
     }
 
@@ -625,8 +630,10 @@ cmp_process_file (struct bli_file_struct *file_ptr,
   if ((!errorcount) && (!flag_syntax_only))
     {
       /* Generate the code.  */
+#if 0
       if (parse_tree_top)
         blic_bei (parse_tree_top);
+#endif
     }
   
 }
@@ -681,5 +688,12 @@ getcompinput (char *buf, int32 max_size)
 void
 blic_turned_off_error (struct bli_token_struct *token, const uchar *text)
 {
-  MSG_TOKEN (MSGID (128), token, (uchar *)text);
+  //MSG_TOKEN (MSGID (128), token, (uchar *)text);
+}
+
+void
+myabort (const char * const msg, const char * const file, int line)
+{
+  fprintf (stderr, "abort line %d file %s: %s\n", line, file, msg);
+  abort ();
 }
