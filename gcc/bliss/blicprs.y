@@ -2007,19 +2007,6 @@ structure_definition:
 
   // trying a dummy function?
 
-  tree c;
-  tree d = start_decl ($3, current_declspecs, 0,
-		       chainon (NULL_TREE, all_prefix_attributes));
-  finish_decl (d, 0, NULL_TREE);
-  char *s=malloc($3->identifier.id.len+2);
-  strcpy(s,$3->identifier.id.str);
-  s[$3->identifier.id.len]='_';
-  s[$3->identifier.id.len+1]=0;
-  c=get_identifier(s);
-  tree v = build_tree_list (NULL_TREE, NULL_TREE);
-  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
-  start_function (current_declspecs, vo, all_prefix_attributes);
-  store_parm_decls ();
 }
   access_formal_list  ';' 
 {
@@ -2036,6 +2023,20 @@ allocation_formal_list ']' '='
   //tree v=alloclist;
   //void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
   //start_function (current_declspecs, vo, all_prefix_attributes);
+  tree c;
+  tree d = start_decl ($3, current_declspecs, 0,
+		       chainon (NULL_TREE, all_prefix_attributes));
+  finish_decl (d, 0, NULL_TREE);
+  char *s=malloc($3->identifier.id.len+2);
+  strcpy(s,$3->identifier.id.str);
+  s[$3->identifier.id.len]='_';
+  s[$3->identifier.id.len+1]=0;
+  c=get_identifier(s);
+  tree v = build_tree_list (NULL_TREE, NULL_TREE);
+  v = $9;
+  void * vo = build_nt (CALL_EXPR, c, v, NULL_TREE);
+  start_function (current_declspecs, vo, all_prefix_attributes);
+  store_parm_decls ();
   begin_stmt_tree(&$<type_node_p>$);
 }
 structure_size
@@ -2071,8 +2072,8 @@ allocation_formal_list: allocation_formal_list ',' allocation_formal
 ;
 
 allocation_formal:
-allocation_name
-|allocation_name '=' allocation_default 
+allocation_name { $$ = tree_cons (NULL_TREE, $1, NULL_TREE); }
+|allocation_name '=' allocation_default { $$ = tree_cons (NULL_TREE, $1, $3); }
 ;
 
 allocation_default: exp 

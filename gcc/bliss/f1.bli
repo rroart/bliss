@@ -1,9 +1,9 @@
 module f1 (main=r)=
 begin
-!structure
-!vector[i; n, unit=4, ext=0] =
-![n*unit] 
-!(vector + i*unit)<0,8*unit>;
+structure
+vector[i; n, unit=4, ext=0] =
+[n*unit] 
+(vector + i*unit)<0,8*unit>;
 routine dummy2=
 begin
 !own def : vector[5];
