@@ -39,7 +39,7 @@ FreeBSD (must compile and link in two stages, it seems)
 
 FEATURES:
 primary exps:
-	blocks (unlabeled)
+	blocks (unlabeled and labeled)
 	structure references (ordinary)
 	routine calls (ordinary)
 	field references (bit)
@@ -55,7 +55,7 @@ conditional exps:
 	indexed loop (incr)
 	return exp
 blocks and decls:
-	blocks (unlabeled)
+	blocks (unlabeled and labeled)
 	decls:
 		routine (ordinary)
 		require
@@ -201,8 +201,10 @@ NEWS:
 0.004
 Strings and numeric literals
 PLIT
-More loop conditionals
+More loop conditionals, and exitloop
 New basic addressing implementation
+Labeled blocks and leave
+Return with value
 
 0.003:
 mainly macros and require

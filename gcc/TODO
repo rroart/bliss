@@ -22,4 +22,6 @@ incr/decr with implicitly declared count
 
 leave . with ..
 
-if_then with value has problems due to block_value?
+get a working if_then with value 
+
+check if block_value implementation is usable?

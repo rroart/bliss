@@ -5,9 +5,11 @@ routine main=
 begin
 local l;
 
-l=22;
-!l=(if .l eql 2 then 0 else 1;);
-l=(if .l neq 2 then 1 else 0; 0);
+!l=(local x; local y; y=13-(local z; z=2; .z*.z); x=4; .y-.x-.x; 1);
+l=(3-2; 4);
+!l=2;
+!l=(if .l eql 2 then 0 else 1);
+!l=(if .l neq 2 then 1 else 0; 0);
 l=2;
 l=(local q; if .l neq 2 then q=1 else q=0; .q);
 
