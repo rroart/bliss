@@ -199,7 +199,7 @@ bli_parse PARAMS((void));
 %type <type_int> U_EIS U_NOEIS U_LSI11 U_T11 U_PIC U_ODT
 %type <type_node_p> pushlevel poplevel
 %type <type_node_p> mystart module module_head module_body opt_mhargs ms_list
-%type <type_node_p> decl_list module_switch unlabeled_block 
+%type <type_node_p> decl_list module_switch unlabeled_block start_block
 %type <type_node_p> environ_16_option mode_spec mode_spec_list
 %type <type_node_p>  common_switch bliss_16_switch bliss_32_switch bliss_36_switch
 /*%type <type_int> T_NAME T_STRING T_DIGITS*/
@@ -462,7 +462,7 @@ module		: K_MODULE module_head '='
   // store_parm_decls();
 }
 save_filename save_lineno
- block K_ELUDOM
+ start_block K_ELUDOM
 {
   /*  $$=creatnode(module, $2, $4); */
   $$=$7;
@@ -957,8 +957,30 @@ attached_label:
 T_NAME ':' { $$=creatid($1); }
 ;
 
-unlabeled_block: K_BEGIN block_body K_END { $$=$2;/* $$->value=1;  */}
-| '(' block_body ')' { $$=$2;/* $$->value=0;  */} 
+unlabeled_block: K_BEGIN { 
+$$=c_begin_compound_stmt ();
+ RECHAIN_STMTS ($$, COMPOUND_BODY ($$)); 
+ last_expr_type = NULL_TREE;
+}
+pushlevel block_body K_END poplevel
+{ 
+$$=poplevel (kept_level_p (), 1, 0);
+ SCOPE_STMT_BLOCK (TREE_PURPOSE ($6))
+   = SCOPE_STMT_BLOCK (TREE_VALUE ($6))
+   = $$;
+}
+| '(' block_body ')' { $$=$2;} 
+;
+
+start_block: K_BEGIN { 
+  // find out how to do with/without $$=c_begin_compound_stmt ();
+  // RECHAIN_STMTS ($$, COMPOUND_BODY ($$)); 
+  //last_expr_type = NULL_TREE;
+}
+block_body K_END
+{ 
+}
+| '(' block_body ')' { $$=$2;} 
 ;
 
 
@@ -2703,13 +2725,13 @@ linkage_function_name: T_NAME { $$=creatid($1); }
 pushlevel:  /* empty */
 { pushlevel (0);
  clear_last_expr ();
- //add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
+ add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
 }
 ;
 
 poplevel:  /* empty */
 { 
-  //$$ = add_scope_stmt (/*begin_p=*/0, /*partial_p=*/0);
+  $$ = add_scope_stmt (/*begin_p=*/0, /*partial_p=*/0);
  }
 ;
 
