@@ -1108,7 +1108,10 @@ T_NAME '[' access_actual_list ']' {
   tree c=get_identifier(s);
   //tree t=build_external_ref ($1, 0);
   tree er=build_external_ref ($1, 0);
-  tree params = chainon(copy_node(er), $3);
+  //tree params = chainon(copy_node(er), $3);
+  //if (TREE_CHAIN(er)) fprintf(stderr, "\npanic %x\n",lineno);
+  chainon (tree_last($3), er); 
+  tree params = $3;
   tree t=xref_tag(STRUCTURE_ATTR,c);
   tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
   tree access=my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t))));
@@ -2185,6 +2188,7 @@ structure_definition:
   access_formal_list  ';' 
 {
   //$8
+  //push_parm_decl($<type_node_p>5);
   tree accessfn;
   tree accessid;
   char *accessfnname=malloc($3->identifier.id.len+2);
@@ -2299,10 +2303,12 @@ structure_body
 
   $$=0;
 
+  tree accesstmp = parm_first_to_last($6);
+
   tree body=tree_cons(0,$15,0);
   tree size=tree_cons(0,$13,body);
   tree alloc=tree_cons(0,$9,size);
-  tree access=tree_cons(0,$6,alloc);
+  tree access=tree_cons(0,/*$6*/accesstmp,alloc);
   tree comp2=tree_cons(0,0,access);
 
   $$ = start_structure (STRUCTURE_TYPE, $3, 0);
@@ -3379,5 +3385,25 @@ my_fold (mytree)
   tree mytree;
 {
   walk_tree (&mytree, my_fold_fn, 0, 0);
+}
+
+tree
+first_to_last(mytree)
+  tree mytree;
+{
+  tree first=mytree;
+  tree second=TREE_CHAIN(first);
+  TREE_CHAIN(first)=0;
+  chainon(tree_last(second),first);
+  return second;
+}
+
+tree
+parm_first_to_last(mytree)
+  tree mytree;
+{
+  tree first=mytree;
+  TREE_PURPOSE(first)=first_to_last(TREE_PURPOSE(first));
+  return first;
 }
 
