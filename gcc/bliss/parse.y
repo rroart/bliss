@@ -90,6 +90,27 @@ int yyparse() {
  struct function *acfun = 0;
  tree afun = 0;
 
+ static int filestackno = 0;
+
+ struct myfilestackstruct {
+   unsigned long yyin;
+   unsigned long input_filename;
+ };
+
+ struct myfilestackstruct myfilestack[128]; 
+
+ static void pushfilestack() {
+   myfilestack[filestackno].yyin=yyin;
+   myfilestack[filestackno].input_filename=input_filename;
+   filestackno++;
+ }
+
+ static void popfilestack() {
+   filestackno--;
+   yyin=myfilestack[filestackno].yyin;
+   input_filename=myfilestack[filestackno].input_filename;
+ }
+
  static int bitstackno = 0;
  static char bitstack[20]="oooooooooooooooooooo"; // f=fetch a=assign o=other
 
@@ -2660,7 +2681,16 @@ macro_declaration:
 positional_macro_declaration 
 |keyword_macro_declaration 
 ;
-require_declaration: K_REQUIRE T_STRING ';' { $$ = 0; }
+require_declaration: K_REQUIRE T_STRING ';' {
+  //push_srcloc($2,0);
+  //pushfilestack();
+  char *new=strdup($2->identifier.id.str+1);
+  new[strlen(new)-1]=0;
+  push_req_stack(new);
+
+  //  pop_srcloc();
+  $$ = 0;
+}
  ;
 library_declaration: K_LIBRARY T_STRING ';' { $$ = 0; }
  ;

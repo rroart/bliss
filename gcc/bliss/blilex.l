@@ -90,6 +90,40 @@ static int save_buffer_length=0;
 /* file buffer */
 static char * save_buffer=NULL;
 
+#define MAX_INCLUDE_DEPTH 10
+YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+int include_stack_ptr = 0;
+
+void
+push_req_stack(new)
+char *new;
+{
+include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+yyin = fopen( new, "r" );
+     
+#if 0
+if ( ! yyin )
+error( ... );
+#endif
+ 
+yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
+}
+
+void
+pop_req_stack()
+{
+if ( --include_stack_ptr < 0 )
+{
+fprintf(stderr, "\nempty include stack\n");
+return YY_NULL;
+}
+else
+{
+yy_delete_buffer( YY_CURRENT_BUFFER );
+yy_switch_to_buffer(include_stack[include_stack_ptr] );
+}
+}
+
 %}
 
 idigit		[0-9a-f]
@@ -192,6 +226,19 @@ yylval.type_node_p=get_identifier(s);
   yy2error ("not recognized");
 }
 
+<<EOF>> { 
+if ( --include_stack_ptr < 0 )
+{
+fprintf(stderr, "\nempty include stack\n");
+return YY_NULL;
+}
+else
+{
+yy_delete_buffer( YY_CURRENT_BUFFER );
+yy_switch_to_buffer(include_stack[include_stack_ptr] );
+}
+//pop_req_stack();
+} 
 
 %%
 

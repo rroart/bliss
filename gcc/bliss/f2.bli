@@ -1,6 +1,8 @@
 module f1 (main=r)=
 begin
 
+require 'myreq.r32';
+
 routine diff (x,y)=x-y;
 
 structure myvector[i; n, unit, ext] =
@@ -46,6 +48,7 @@ own locdef : myvector[15,4];
 !own def : myvector[5,4];
 own data,data2;
 external routine undecl;
+tester=2;
 (def+1)<0,32>=1;
 def[1]=3;
 (locdef+1)<0,32>=1;
