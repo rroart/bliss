@@ -39,7 +39,7 @@ useful compiler paramters:
 
 TESTED ON:
 Sparc/Solaris
-FreeBSD
+FreeBSD (must compile and link in two stages, it seems)
 
 FEATURES:
 primary exps:
