@@ -467,20 +467,20 @@ process_indicator_and_blank (void)
 			    char_ptr - line->line_start_new;
 			  if (non_blank_char_nbr < 4)
 			    {
-                              MSG (MSGID (29), file_number, line_nbr + 1, 0, NULL, NULL);
+                              //MSG (MSGID (29), file_number, line_nbr + 1, 0, NULL, NULL);
 			    }
 			  break;
 			}
 		      if (blank_flag)
 			{
-                          MSG (MSGID (30), file_number, line_nbr + 1, 0, NULL, NULL);
+                          //MSG (MSGID (30), file_number, line_nbr + 1, 0, NULL, NULL);
                           line->line_flag_continuation = 0;  /* Treat as non-continuation.  */
 			}
 		    }
 		  else
 		    {
 		      /* Invalid comment field  - treat as comment.  */
-                      MSG (MSGID (2), file_number, line_nbr + 1, 0, NULL, NULL);
+                      //MSG (MSGID (2), file_number, line_nbr + 1, 0, NULL, NULL);
 		      line->line_ind_char = indicator_char;
 		      line->line_flag_ignore = 1;  /* Just send cr to tokeniser.  */
 		    }
@@ -571,7 +571,7 @@ mark_continued_lines (void)
 	      pending_continued_flag = 0;
 	      if (line->line_flag_termstring)
 		{
-                  MSG (MSGID (31), file_number, line_nbr + 1, 0, NULL, NULL);
+                  //MSG (MSGID (31), file_number, line_nbr + 1, 0, NULL, NULL);
 		}
 	      line->line_continuation_line_nbr = pending_continued_line;
 	      lines->elem[pending_continued_line].line_continued_line_nbr =
@@ -590,7 +590,7 @@ mark_continued_lines (void)
 
   if (pending_continued_flag)
     {
-      MSG (MSGID (32), file_number, pending_continued_line + 1, 0, NULL, NULL);
+      //MSG (MSGID (32), file_number, pending_continued_line + 1, 0, NULL, NULL);
     }
 }
 
@@ -616,7 +616,7 @@ check_non_continued_lines (void)
 	{
 	  if (line->line_flag_partstring)
 	    {
-              MSG (MSGID (33), file_number, line_nbr + 1, 0, NULL, NULL);
+              //MSG (MSGID (33), file_number, line_nbr + 1, 0, NULL, NULL);
 	      line->line_flag_wrap_string = 1;
 	      continue;
 	    }
@@ -663,7 +663,7 @@ check_non_continued_lines (void)
 				}
 			      else
 				{
-                                  MSG (MSGID (34), file_number, line_nbr + 1, 0, NULL, NULL);
+                                  //MSG (MSGID (34), file_number, line_nbr + 1, 0, NULL, NULL);
 				  line->line_flag_needs_delimiter = 1;
 				}
 			    }
@@ -759,7 +759,7 @@ paste_continuations (void)
 		}
 	      else if ( * char_ptr != linethreadprev->line_string_char)
 		{
-                  MSG (MSGID (35), file_number, line_nbr + 1, 0, NULL, NULL);
+                  //MSG (MSGID (35), file_number, line_nbr + 1, 0, NULL, NULL);
 		  /* Flag to close off the partial string in the continued line.  */
 		  linethreadprev->line_flag_wrap_string = 1;
 		}
@@ -773,7 +773,7 @@ paste_continuations (void)
 		{
 		  /* We were expecting a string continuation.  */
 		  /* Just assume it's continued from the first non-blank.  */
-                  MSG (MSGID (36), file_number, line_nbr + 1, 0, NULL, NULL);
+                  //MSG (MSGID (36), file_number, line_nbr + 1, 0, NULL, NULL);
 		}
 	    }
 	  size_of_this_continuation = linethread->line_end_new - char_ptr;
@@ -799,7 +799,7 @@ paste_continuations (void)
             if (*char_ptr == '=')
               if (*(new_line->elem + pasted_continued_line_size - 1) == '=')
                 {
-                  MSG (MSGID (37), file_number, line_nbr + 1, 0, NULL, NULL);
+                  //MSG (MSGID (37), file_number, line_nbr + 1, 0, NULL, NULL);
                 }
 
 	  /* Remember where we came from.  */

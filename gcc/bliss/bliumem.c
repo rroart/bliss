@@ -69,7 +69,9 @@ static void outofmemory (void);
 static void
 outofmemory (void)
 {
-  bliumsc_fatal ("\nOut of Memory\n");
+  //bliumsc_fatal ("\nOut of Memory\n");
+  fprintf (stderr,"\nOut of Memory\n");
+  exit(EXIT_FAILURE);
 }
 
 /* Allocate a new dynarray with ENTRIES entries each of size

@@ -1,4 +1,3 @@
-
 /* 
    BLISS Compiler preprocessor utilities (blipppru.c)
 
@@ -607,7 +606,7 @@ fill_out_replacing_details (struct copyrepl_struct *copyrepl_details,
           scan_production (prod_from,  & delimited_flag,  & first_token,
                            & last_token);
 
-          MSG_TOKEN (MSGID (14), first_token, NULL);
+          //MSG_TOKEN (MSGID (14), first_token, NULL);
 	  copyrepl_details->copyrepl_valid_flag = 0;
 	}
     }
@@ -749,7 +748,7 @@ validate_integer (struct token_struct *token)
     {
       if (isdigit (chars[i]))
 	continue;
-      MSG_TOKEN (MSGID (15), token, NULL);
+      //MSG_TOKEN (MSGID (15), token, NULL);
       return 1;
     }
   return 0;
@@ -783,13 +782,13 @@ validate_number (struct token_struct *token)
 	}
       if ((i != 0) || ((chars[i] != '-') && (chars[i] != '+')))
 	{
-          MSG_TOKEN (MSGID (16), token, NULL);
+          //MSG_TOKEN (MSGID (16), token, NULL);
 	  return 1;
 	}
     }
   if (point_count > 1)
     {
-      MSG_TOKEN (MSGID (17), token, NULL);
+      //MSG_TOKEN (MSGID (17), token, NULL);
       return 1;
     }
   return 0;
@@ -815,12 +814,12 @@ validate_bliss_word (struct token_struct *token)
   chars_upper = token->token_chars_upper;
   if (chars[0] == (uchar)'-')
     {
-      MSG_TOKEN (MSGID (18), token, NULL);
+      //MSG_TOKEN (MSGID (18), token, NULL);
       return 1;
     }
   if (chars[length - 1] == (uchar)'-')
     {
-      MSG_TOKEN (MSGID (19), token, NULL);
+      //MSG_TOKEN (MSGID (19), token, NULL);
       return 1;
     }
   for (i = 0; i < length; i ++)
@@ -833,18 +832,18 @@ validate_bliss_word (struct token_struct *token)
 	    }
 	  if ((chars[i] != (uchar)'-') && (chars[i] != (uchar)'_'))
 	    {
-              MSG_TOKEN (MSGID (21), token, NULL);
+              //MSG_TOKEN (MSGID (21), token, NULL);
 	      return 1;
 	    }
 	}
     }
   if (has_underscore)
     {
-      MSG_TOKEN (MSGID (20), token, NULL);
+      //MSG_TOKEN (MSGID (20), token, NULL);
     }
   if (length > MAX_BLISS_WORD_LENGTH)
     {
-      MSG_TOKEN (MSGID (22), token, NULL);
+      //MSG_TOKEN (MSGID (22), token, NULL);
       return 1;
     }
   return 0;
@@ -874,7 +873,7 @@ validate_bliss_word_strict (struct token_struct *token)
       if (isalpha (chars[i]))
 	return 0;
     }
-  MSG_TOKEN (MSGID (23), token, NULL);
+  //MSG_TOKEN (MSGID (23), token, NULL);
   return 1;
 }
 
@@ -1711,7 +1710,7 @@ check_area_b (struct token_struct *tk)
 {
   if ((tk->token_charno + 6 * !!option_no_seq) < 12)
     {
-      MSG_TOKEN (MSGID (24), tk, NULL);
+      //MSG_TOKEN (MSGID (24), tk, NULL);
     }
 }
 

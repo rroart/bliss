@@ -46,47 +46,6 @@
 
 dynarray_uchar *bliu_fbuffer = NULL;
 
-/* Terminate with failure, outputting the error message MSG first.  */
-
-void
-bliumsc_fatal (const char *msg, ...)
-{
-  va_list args;
-
-  output_msgs ();
-  fprintf (stderr, "%s: ", bliumsc_get_progname ());
-  va_start (args, msg);
-  vfprintf (stderr, (char *)msg, args);
-  va_end (args);
-  fprintf (stderr, "\n");
-  output_summary ();
-  exit (EXIT_FAILURE);
-}
-
-/* Saved program name.  */
-
-static uchar *save_progname = NULL;
-
-/* Save program name.  */
-
-void
-bliumsc_set_progname (progname)
-     uchar *progname;
-{
-  BLI_ASSERT (!save_progname);
-  save_progname = progname;
-}
-
-/* Obtain program name.  */
-
-uchar *
-bliumsc_get_progname ()
-{
-  BLI_ASSERT (save_progname);
-  return save_progname;
-}
-
-
 /* Read a file called FILENAME, return buffer, and also place length
    in *FLENGTH.  */
 
@@ -109,7 +68,8 @@ read_file (filename, flength /* Returned.  */)
       /* BUG: assumption it is a real file or stdin see cccp safe_read in gcc.  */
       if (stat ((char *)filename,  & st) != 0)
         {
-          bliumsc_pfatal_with_name (filename);
+	  //          bliumsc_pfatal_with_name (filename);
+          fprintf (stderr, "%s", filename);
         }
     
     if ((f = open ((char *)filename, O_RDONLY)) < 0)
@@ -127,7 +87,11 @@ read_file (filename, flength /* Returned.  */)
     nchars = read (f, bliu_fbuffer->elem, *flength);
     if ((uint32)nchars < *flength)
       {
+#if 0
         bliumsc_fatal ("Read failed %d %d %d %s ",
+                       *flength, nchars, errno,
+#endif
+        fprintf (stderr, "Read failed %d %d %d %s ",
                        *flength, nchars, errno,
               strerror (errno));
       }
@@ -157,8 +121,12 @@ read_file (filename, flength /* Returned.  */)
           {
             break;
           }
+#if 0
         bliumsc_fatal ("Read failed %d %d %d %s",
               nchars, read_result, errno, strerror (errno));
+#endif
+        fprintf (stderr, "Read failed %d %d %d %s",
+		       nchars, read_result, errno, strerror (errno));
       }
     nchars += read_result;
     if (nchars == bufsize)
@@ -179,44 +147,10 @@ read_file (filename, flength /* Returned.  */)
   return bliu_fbuffer;
   
  perror :
-  bliumsc_pfatal_with_name (filename);
+  //bliumsc_pfatal_with_name (filename);
+    fprintf(stderr,"%s",filename);
+ exit(EXIT_FAILURE);
   return NULL;
   
 }
 
-/* Print program name, another NAME, and last error message then fail.  */
-
-void
-bliumsc_pfatal_with_name (name)
-     uchar *name;
-{
-  fprintf (stderr, "%s: ", bliumsc_get_progname ());
-  fprintf (stderr, ":%s: %s\n", name, strerror (errno));
-  exit (EXIT_FAILURE);
-}
-
-/* 
-   Cobumsc_hash_string - temp hash routine.  string BLI_CHAR length SIZE
-   gets hashed to an uint32 and hash value is returned.  At least
-   it's in one place and can get fixed/replaced later on.  */
-
-uint32
-bliumsc_hash_string (uchar *name, uint32 size)
-{
-
-  uint32 hashval = 0, char_index;
-
-  for (char_index = 0; char_index < size; char_index ++)
-    hashval = (hashval << 1) ^ (hashval >> 3) ^ name[char_index];
-
-  return hashval;
-}
-
-/* Abort but provide call trace.  */
-
-void
-myabort (const char * const msg, const char * const file, int line)
-{
-  fprintf (stderr, "abort line %d file %s: %s\n", line, file, msg);
-  abort ();
-}

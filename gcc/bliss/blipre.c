@@ -79,6 +79,8 @@ uint32 option_parser_trace = 0;
 uint32 option_stop_before_parse = 0;
 
 uint32 copy_nested_level = 0;
+uint32 file_count;
+
 extern uint32 *ignore_tokens;
 extern uchar **token_string_ptrs;
 
@@ -115,12 +117,12 @@ main (int argc, char **argv)
 
   resolve_token_string_ptrs ();
   init_ignore_tokens ();
-  message_init ();
+  //message_init ();
 
 
   main_file_ptr = BLI_ALLOC (sizeof (struct file_struct));
 
-  bliumsc_set_progname ((uchar *)"blipre");
+  //bliumsc_set_progname ((uchar *)"blipre");
 
   /*******************************************
    * Options parse
@@ -153,13 +155,13 @@ main (int argc, char **argv)
    * Output accumulated messages
    ******************************************  */
 
-  output_msgs ();
+  //output_msgs ();
 
   /*******************************************
    * Output summary and exit
    ******************************************  */
 
-  error_count = output_summary ();
+  //error_count = output_summary ();
   
   if (error_count)
       exit (EXIT_FAILURE);
@@ -227,11 +229,11 @@ usage (FILE *f)
 
 /* Option error convenience macro.  */
 
+  //output_msgs();
+//  MSG(MSGID(25), 0, 0, 0, (uchar *)error_message, NULL);
 #define OPTION_ERROR(print_call) \
 {\
-  output_msgs();\
   asprintf print_call;\
-  MSG(MSGID(25), 0, 0, 0, (uchar *)error_message, NULL);\
   goto usage_error;\
 }
 
@@ -274,7 +276,7 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
         case 'a' :
           if (!strcmp ((char *)argv[arg], "-ansi"))
             {
-              output_pedantic ();
+              //output_pedantic ();
               break;
             }
           break;
@@ -409,9 +411,9 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
 
         case 'p' :
           if (!strcmp ((char *)argv[arg], "-pedantic"))
-            output_pedantic ();
+            //output_pedantic ();
           if (!strcmp ((char *)argv[arg], "-pedantic-errors"))
-            error_pedantic ();
+            //error_pedantic ();
           break;
 
         case 'v' :
@@ -426,7 +428,7 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
         case 'w' :
           if (!strcmp ((char *)argv[arg], "-w"))
             {
-              no_output_warning ();
+              //no_output_warning ();
               break;
             }
           break;
@@ -442,7 +444,7 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
         case 'H' :
           if (!strcmp ((char *)argv[arg], "-H"))
             {
-              output_filenames ();
+              //output_filenames ();
               break;
             }
           break;
@@ -508,71 +510,71 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
         case 'W' :
           if (!strcmp ((char *)argv[arg], "-Wall"))
             {
-              output_fyi ();
-              output_eff ();
-              output_obs ();
+              //output_fyi ();
+              //output_eff ();
+              //output_obs ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WFYI"))
             {
-              output_fyi ();
+              //output_fyi ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WEfficiency"))
             {
-              output_eff ();
+              //output_eff ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WObsolete"))
             {
-              output_obs ();
+              //output_obs ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WNonStandard"))
             {
-              output_pedantic ();
+              //output_pedantic ();
               break;
             }
           
           if (!strcmp ((char *)argv[arg], "-WnoWarning"))
             {
-              no_output_warning ();
+              //no_output_warning ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WnoUnsupported"))
             {
-              no_output_unsupported ();
+              //no_output_unsupported ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WWarning-error"))
             {
-              error_warning ();
+              //error_warning ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WFYI-error"))
             {
-              error_fyi ();
+              //error_fyi ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WEfficiency-error"))
             {
-              error_eff ();
+              //error_eff ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WObsolete-error"))
             {
-              error_obs ();
+              //error_obs ();
               break;
             }
           if (!strcmp ((char *)argv[arg], "-WNonStandard-error"))
             {
-              error_pedantic ();
+              //error_pedantic ();
               break;
             }
           
           if (!strcmp ((char *)argv[arg], "-WUnsupported-no-error"))
             {
-              no_error_unsupported ();
+              //no_error_unsupported ();
               break;
             }
           break;
@@ -631,7 +633,7 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
 
  usage_error : 
   usage (stderr);
-  output_summary ();
+  //output_summary ();
   exit (EXIT_FAILURE);
   return;
 
@@ -640,10 +642,10 @@ blipre_options (uint32 argc, uchar **argv, uchar **in_fname_ptr,
 
 /* Option error convenience macro.  */
 
+//  MSG(number, fileno, lineno, charno, (uchar*)error_message, NULL);
 #define DYNAMIC_ERROR(number, fileno, lineno, charno, print_call) \
 {\
   asprintf print_call;\
-  MSG(number, fileno, lineno, charno, (uchar*)error_message, NULL);\
 }
 
 /**************************************************
@@ -672,7 +674,6 @@ process_file (struct file_struct *file_ptr)
         }
     }
   
-  
   file_count ++; 
   file_ptr->file_number = file_count;  /* Start from 1 to allow use of 0 as 'no file' indicator.  */
 
@@ -690,11 +691,12 @@ process_file (struct file_struct *file_ptr)
     
     if (!copied_from_length)
       copied_from_length = strlen (copied_from);
-    
+
+#if 0    
     if (!file_names)
       {
         file_names = (dynarray_uchar_ptr *) ALLOC_DYN (10, sizeof (char *));
-        file_names_copied = (dynarray_uchar_ptr *) ALLOC_DYN (10, sizeof (char *));
+	//        file_names_copied = (dynarray_uchar_ptr *) ALLOC_DYN (10, sizeof (char *));
         file_ptrs = (dynarray_file_ptr *) ALLOC_DYN (10, sizeof (void *));
       }
     else
@@ -703,8 +705,9 @@ process_file (struct file_struct *file_ptr)
         GROW_DYN (&file_names_copied->dynarray_details, file_count);
         GROW_DYN (&file_ptrs->dynarray_details, file_count);
       }
-    
+ 
     file_names->elem[file_count] = file_ptr->file_short_name;
+#endif   
     file_ptrs->elem[file_count] = file_ptr;
 
     for (hier_file = file_ptr; hier_file; 
@@ -721,8 +724,8 @@ process_file (struct file_struct *file_ptr)
     if (chars_needed)
       {
         chars_needed++;
-        file_names_copied->elem[file_count] = BLI_ALLOC (chars_needed);
-        this_file = (uchar *)file_names_copied->elem[file_count];
+        //file_names_copied->elem[file_count] = BLI_ALLOC (chars_needed);
+        //this_file = (uchar *)file_names_copied->elem[file_count];
         for (hier_file = file_ptr; hier_file; 
              hier_file = hier_file->file_copy_token_ptr ? hier_file->file_copy_token_ptr->token_file : NULL)
           {
@@ -757,7 +760,7 @@ process_file (struct file_struct *file_ptr)
       }
     else
       {
-        file_names_copied->elem[file_count] = NULL;
+        //file_names_copied->elem[file_count] = NULL;
       }
   }
 
@@ -765,30 +768,36 @@ process_file (struct file_struct *file_ptr)
 
   if (copy_nested_level)
     {
+#if 0
       DYNAMIC_ERROR (MSGID (26), 
                     owner_file->file_number, file_ptr->file_copy_token_ptr->token_lineno, 0, 
                     ((char **) & error_message, 
                      "(fyi) Opening COPY file %s at level %d ",
                      file_ptr->file_name, copy_nested_level));
+#endif
     }
 
   if (copy_nested_level > copy_max_nesting_level)
     {
-      output_msgs ();
+      //output_msgs ();
+#if 0
       DYNAMIC_ERROR (MSGID (27), owner_file->file_number,
                     file_ptr->file_copy_token_ptr->token_lineno, 0, 
                     ((char **) & error_message, 
                      "Excessive level of nested files %d>%d, opening %s",
                      copy_nested_level, copy_max_nesting_level,
                      file_ptr->file_short_name));
-      output_summary ();
+#endif
+      //output_summary ();
       exit (EXIT_FAILURE);
     }
 
   if (copy_nested_level > 1)
     {
+#if 0
       MSG (MSGID (28), owner_file->file_number, 
                      file_ptr->file_copy_token_ptr->token_lineno, 0, NULL, NULL);
+#endif
     }
 
   copy_nested_level ++;
@@ -802,7 +811,7 @@ process_file (struct file_struct *file_ptr)
 
   if (!file_ptr->file_buffer)
     {
-      MSG (MSGID (1), file_ptr->file_number, 1, 0, NULL, NULL);
+      //      MSG (MSGID (1), file_ptr->file_number, 1, 0, NULL, NULL);
       copy_nested_level --;
       return;
     }
@@ -1292,7 +1301,8 @@ output_resulting_file (struct file_struct *file_ptr, uchar *out_fname)
 
   f = fopen ((char *)out_fname, "wb");
   if (!f)
-      bliumsc_pfatal_with_name (out_fname);
+    fprintf( stderr, "%s", out_fname);
+    //      bliumsc_pfatal_with_name (out_fname);
 
   current_line = (dynarray_uchar *) ALLOC_DYN (80, sizeof(uchar));
 
@@ -1715,3 +1725,14 @@ version (void)
   return;
 }
 
+void
+myabort (const char * const msg, const char * const file, int line)
+{
+  fprintf (stderr, "abort line %d file %s: %s\n", line, file, msg);
+  abort ();
+}
+
+uchar *
+bliumsc_get_progname () {
+  return "hello";
+}
