@@ -11,16 +11,20 @@ dd=3;
 end;
 routine s=
 begin
+external routine undecl;
 own c,d;
-while c do r();
 r();
 d=3;
 r();
+undecl();
+undecl2();
 end;
 routine t=
 begin
 own e,f;
 f=3;
+while c do r();
+return;
 e=2;
 end;
 end

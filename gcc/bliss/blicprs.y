@@ -209,7 +209,8 @@ bli_parse PARAMS((void));
 %type <type_node_p> expression primary operator_expression operator_expression_not
 %type <type_int>  P_TITLE U_CALL U_STANDARD
 %type <type_node_p> linkage_definition_list linkage_definition p_stuff
-%type <type_int> U_BLISS16 U_BLISS32 U_BLISS36  infix_operator
+%type <type_int> U_BLISS16 U_BLISS32 U_BLISS36 
+%type <type_node_p> infix_operator
 /*%type <type_node_p> executable_expression control_expression*/
 %type <type_node_p> input_parameter_location_list input_parameter_location
 %type <type_node_p>  output_parameter_location_list output_parameter_location
@@ -466,7 +467,6 @@ module		: K_MODULE module_head '='
 save_filename save_lineno
  start_block K_ELUDOM
 {
-  /*  $$=creatnode(module, $2, $4); */
   $$=$7;
   //  DECL_SOURCE_FILE (current_function_decl) = $5;
   //  DECL_SOURCE_LINE (current_function_decl) = $6;
@@ -484,30 +484,30 @@ module_head	: T_NAME
 opt_mhargs
 { /* set the default switches */
   /*ig_name=(char *)$1;*/
-  /*  $$=creatnode(module_head,0,$2); $$->id=$1; */
+  /*   $$->id=$1; */
   char *c=$1;
   $$=build_string(strlen(c),c);
 }
 ;
 
 opt_mhargs	: /* empty */ { $$=0; }
-| '(' ms_list ')' { $$=creatnode(opt_mhargs,0,$2); }
+| '(' ms_list ')' {  }
 /*| '(' ms_list ')' { fprintf(stderr,"err %x \n",$2); fflush(stderr); }*/
   		;
 
 ms_list		: { undefmode=1; } module_switch { undefmode=0; $$ = $2; }
-| ms_list ',' { undefmode=1; } module_switch { undefmode=0; $$ = creatnode (ms_list, $4, $1); }
+| ms_list ',' { undefmode=1; } module_switch { undefmode=0;  }
 ;
 
 module_body: /* empty */ { $$=0; }
 | K_BEGIN decl_list K_END
-{ $$=creatnode(module_body,0,$2);/* $$->value=1;  */}
+{ }
 | '(' decl_list ')'
-{ $$=creatnode(module_body,0,$2);/* $$->value=0;  */}
+{ }
 ;
 
 decl_list	: declaration { $$=$1; }
-| decl_list declaration { $$=creatnode(decl_list,$2,$1); }
+| decl_list declaration {  }
 ;
 
 /* 1.1 Module Switches */
@@ -516,7 +516,7 @@ module_switch	: on_off_switch { $$= $1; }
 | special_switch { $$= $1; }
 ;
 
-on_off_switch: onoffmodes { $$=creatnode(on_off_switch,0,0);/* $$->value=$1;  */};
+on_off_switch: onoffmodes { };
 
 onoffmodes:
 CODE		/* default */
@@ -543,49 +543,49 @@ common_switch { $$=$1; }
 ;
 
 bliss_16_switch:
-K_ADDRESSING_MODE '(' mode_16 ')' { $$=creatnode(sw_addressing_mode,0,$3); }
-/*|U_ENVIRONMENT '(' environ_16_option ')'  { $$=creatnode(environment,$3,0); }*/
+K_ADDRESSING_MODE '(' mode_16 ')' {  }
+/*|U_ENVIRONMENT '(' environ_16_option ')'  {  }*/
 ;
 
 environ_16_option:
-U_EIS { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
-| U_NOEIS { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
-| U_LSI11 { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
-| U_T11 { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
-|	 U_PIC { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
-| U_ODT { $$=creatnode(environ_16_option,0,0);/* $$->value=$1;  */}
+U_EIS { }
+| U_NOEIS { }
+| U_LSI11 { }
+| U_T11 { }
+|	 U_PIC { }
+| U_ODT { }
 ;
 
 bliss_32_switch:
-K_ADDRESSING_MODE '(' mode_spec_list ')' { $$=creatnode(sw_addressing_mode,0,$3); }
+K_ADDRESSING_MODE '(' mode_spec_list ')' {  }
 ;
 
-mode_spec_list: mode_spec_list ',' mode_spec { $$=creatnode(mode_spec_list,$3,$1); }
+mode_spec_list: mode_spec_list ',' mode_spec {  }
 | mode_spec { $$=$1; }
 ;
 
 mode_spec:
-K_EXTERNAL '='  mode_32 { $$=creatnode(addr_external,0,$3); }
-| U_NONEXTERNAL '='  mode_32 { $$=creatnode(addr_non_external,0,$3); }
+K_EXTERNAL '='  mode_32 {  }
+| U_NONEXTERNAL '='  mode_32 {  }
 ;
 
 bliss_36_switch: /*nonfin*/ P_ASCIZ { $$=0; }
 ;
 
-common_switch	:  U_IDENT '=' T_STRING { $$=creatnode(ident,0,0);/* $$->id=$3;  */}
-| U_LANGUAGE '(' language_list ')' { $$=creatnode(language,0,$3); }
-| U_LINKAGE '(' T_NAME ')' { $$=creatnode(linkage,0,0);/* $$->id=$3;  */}
-| U_LIST '(' list_option_list ')' { $$=creatnode(list,0,$3); }
-| K_STRUCTURE '(' structure_attribute ')' { $$=creatnode(structure,0,$3); }
-| U_MAIN '=' T_NAME { $$=creatnode(b_main,0,0);/* $$->id=$3;  */}
-| U_OPTLEVEL '=' T_DIGITS { $$=creatnode(optlevel,0,0);/* $$->value=$3;  */}
-| U_VERSION '=' T_STRING { $$=creatnode(prversion,0,0);/* $$->id=$3;  */}
+common_switch	:  U_IDENT '=' T_STRING { }
+| U_LANGUAGE '(' language_list ')' {  }
+| U_LINKAGE '(' T_NAME ')' { }
+| U_LIST '(' list_option_list ')' {  }
+| K_STRUCTURE '(' structure_attribute ')' {  }
+| U_MAIN '=' T_NAME { }
+| U_OPTLEVEL '=' T_DIGITS { }
+| U_VERSION '=' T_STRING { }
 
-/*| P_TITLE T_STRING { $$=creatnode(title,0,0); $$->id=$2; nonfin}*/
+/*| P_TITLE T_STRING {  $$->id=$2; nonfin}*/
 /*
   |T_NAME "equal" T_NAME
   {
-  $$=creatnode(special_switch,creatid($3),0); $$->id=$1;
+   $$->id=$1;
   fprintf(stderr, "swit %x %x %x\n",$$,$1,$3);
   switch (ukeyword( $1 )) {
   case U_MAIN:
@@ -598,7 +598,7 @@ common_switch	:  U_IDENT '=' T_STRING { $$=creatnode(ident,0,0);/* $$->id=$3;  *
   }
   | T_NAME "equal" T_DIGITS
   {
-  $$=creatnode(special_switch,creatvalue($3),0); $$->id=$1;
+   $$->id=$1;
   switch (ukeyword( $1 )) {
   case U_OPTLEVEL:
   switch_optlevel = (int )$3;
@@ -610,7 +610,7 @@ common_switch	:  U_IDENT '=' T_STRING { $$=creatnode(ident,0,0);/* $$->id=$3;  *
   }
   | T_NAME "equal" T_STRING
   {
-  $$=creatnode(special_switch,creatid($3),0); $$->id=$1;
+   $$->id=$1;
   switch (ukeyword( $1 )) {
   case U_IDENT:
   switch_ident = (int)$3;
@@ -626,7 +626,7 @@ common_switch	:  U_IDENT '=' T_STRING { $$=creatnode(ident,0,0);/* $$->id=$3;  *
   {*/ /* declare p */
 /*			  int i;
 			  ignodeptr p;
-			  			  $$=creatnode(special_switch,$3,0); $$->id=$1;
+			  			   $$->id=$1;
 
 			  switch (ukeyword( $1 )) {
 			  case U_LANGUAGE:
@@ -681,70 +681,70 @@ common_switch	:  U_IDENT '=' T_STRING { $$=creatnode(ident,0,0);/* $$->id=$3;  *
 		;
 
 language_list: { $$=0; }
-|"common" { $$=creatid("common");}
+|"common" { }
 | language_name_list { $$=$1;}
 ;
-language_name_list: language_name_list ',' language_name { $$=creatnode(language_name_list, $3, $1); }
+language_name_list: language_name_list ',' language_name {  }
 |language_name { $$=$1; }
 ;
-language_name:  U_BLISS16 { $$ = creatnode(language_name,0,0);/* $$->value=$1;  */}
-| U_BLISS32  { $$ = creatnode(language_name,0,0);/* $$->value=$1;  */}
-| U_BLISS36  { $$ = creatnode(language_name,0,0);/* $$->value=$1;  */}
+language_name:  U_BLISS16 { }
+| U_BLISS32  { }
+| U_BLISS36  { }
 ;
-list_option_list: list_option_list list_option { $$=creatnode(list_option_list, $2, $1); }
+list_option_list: list_option_list list_option {  }
 |list_option { $$=$1; }
 ;
-list_option:  U_SOURCE   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOSOURCE    { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_REQUIRE    { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOREQUIRE   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_EXPAND    { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOEXPAND   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_TRACE   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOTRACE   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_LIBRARY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOLIBRARY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_OBJECT   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOOBJECT   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_ASSEMBLY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOASSEMBLY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_SYMBOLIC   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOSYMBOLIC   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_BINARY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOBINARY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_COMMENTARY   { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
-| U_NOCOMMENTARY    { $$ = creatnode(list_option,0,0);/* $$->value=$1;  */}
+list_option:  U_SOURCE   { }
+| U_NOSOURCE    { }
+| U_REQUIRE    { }
+| U_NOREQUIRE   { }
+| U_EXPAND    { }
+| U_NOEXPAND   { }
+| U_TRACE   { }
+| U_NOTRACE   { }
+| U_LIBRARY   { }
+| U_NOLIBRARY   { }
+| U_OBJECT   { }
+| U_NOOBJECT   { }
+| U_ASSEMBLY   { }
+| U_NOASSEMBLY   { }
+| U_SYMBOLIC   { }
+| U_NOSYMBOLIC   { }
+| U_BINARY   { }
+| U_NOBINARY   { }
+| U_COMMENTARY   { }
+| U_NOCOMMENTARY    { }
 ;
 
-tname_list: tname_list ',' T_NAME { $$=creatnode(tname_list,creatid($3),$1); }
-|T_NAME { $$=creatid($1); }
+tname_list: tname_list ',' T_NAME {  }
+|T_NAME {  }
 ;
 
-tname_list2: tname_list2  T_NAME { $$=creatnode(tname_list2,creatid($2),$1); }
-|T_NAME { $$=creatid($1); }
+tname_list2: tname_list2  T_NAME {  }
+|T_NAME {  }
 ;
 /*
   name_list	: T_NAME
   {
   int i=ukeyword( $1 );
-  $$ = creatid($1);
+  
   fprintf(stderr, "$1 %s\n",$1);
   if (i>0)
-  $$ = creatnode(i,0,0);
+  
   else {
-  $$ = creatnode(T_NAME,0,0);
+  
   $$->id=(char *) $1;
   }
   }
   | name_list ',' T_NAME
   {
   int i=ukeyword( $3 );
-  $$ = creatnode(name_list,$3,$1);
+  
   fprintf(stderr, "$1 %s\n",$1);
   if (i>0)
-  $$ = creatnode(i,0,0);
+  
   else {
-  $$ = creatnode(T_NAME,0,0);
+  
   $$->id=(char *) $1;
   }
   }
@@ -755,8 +755,8 @@ tname_list2: tname_list2  T_NAME { $$=creatnode(tname_list2,creatid($2),$1); }
 			;
 		*/
 
-lowlevel: T_DIGITS { $$ = creatvalue ($1); }
-| T_NAME { $$ = creatid ($1); }
+lowlevel: T_DIGITS {  }
+| T_NAME {  }
 ;
 
 /**** 2.0 EXPRESSIONS ***********************************************/
@@ -768,7 +768,7 @@ primary  { $$=$1; }
 | p_stuff { $$=$1; };
 
 p_stuff:
-P_REMAINING { $$=creatid("%REMAINING"); }
+P_REMAINING {  }
 
 primary: 
 numeric_literal  { $$=$1; }
@@ -781,7 +781,7 @@ numeric_literal  { $$=$1; }
 }
 | block  { $$=$1; }
 | structure_reference { $$=$1; }
-| routine_call  { $$=$1; }
+| routine_call  { $$ = c_expand_expr_stmt ($1); }
 | field_reference { $$=$1; }
 | codecomment { $$=$1; }
 ;
@@ -797,33 +797,33 @@ T_DIGITS
 ;
 
 opt_sign: { $$=0; }
-|'+' { $$ = creatid ("+"); }
-|'-' { $$ = creatid ("-"); }
+|'+' {  }
+|'-' {  }
 ;
 
 integer_literal: 
-P_B T_STRING { $$ = creatnode (integer_literal, 0, 0);/* $$->id=$2; $$->value='b';  */}
-| P_O T_STRING { $$ = creatnode (integer_literal,  0, 0);/* $$->id=$2; $$->value='o';  */}
-| P_DECIMAL T_STRING { $$ = creatnode (integer_literal,  0, 0);/* $$->id=$2; $$->value='d';  */}
-| P_X T_STRING { $$ = creatnode (integer_literal,  0, 0);/* $$->id=$2; $$->value='x';  */}
+P_B T_STRING { }
+| P_O T_STRING { }
+| P_DECIMAL T_STRING { }
+| P_X T_STRING { }
 ;                  
 /*
-  P_B apo opt_sign T_NAME apo { $$ = creatnode (P_B, $3, creatid($4)); }
-  | P_O apo opt_sign T_NAME apo { $$ = creatnode (P_O, $3, creatid($4)); }
-  | P_DECIMAL apo opt_sign T_NAME apo { $$ = creatnode (P_DECIMAL, $3, creatid($4)); }
-  | P_X apo opt_sign T_NAME apo { $$ = creatnode (P_X, $3, creatid($4)); }
+  P_B apo opt_sign T_NAME apo {  }
+  | P_O apo opt_sign T_NAME apo {  }
+  | P_DECIMAL apo opt_sign T_NAME apo {  }
+  | P_X apo opt_sign T_NAME apo {  }
   */
 						
 integer_digit_list:  
-integer_digit_list integer_digit { $$ = creatnode (integer_digit_list, $2, $1); }
+integer_digit_list integer_digit {  }
 |integer_digit { $$ = $1; }
 ;
 
 integer_digit:   digits  { $$=$1; }
-| T_NAME  { $$=creatid ( $1); }
+| T_NAME  {  }
 ;
 
-character_code_literal: P_C T_STRING { $$=creatnode(P_C, 0, 0);/* $$->id=$2;  */}
+character_code_literal: P_C T_STRING { }
 ;
 
 /*The quoted_character is defined in the LEXICAL DEFINITION part of this
@@ -837,42 +837,42 @@ single_precision_float_literal { $$=$1; }
 ;
 
 single_precision_float_literal:
-P_E " mantissa {E exponent | nothing } " { $$=creatvalue(P_E); }
+P_E " mantissa {E exponent | nothing } " {  }
 ;
 
 double_precision_float_literal:
-P_D " mantissa { D exponent | nothing } " { $$=creatvalue(P_D); }
+P_D " mantissa { D exponent | nothing } " {  }
 ;
 
 extended_exponent_double_precision_float_literal:
-P_G " mantissa { { G | Q } exponent | nothing } " { $$=creatvalue(P_G); }
+P_G " mantissa { { G | Q } exponent | nothing } " {  }
 ;
 
 extended_exponent_extended_precision_float_literal:
-P_H " mantissa { Q exponent | nothing } " { $$=creatvalue(P_H); }
+P_H " mantissa { Q exponent | nothing } " {  }
 ;
 
 mantissa: opt_sign
 digits | digits '.' | '.' digits { $$=$2; } | digits '.' digits 
 ;
 
-digits: digits T_DIGITS { $$=creatnode(digits,0,$1);/* $$->value=$1->value;  */}
-| T_DIGITS {/* $$->value=$1;  */}
+digits: digits T_DIGITS { }
+| T_DIGITS {}
 ;
 
-string_literal:  string_type T_STRING2 { $$=creatnode(string_literal,$1,$2); }
-| T_STRING2 { $$=creatnode(string_literal,0,$1); }
+string_literal:  string_type T_STRING2 {  }
+| T_STRING2 {  }
 ;
 
 /*T_STRING2 is a new extension nonfin*/
 T_STRING2:
-T_STRING { $$=creatid($1); }
-|P_STRING '(' string_par_list ')' { $$=creatnode(p_string,0,$3); }
-|P_CHAR '(' char_par_list ')' { $$=creatnode(p_char,0,$3); }
-|P_CHESC { $$=creatnode(p_chesc,0,0); }
+T_STRING {  }
+|P_STRING '(' string_par_list ')' {  }
+|P_CHAR '(' char_par_list ')' {  }
+|P_CHESC {  }
 ;
 
-string_par_list:string_par_list ',' string_par { $$=creatnode(string_par_list,$3,$1); }
+string_par_list:string_par_list ',' string_par {  }
 |string_par { $$=$1; }
 ;
 
@@ -881,45 +881,45 @@ numeric_literal { $$=$1 ; }
 |string_literal { $$=$1; }
 ;
 
-char_par_list:char_par_list ',' char_par { $$=creatnode(char_par_list,$3,$1); }
+char_par_list:char_par_list ',' char_par {  }
 |char_par { $$=$1; }
 ;
 
 char_par: ctce { $$=$1; }
 ;
 
-string_type:  P_ASCII { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_ASCIZ  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_ASCIC  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_ASCID  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_RAD50_11 { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_RAD50_10  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_SIXBIT  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
-| P_P  { $$=creatnode(string_type, 0, 0);/* $$->value=$1;  */}
+string_type:  P_ASCII { }
+| P_ASCIZ  { }
+| P_ASCIC  { }
+| P_ASCID  { }
+| P_RAD50_11 { }
+| P_RAD50_10  { }
+| P_SIXBIT  { }
+| P_P  { }
 ;
 
 plit2:
-K_PLIT { $$=creatnode(plit2, 0, 0);/* $$->value=$1;  */}
-|K_UPLIT { $$=creatnode(plit2, 0, 0);/* $$->value=$1;  */}
+K_PLIT { }
+|K_UPLIT { }
 ;
 
 plit3: { $$=0; }
-| allocation_unit { $$=creatnode(plit3,0,$1); }
-| psect_allocation{ $$=creatnode(plit3,$1,0); }
-| psect_allocation allocation_unit{ $$=creatnode(plit3,$1,$2); }
+| allocation_unit {  }
+| psect_allocation{  }
+| psect_allocation allocation_unit{  }
 ;
 
-plit: plit2 plit3 '(' plit_item_list ')' { $$=creatnode(plit,$1,$4);/* $$->middle=$2;  */}
+plit: plit2 plit3 '(' plit_item_list ')' { }
 ;
 
-plit_item_list: plit_item_list ',' plit_item { $$=creatnode(plit_item_list, $3, $1); }
+plit_item_list: plit_item_list ',' plit_item {  }
 |plit_item { $$=$1; }
 ;
 
-psect_allocation: K_PSECT '(' T_NAME ')' { $$=creatnode(psect_allocation, 0, 0);/* $$->id=$3;  */}
+psect_allocation: K_PSECT '(' T_NAME ')' { }
 ;
 
-psect_name: T_NAME { $$=creatid($1); }
+psect_name: T_NAME {  }
 
 plit_item: 
 plit_group  { $$=$1; }
@@ -928,14 +928,14 @@ plit_group  { $$=$1; }
 ;
 
 plit_group: 
-allocation_unit { $$=creatnode(plit_group,0,$1); }
-| K_REP replicator K_OF { $$=creatnode(plit_group,$2,0); }
-| K_REP replicator K_OF allocation_unit { $$=creatnode(plit_group,$2,$4); }
+allocation_unit {  }
+| K_REP replicator K_OF {  }
+| K_REP replicator K_OF allocation_unit {  }
 ;
 
-allocation_unit:  K_LONG  { $$=creatnode(allocation_unit,0,0);/* $$->value=$1;  */}
-| K_WORD  { $$=creatnode(allocation_unit,0,0);/* $$->value=$1;  */}
-| K_BYTE { $$=creatnode(allocation_unit,0,0);/* $$->value=$1;  */}
+allocation_unit:  K_LONG  { }
+| K_WORD  { }
+| K_BYTE { }
 ;
 
 replicator: ctce { $$=$1; }
@@ -955,12 +955,12 @@ labeled_block
 labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
 ;
 
-attached_label_list: attached_label_list attached_label { $$=creatnode(attached_label_list, $1, $2); }
+attached_label_list: attached_label_list attached_label {  }
 | attached_label { $$=$1; }
 ;
 
 attached_label: 
-T_NAME ':' { $$=creatid($1); }
+T_NAME ':' {  }
 ;
 
 unlabeled_block_start: K_BEGIN { 
@@ -998,8 +998,8 @@ block_body:
 maybe_declaration_list 
 { /* $$ = bli_begin_compound_stmt (); */ }
 maybe_block_action_list 
-maybe_block_value /* $$=creatnode(block_body,$1,$3); $$->middle=$2;  */
-/* { $$=creatnode(block_body,$1,creatnode(block_body2,$2,$3)); }*/
+maybe_block_value /*  $$->middle=$2;  */
+/* {  }*/
 {
   //tree decl;
   //DECL_NAME(decl)=
@@ -1018,13 +1018,13 @@ maybe_declaration_list: { $$=0; }
 */
 maybe_declaration_list: { $$=NULL_TREE; }
 | maybe_declaration_list declaration {
-  /* $$=creatnode(declaration_list, $2, $1); */
+  /*  */
   $$ = chainon($1, $2);
  }
 ;
 
 declaration_list: declaration_list declaration {
-  /* $$=creatnode(declaration_list, $2, $1);  */
+  /*   */
   $$=chainon($1,$2);
  }
 |declaration { $$=$1; }
@@ -1035,11 +1035,13 @@ declaration_list: declaration_list declaration {
   ;
 */
 maybe_block_action_list: { $$=0; }
-|maybe_block_action_list block_action { $$=chainon($1, $2); }
+|maybe_block_action_list block_action { 
+  //$$=chainon($1, $2); 
+}
 ;
 
 block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
-|block_action
+|block_action { $$=$1; }
 ;
 /*The block_body must not be null.*/
 
@@ -1065,11 +1067,11 @@ ordinary_structure_reference:
 T_NAME '[' access_actual_list ']' { $$=$3; }
 ;
 
-access_actual_list: access_actual_list ',' access_actual { $$=creatnode(access_actual_list, $3, $1); }
+access_actual_list: access_actual_list ',' access_actual {  }
 |access_actual { $$=$1; }
 ;
 
-segment_name: T_NAME { $$=creatid($1); }
+segment_name: T_NAME {  }
 ;
 
 access_actual: { $$=0; }
@@ -1078,8 +1080,8 @@ access_actual: { $$=0; }
 ;
 
 access_part:  
-segment_expression ',' access_actual_list { $$=creatnode(segment_expression, $1, $3); }
-|segment_expression  { $$=creatnode(segment_expression, $1, 0); }
+segment_expression ',' access_actual_list {  }
+|segment_expression  {  }
 ;
 
 segment_expression: exp { $$=$1; }
@@ -1087,10 +1089,10 @@ segment_expression: exp { $$=$1; }
 
 /*field_name      Note: See field_attribute, Section 4.1*/
 
-field_name: T_NAME { $$=creatid($1); }
+field_name: T_NAME {  }
 ;
 
-field_set_name: T_NAME { $$=creatid($1); }
+field_set_name: T_NAME {  }
 ;
 
 dsr1:
@@ -1099,15 +1101,15 @@ primary  { $$=$1; }
 ;
 
 default_structure_reference: dsr1
-'[' access_actual_list ']' { $$=creatnode(default_structure_reference,$1,$3); }
+'[' access_actual_list ']' {  }
 ;
 
 general_structure_reference:
-T_NAME '[' access_part ';' alloc_actual_list ']' { $$=creatnode(access_part,$3,$5);/* $$->id=$1;  */}
-|T_NAME '[' access_part ']' { $$=creatnode(access_part,$3,0);/* $$->id=$1;  */}
+T_NAME '[' access_part ';' alloc_actual_list ']' { }
+|T_NAME '[' access_part ']' { }
 ;
 
-alloc_actual_list: alloc_actual_list ',' alloc_actual { $$=creatnode(alloc_actual_list, $1, $3); }
+alloc_actual_list: alloc_actual_list ',' alloc_actual {  }
 |alloc_actual { $$=$1; }
 ;
 
@@ -1120,7 +1122,7 @@ T_NAME '(' io_list3 ')' {
   void * ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
-  ref = build_external_ref ($1, yychar == '(');
+  ref = build_external_ref ($1, 1);
   $$ = build_function_call (ref, $3); 
 }
 /*nonfin should be routine_designator, but it did not work*/
@@ -1132,16 +1134,16 @@ primary  { $$=$1; }
 ;
 
 io_list3: { $$=0; }
-| io_actual_parameter_list  { $$=creatnode(io_list3, $1, 0); }
-| io_actual_parameter_list ';' io_actual_parameter_list  { $$=creatnode(io_list3,$1,$3); }
-| ';' io_actual_parameter_list  { $$=creatnode(io_list3, 0, $2); }
+| io_actual_parameter_list  {  }
+| io_actual_parameter_list ';' io_actual_parameter_list  {  }
+| ';' io_actual_parameter_list  {  }
 
 
-actual_parameter_list: actual_parameter_list ',' actual_parameter { $$=creatnode(actual_parameter_list, $3, $1); }
+actual_parameter_list: actual_parameter_list ',' actual_parameter {  }
 |actual_parameter { $$=$1; }
 ;
 
-io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { $$=creatnode(io_actual_parameter_list, $3, $1); }
+io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter {  }
 |io_actual_parameter { $$=$1; }
 ;
 
@@ -1150,11 +1152,11 @@ io_actual_parameter: { $$=0 }
 ;
 
 general_routine_call:
-T_NAME '(' routine_address ',' io_list3 ')'{ $$=creatnode(general_routine_call,$3,$5);/* $$->id=$1;  */}
-|T_NAME '(' routine_address ')'{ $$=creatnode(general_routine_call,$3,0);/* $$->id=$1;  */}
+T_NAME '(' routine_address ',' io_list3 ')'{ }
+|T_NAME '(' routine_address ')'{ }
 ;
 
-linkage_name: T_NAME { $$=creatid($1); }
+linkage_name: T_NAME {  }
 ;
 
 
@@ -1177,11 +1179,11 @@ sign_ext_flag: ctce
 ;
 
 codecomment: K_CODECOMMENT quoted_string_list ':' block
-{ $$=creatnode(codecomment, $2, $4); }
+{  }
 ;
 
-quoted_string_list: quoted_string_list T_STRING { $$=creatnode(quoted_string_list, creatid($2), $1); }
-|T_STRING { $$=creatid($1); }
+quoted_string_list: quoted_string_list T_STRING {  }
+|T_STRING {  }
 ;
 /*
   operator_expression:
@@ -1197,7 +1199,7 @@ primary  { $$=$1; }
 ;
 
 fetch_expression:
-'.' op_exp12 { $$= creatnode(fetch_expression,0,$2); }
+'.' op_exp12 {  }
 ;
 
 operator_expression_not: 
@@ -1205,21 +1207,21 @@ op_exp12 { $$=$1; }
 ;
 
 operator_expression:
-'.' opexp9 { $$= creatnode(fetch_expression,0,$2); }
-/*| '+' opexp9 %prec UMINUS { $$=creatnode(opexp1,0,$2); $$->id="+"; }
-| '-' opexp9 %prec UPLUS { $$=creatnode(opexp1,0,$2); $$->id="-"; } nonfin*/
-| opexp9 '^' opexp9 { $$=creatnode(pot_expression,$1,$3);/* $$->id="^";  */}
-| opexp9 K_MOD opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="mod";  */}
-| opexp9 '*' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="*";  */}
-| opexp9 '/' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="/";  */}
-| opexp9 '+' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="+";  */}
-| opexp9 '-' opexp9 { $$=creatnode(opexp1,$1,$3);/* $$->id="-";  */}
+'.' opexp9 {  }
+/*| '+' opexp9 %prec UMINUS {  $$->id="+"; }
+| '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
+| opexp9 '^' opexp9 { }
+| opexp9 K_MOD opexp9 { }
+| opexp9 '*' opexp9 { }
+| opexp9 '/' opexp9 { }
+| opexp9 '+' opexp9 { }
+| opexp9 '-' opexp9 { }
 | opexp9 infix_operator opexp9 { $$ = parser_build_binary_op ($2, $1, $3); }
-| K_NOT opexp9 { $$=creatnode(opexp4,0,$2); }
-| opexp9 K_AND opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_AND;  */}
-|  opexp9 K_OR opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_OR;  */}
-| opexp9 K_EQV opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_EQV;  */}
-| opexp9 K_XOR  opexp9 { $$=creatnode(opexp2,$1,$3);/* $$->value=K_XOR;  */}
+| K_NOT opexp9 {  }
+| opexp9 K_AND opexp9 { }
+|  opexp9 K_OR opexp9 { }
+| opexp9 K_EQV opexp9 { }
+| opexp9 K_XOR  opexp9 { }
 | opexp9 '=' opexp9 { $$=build_modify_expr($1, '=', $3);  }
 ;
 
@@ -1228,7 +1230,7 @@ primary  { $$=$1; }
 | operator_expression  { $$=$1; }
 |executable_function { $$=$1; }
 ;
-infix_expression: op_exp infix_operator op_exp { $$=creatnode(infix_expression,$1,$3);/* $$->value=$2;  */}
+infix_expression: op_exp infix_operator op_exp { }
 ;
 
 /*  bplus  { $$='+'; }
@@ -1284,7 +1286,7 @@ op_exp5:  op_exp5 K_MOD op_exp4  { $$=$1; }
 | op_exp4  { $$=$1; }
 ;
 op_exp6:  op_exp6 '+' op_exp5  { $$=$1; }
-| op_exp6 '-' op_exp5   { $$=creatnode(op_exp, $1, $3); }
+| op_exp6 '-' op_exp5   {  }
 | op_exp5  { $$=$1; }
 ;
 op_exp7:  op_exp7 op7 op_exp6  { $$=$1; }
@@ -1331,9 +1333,9 @@ op_exp12:  op_exp11 '=' op_exp12  { $$=$1; }
 */
 executable_function:
 executable_function_name '('  actual_parameter_list  ')' {
-  /* $$=creatnode(executable_function,$1, $3);*/
+  /* */
  }
-|executable_function_name '(' ')' { $$=creatnode(executable_function,$1, 0); }
+|executable_function_name '(' ')' {  }
 ;
 
 executable_function_named:
@@ -1346,15 +1348,15 @@ executable_function_named:
 
 
 executable_function_name:
-T_NAME { $$=creatid($1); } 
-| '%' T_NAME { $$=creatid($2); }
+T_NAME {  } 
+| '%' T_NAME {  }
 |executable_function_named { $$=$1; }
 ;
 
 lexical_function: 
-lexical_function_name '(' lexical_actual_parameter ')' { $$=creatnode(lexical_function,$1,$3); }
-| lexical_function_name expression { $$=creatnode(lexical_function,$1,$2); }
-| lexical_function_name  { $$=creatnode(lexical_function,$1,0); }
+lexical_function_name '(' lexical_actual_parameter ')' {  }
+| lexical_function_name expression {  }
+| lexical_function_name  {  }
 ;
 
 lexical_actual_parameter: lexeme_list { $$=$1 ; }
@@ -1367,16 +1369,16 @@ P_REMAINING { $$=0; }
 
 actual_parameter: expression { $$=$1; }
 ;
-standard_function_name: T_NAME { $$=creatid($1); }
+standard_function_name: T_NAME {  }
 ;
-character_handling_function_name: T_NAME { $$=creatid($1); }
+character_handling_function_name: T_NAME {  }
 ;
-machine_specific_function_name: T_NAME { $$=creatid($1); }
+machine_specific_function_name: T_NAME {  }
 ;
 cond_handling_function_name:
-K_SIGNAL { $$=creatnode(cond_handling_function_name,0,0);/* $$->value=$1;  */}
-| K_STOP { $$=creatnode(cond_handling_function_name,0,0);/* $$->value=$1;  */}
-| K_SETUNWIND  { $$=creatnode(cond_handling_function_name,0,0);/* $$->value=$1;  */}
+K_SIGNAL { }
+| K_STOP { }
+| K_SETUNWIND  { }
 ;
 
 size_exp: exp { $$=$1; }
@@ -1393,10 +1395,10 @@ control_expression:  conditional_expression  { $$=$1; }
 | return_expression  { $$=$1; }
 ;
 
-
 conditional_expression: 
 /* K_IF exp K_THEN exp  K_ELSE exp ';' { }
-| */K_IF 
+| */
+K_IF
 {
   $<type_node_p>$ = c_begin_if_stmt (); 
 }
@@ -1410,8 +1412,8 @@ K_THEN exp
   c_finish_then ();
   c_expand_end_cond ();
 }
-/*K_IF exp K_THEN exp  K_ELSE exp { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,$6)); }
-|K_IF exp K_THEN exp  { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,0)); }*/
+/*K_IF exp K_THEN exp  K_ELSE exp {  }
+|K_IF exp K_THEN exp  {  }*/
 ;
 
 exp: expression { $$=$1; }
@@ -1421,19 +1423,19 @@ case_expression: K_CASE exp K_FROM ctce K_TO ctce K_OF { $$=$2; }
 K_SET case_line_list K_TES { $$=$2; }
 ;
 
-case_line_list: case_line_list case_line { $$=creatnode(case_line_list,$2,$1); }
+case_line_list: case_line_list case_line {  }
 |case_line { $$=$1; }
 ;
 
 case_line: '[' case_label_list ']' ':' case_action ';' { $$=$2; }
 ;
 
-case_label_list: case_label_list ','  case_label { $$=creatnode(case_label_list,$3,$1); }
+case_label_list: case_label_list ','  case_label {  }
 |case_label { $$=$1; }
 ;
 
 case_label: { $$=0; }
-| ctce K_TO ctce { $$=creatnode(case_label,$1,$3);/* $$->value=$2;  */}
+| ctce K_TO ctce { }
 | K_INRANGE { $$=0; }
 | K_OUTRANGE { $$=0; }
 ;
@@ -1450,20 +1452,20 @@ select_type:  K_SELECT | K_SELECTA | K_SELECTU
 select_index: expression { $$=$1; }
 ;
 
-select_line_list: select_line_list select_line { $$=creatnode(select_line_list,$2,$1); }
+select_line_list: select_line_list select_line {  }
 |select_line { $$=$1; }
 ;
 
 select_line: '[' select_label_list ']' ':' select_action ';' { $$=$2; }
 ;
-select_label_list: select_label_list select_label { $$=creatnode(select_label_list,$2,$1); }
+select_label_list: select_label_list select_label {  }
 |select_label { $$=$1; }
 ;
 
 select_label:  exp  { $$=$1; }
 | exp K_TO exp  { $$=$1; }
-| K_OTHERWISE { $$=creatvalue($1); }
-| K_ALWAYS { $$=creatvalue($1); }
+| K_OTHERWISE {  }
+| K_ALWAYS {  }
 ;
 select_action: expression { $$=$1; }
 ;
@@ -1500,11 +1502,11 @@ exp
  K_DO exp  {
   RECHAIN_STMTS ($<type_node_p>4, WHILE_BODY ($<type_node_p>4));
  } 
-| K_UNTIL  exp K_DO exp { $$=creatnode(pre_tested_loop,$2,$4);/* $$->value=0;  */}
+| K_UNTIL  exp K_DO exp { }
 ;
 post_tested_loop:
-K_DO exp K_WHILE exp  { $$=creatnode(post_tested_loop,$2,$4);/* $$->value=1;  */}
-| K_DO exp K_UNTIL  exp { $$=creatnode(post_tested_loop,$2,$4);/* $$->value=0;  */}
+K_DO exp K_WHILE exp  { }
+| K_DO exp K_UNTIL  exp { }
 ;
 
 
@@ -1512,8 +1514,8 @@ exit_expression:  leave_expression  { $$=$1; }
 | exitloop_expression  { $$=$1; }
 ;
 leave_expression: 
-K_LEAVE T_NAME K_WITH exp { $$=creatnode(leave_expression,0,$4);/* $$->id=$2;  */} 
-|K_LEAVE T_NAME { $$=creatnode(leave_expression,0,0);/* $$->id=$2;  */} 
+K_LEAVE T_NAME K_WITH exp { } 
+|K_LEAVE T_NAME { } 
 ;
 exitloop_expression: 
 K_EXITLOOP  exp  { $$=$2; }
@@ -1544,7 +1546,7 @@ declaration: data_declaration { $$=$1; }
 | undeclare_declaration { $$=$1; }
 ;
 
-attribute_list:attribute_list attribute { $$=creatnode(attribute_list,$2,$1); }
+attribute_list:attribute_list attribute {  }
 |attribute { $$=$1; }
 ;
 attribute:  allocation_unit { $$=$1; }
@@ -1569,39 +1571,39 @@ attribute:  allocation_unit { $$=$1; }
 /*extension_attribute:  K_SIGNED | K_UNSIGNED 
 ;*/
 structure_attribute:
-  K_REF T_NAME '[' alloc_actual_list ']' { $$=creatnode(structure_attribute,0,$4);/* $$->id=$2; $$->value=1;  */}
-|  K_REF T_NAME  { $$=creatnode(structure_attribute,0,0);/* $$->id=$2; $$->value=1;  */}
-|   T_NAME '[' alloc_actual_list ']' { $$=creatnode(structure_attribute,0,$3);/* $$->id=$1;  */}
-|   T_NAME  { $$=creatnode(structure_attribute,0,0);/* $$->id=$1;  */}
+  K_REF T_NAME '[' alloc_actual_list ']' { }
+|  K_REF T_NAME  { }
+|   T_NAME '[' alloc_actual_list ']' { }
+|   T_NAME  { }
 ;
 
-extension_attribute: K_SIGNED { $$=creatnode(extension_attribute,0,0);/* $$->value=0;  */}
-|K_UNSIGNED { $$=creatnode(extension_attribute,0,0);/* $$->value=1;  */}
+extension_attribute: K_SIGNED { }
+|K_UNSIGNED { }
 ;
 /*
-  field_attribute: K_FIELD { $$=creatnode(field_attribute,0,0); }
+  field_attribute: K_FIELD {  }
   ;
 */
-alignment_attribute: K_ALIGN  compile_time_constant_expression { $$=creatnode(alignment_attribute, 0, $2); }
+alignment_attribute: K_ALIGN  compile_time_constant_expression {  }
 ;
 /*
-  preset_attribute: K_PRESET { $$=creatnode(preset_attribute,0,0); }
+  preset_attribute: K_PRESET {  }
   ;
 */
 /*
-psect_allocation: K_PSECT { $$=creatnode(psect_allocation,0,0); }
+psect_allocation: K_PSECT {  }
 ;
 */
 
-volatile_attribute: K_VOLATILE { $$=creatnode(volatile_attribute,0,0); }
+volatile_attribute: K_VOLATILE {  }
 ;
 
-novalue_attribute: K_NOVALUE { $$=creatnode(novalue_attribute,0,0); }
+novalue_attribute: K_NOVALUE {  }
 ;
-linkage_attribute: T_NAME { $$=creatnode(linkage_attribute,0,0);/* $$->id=$1;  */}
+linkage_attribute: T_NAME { }
 ;
-range_attribute: K_SIGNED compile_time_constant_expression { $$=creatnode(range_attribute,0,$2);/* $$->value=$1;  */}
-|K_UNSIGNED compile_time_constant_expression { $$=creatnode(range_attribute,0,$2);/* $$->value=$1;  */}
+range_attribute: K_SIGNED compile_time_constant_expression { }
+|K_UNSIGNED compile_time_constant_expression { }
 ;
 
 ctce: compile_time_constant_expression { $$=$1; }
@@ -1616,23 +1618,23 @@ compile_time_constant_expression: expression { $$=$1; /*nonfin*/ }
 ;
 
 addressing_mode_attribute: 
-/*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' { $$=creatnode(addressing_mode_attribute,0,$4); }
-  |*/{ undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' { $$=creatnode(addressing_mode_attribute,0,$4); undefmode=0; }
+/*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' {  }
+  |*/{ undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' {  undefmode=0; }
 ;
 
 mode_16:
-  U_ABSOLUTE { $$=creatnode(mode_16,0,0);/* $$->value=$1;  */}
-|U_RELATIVE { $$=creatnode(mode_16,0,0);/* $$->value=$1;  */}
+  U_ABSOLUTE { }
+|U_RELATIVE { }
 ;
 
 mode_32:
-U_ABSOLUTE { $$=creatnode(mode_32,0,0);/* $$->value=$1;  */}
-|U_GENERAL { $$=creatnode(mode_32,0,0);/* $$->value=$1;  */}
-|U_LONG_RELATIVE { $$=creatnode(mode_32,0,0);/* $$->value=$1;  */}
-|U_WORD_RELATIVE { $$=creatnode(mode_32,0,0);/* $$->value=$1;  */}
+U_ABSOLUTE { }
+|U_GENERAL { }
+|U_LONG_RELATIVE { }
+|U_WORD_RELATIVE { }
 ;
 
-weak_attribute: K_WEAK { $$=creatnode(weak_attribute,0,0); }
+weak_attribute: K_WEAK {  }
 ;
 
 /*
@@ -1646,19 +1648,19 @@ alloc_actual:  { $$=(int) 0; }
 |extension_attribute { $$=$1; }
 ;
 
-field_attribute: K_FIELD field_stuff_list { $$=creatnode(field_attribute, 0, $2); }
+field_attribute: K_FIELD field_stuff_list {  }
 ;
 
-field_stuff_list: field_stuff_list ','  field_name { $$=creatnode(field_stuff_list, $3, $1); }
-| field_stuff_list ','  field_set_name{ $$=creatnode(field_stuff_list, $3, $1); }
+field_stuff_list: field_stuff_list ','  field_name {  }
+| field_stuff_list ','  field_set_name{  }
 | field_set_name { $$=$1; }
 | field_name { $$=$1; }
 ;
 
-initial_attribute: K_INITIAL '(' initial_item_list ')' { $$=creatnode(initial_attribute, 0, $3); }
+initial_attribute: K_INITIAL '(' initial_item_list ')' {  }
 ;
 
-initial_item_list: initial_item_list ',' initial_item { $$=creatnode(initial_item_list,$3,$1); }
+initial_item_list: initial_item_list ',' initial_item {  }
 |initial_item { $$=$1; }
 ;
 
@@ -1669,10 +1671,10 @@ initial_group  { $$=$1; }
 ;
 
 initial_group: 
-allocation_unit '(' initial_item_list ')' { $$=creatnode(initial_group,0,$3);/* $$->middle=$1;  */}
-| K_REP replicator K_OF '(' initial_item_list ')'  { $$=creatnode(initial_group,$2,$5); }
-| K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { $$=creatnode(initial_group,$2,$6);/* $$->middle=$4;  */}
-/*| '(' initial_item_list ')' { $$=creatnode(initial_item_list,0,$2); }*/
+allocation_unit '(' initial_item_list ')' { }
+| K_REP replicator K_OF '(' initial_item_list ')'  {  }
+| K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { }
+/*| '(' initial_item_list ')' {  }*/
 ;
 
 /*
@@ -1692,10 +1694,10 @@ initial_string: string_literal { $$=$1; }
 
 preset_item_list: preset_item_list ',' preset_item|preset_item;
 
-preset_attribute: K_PRESET '(' preset_item_list ')' { $$=creatnode(preset_attribute, 0, $3); }
+preset_attribute: K_PRESET '(' preset_item_list ')' {  }
 ;
 
-preset_item:  '[' ctce_access_actual_list ']' '=' preset_value { $$=creatnode(preset_item, $2, $5); }
+preset_item:  '[' ctce_access_actual_list ']' '=' preset_value {  }
 ;
 
 ctce_access_actual_list: ctce_access_actual_list ',' ctce_access_actual|ctce_access_actual;
@@ -1708,7 +1710,7 @@ ctce { $$=$1; }
 preset_value: expression { $$=$1; }
 ;
 
-psect_allocation: K_PSECT '(' T_NAME ')' { $$=creatnode(psect_allocation,0,0);/* $$->id=$3;  */}
+psect_allocation: K_PSECT '(' T_NAME ')' { }
 ;
 /*
   volatile_attribute: K_VOLATILE
@@ -1730,7 +1732,7 @@ data_declaration:  own_declaration {
 ;
 
 /*
-own_declaration_list: own_declaration_list own_declaration { $$=creatnode(own_declaration_list,$2,$1); }
+own_declaration_list: own_declaration_list own_declaration {  }
 |own_declaration;
 */
 
@@ -1741,7 +1743,7 @@ own_declaration: K_OWN own_item_list ';' {
 
 own_item_list: own_item_list ',' own_item {
   //$$ = chainon($1, $3);
-  /* $$ =creatnode(own_item_list,$3,$1);*/
+  /* */
  }
 |declspecs_ts setspecs own_item { 
   //  $$ = $1;
@@ -1755,16 +1757,16 @@ own_item: T_NAME {
 		       chainon (NULL_TREE, all_prefix_attributes));
  finish_decl (d, NULL_TREE, NULL_TREE);
   // $$ = build_tree_list ($1, NULL_TREE);
-  /* $$ = creatnode(own_item,0,0); */
-  /* $$->id=$1; */
+  /*  */
+  
 }
 |T_NAME ':' own_attribute_list {
-  $$ = creatnode(own_item,0,$3); 
-  /* $$->id=$1; */
+   
+  
 }
 ;
 own_attribute_list:
-own_attribute_list own_attribute { $$=creatnode(own_attribute_list,$2,$1); }
+own_attribute_list own_attribute {  }
 |own_attribute { $$=$1; }
 ;
 
@@ -1780,97 +1782,97 @@ allocation_unit { $$=$1; }
 |volatile_attribute { $$=$1; }
 ;
 
-global_declaration: K_GLOBAL global_item_list  ';' { $$=creatnode(global_declaration,0,$2); }
+global_declaration: K_GLOBAL global_item_list  ';' {  }
 ;
 
-global_item_list:  global_item_list global_item { $$=creatnode(global_item_list,$2,$1); }
+global_item_list:  global_item_list global_item {  }
 |global_item { $$=$1; }
 ;
 
-global_item: T_NAME ':' attribute_list { $$ = creatnode(global_item,0,$3);/* $$->id=$1;  */}
+global_item: T_NAME ':' attribute_list { }
 ;
 
-external_declaration: K_EXTERNAL external_item_list ';' { $$=creatnode(external_declaration,0,$2); }
+external_declaration: K_EXTERNAL external_item_list ';' {  }
 ;
 
-external_item_list: external_item_list external_item { $$=creatnode(external_item_list,$2,$1); }
+external_item_list: external_item_list external_item {  }
 |external_item { $$=$1; }
 ;
 
-external_item: T_NAME ':' attribute_list { $$ = creatnode(external_item,0,$3);/* $$->id=$1;  */ }
+external_item: T_NAME ':' attribute_list {  }
 ;
 
-forward_declaration: K_FORWARD forward_item_list ';'  { $$=creatnode(forward_declaration,0,$2);}
+forward_declaration: K_FORWARD forward_item_list ';'  { }
 ;
 
-forward_item: T_NAME ':' attribute_list { $$=creatnode(forward_item, creatid($1), $3); }
+forward_item: T_NAME ':' attribute_list {  }
 ;
 
-forward_item_list: forward_item_list forward_item { $$ =creatnode(forward_item_list,$2,$1); }
+forward_item_list: forward_item_list forward_item {  }
 |forward_item { $$=$1; }
 ;
 
-local_declaration: K_LOCAL local_item_list ';' { $$=creatnode(local_declaration,0,$2);} ;
+local_declaration: K_LOCAL local_item_list ';' { } ;
 
-local_item_list: local_item_list ',' local_item { $$=creatnode(local_item_list,$3,$1); }
+local_item_list: local_item_list ',' local_item {  }
 |local_item { $$=$1; }
 ;
 
 local_item: 
-T_NAME ':' attribute_list { $$=creatnode(local_item, 0, $3);/* $$->id=$1;  */}
-|T_NAME { $$=creatnode(local_item, 0, 0);/* $$->id=$1;  */}
+T_NAME ':' attribute_list { }
+|T_NAME { }
 ;
 
-stackglocal_declaration: K_STACKLOCAL local_item_list ';' { $$=creatnode(stackglocal_declaration,0,$2);}
+stackglocal_declaration: K_STACKLOCAL local_item_list ';' { }
 ;
 
-register_declaration: K_REGISTER register_item_list ';' { $$=creatnode(register_declaration,0,$2);}
+register_declaration: K_REGISTER register_item_list ';' { }
 ;
 
-register_item_list: register_item_list register_item { $$=creatnode(register_item_list,$2,$1); }
+register_item_list: register_item_list register_item {  }
 |register_item { $$=$1; }
 ;
 
-register_item: T_NAME '=' ctce ':' attribute_list { $$=creatnode(register_item,creatid($1),$5); }
+register_item: T_NAME '=' ctce ':' attribute_list {  }
 ;
 
 global_register_declaration:
-K_GLOBAL K_REGISTER global_reg_item_list ';' { $$=creatnode(global_register_declaration,0,$3); }
+K_GLOBAL K_REGISTER global_reg_item_list ';' {  }
 ;
 
-global_reg_item_list: global_reg_item_list global_reg_item { $$=creatnode(global_reg_item_list,$2,$1); }
+global_reg_item_list: global_reg_item_list global_reg_item {  }
 |global_reg_item { $$=$1; }
 ;
 
-global_reg_item: T_NAME '=' ctce attribute_list { $$=creatnode(global_reg_item, creatid($1), $4); }
+global_reg_item: T_NAME '=' ctce attribute_list {  }
 ;
 
 external_register_declaration:
-K_EXTERNAL K_REGISTER external_reg_item_list ';' { $$=creatnode(external_register_declaration,0,$3); }
+K_EXTERNAL K_REGISTER external_reg_item_list ';' {  }
 ;
 
-external_reg_item_list:external_reg_item_list external_reg_item { $$=creatnode(external_reg_item_list,$2,$1); }
+external_reg_item_list:external_reg_item_list external_reg_item {  }
 |external_reg_item { $$=$1; }
 ;
 
-external_reg_item: T_NAME '=' ctce ':' attribute_list { $$=creatnode(external_reg_item,creatid($1), $5); }
+external_reg_item: T_NAME '=' ctce ':' attribute_list {  }
 ;
 
-map_declaration: K_MAP map_item_list ';' { $$=creatnode(map_declaration,0,$2); }
+map_declaration: K_MAP map_item_list ';' {  }
 ;
 
-map_item_list: map_item_list ',' map_item { $$=creatnode(map_item_list,$3,$1); }
+map_item_list: map_item_list ',' map_item {  }
 |map_item { $$=$1; }
 ;
 
-map_item: T_NAME ':' attribute_list { $$=creatnode(map_item, 0, $3);/* $$->id=$1;  */}
+map_item: T_NAME ':' attribute_list { }
 ;
 
 structure_declaration:
-  K_STRUCTURE structure_definition_list ';' { $$=creatnode(structure_declaration,0,$2); }
+  K_STRUCTURE structure_definition_list ';' {  }
 ;
 
-structure_definition_list: structure_definition_list structure_definition { $$=creatnode(structure_definition_list,$2,$1); }
+structure_definition_list: structure_definition_list structure_definition {  }
 |structure_definition { $$=$1; }
 ;
 
@@ -1878,16 +1880,16 @@ structure_definition:
   T_NAME 
   access_formal_list  allocation_formal_list 
   structure_size  structure_body
-{ $$=creatnode(structure_definition,$2,$3);/* $$->id=$1;  */}
+{ }
 /* nonfin */
 ;
 
-allocation_formal_list: allocation_formal_list allocation_formal { $$=creatnode(allocation_formal_list,$2,$1); }
+allocation_formal_list: allocation_formal_list allocation_formal {  }
 |allocation_formal  { $$=$1; }
 ;
 
 allocation_formal:
-allocation_name '{' '=' allocation_default '}' { $$=creatnode(allocation_formal,$1,$4); }
+allocation_name '{' '=' allocation_default '}' {  }
 ;
 
 allocation_default: exp { $$=$1; }
@@ -1899,18 +1901,18 @@ structure_size: expression { $$=$1; }
 structure_body: expression { $$=$1; }
 ;
 
-access_formal_list: access_formal_list access_formal { $$=creatnode(access_formal_list,$2,$1); }
+access_formal_list: access_formal_list access_formal {  }
 | access_formal_list  { $$=$1; }
 ;
 
-access_formal: T_NAME { $$=creatid($1); }
+access_formal: T_NAME {  }
 ;
 
-allocation_name: T_NAME { $$=creatid($1); }
+allocation_name: T_NAME {  }
 ;
 
 field_declaration: K_FIELD
-{ $$=creatnode (field_declaration, 0,0); } 
+{  } 
 ;
 
 routine_declaration:
@@ -1921,12 +1923,12 @@ ordinary_routine_declaration { $$=$1; }
 ;
 ordinary_routine_declaration: 
 K_ROUTINE routine_definition_list ';' { 
-  //$$=creatnode(ordinary_routine_declaration,0,$2);
+  //
   $$ = $2;
 }
 ;
 
-routine_definition_list: routine_definition_list ',' routine_definition { $$=creatnode(routine_definition_list,$3,$1); }
+routine_definition_list: routine_definition_list ',' routine_definition {  }
 |routine_definition { $$=$1; }
 ;
 
@@ -1939,7 +1941,7 @@ routine_definition: declspecs_ts setspecs T_NAME io_list ':'
   //store_parm_decls ();
 }
 save_filename save_lineno exp 
-{ /* $$=creatnode(routine_definition,$2,$6); $$->middle=$4; $$->id=$1;  */
+{ /*  $$->middle=$4; $$->id=$1;  */
   //DECL_SOURCE_FILE (current_function_decl) = $6;
   //DECL_SOURCE_LINE (current_function_decl) = $7;
   //bli_finish_function (0, 1); 
@@ -1948,6 +1950,7 @@ save_filename save_lineno exp
 |declspecs_ts setspecs T_NAME 
 {
   //current_function_decl=$3;
+  //void * ref = build_external_ref ($3, 1);
   void * v = build_tree_list (NULL_TREE, NULL_TREE);
   void * vo = build_nt (CALL_EXPR, $3, v, NULL_TREE);
   start_function (current_declspecs, vo, all_prefix_attributes);
@@ -1958,10 +1961,10 @@ io_list
 }
 '=' save_filename save_lineno exp 
 { 
-  /*$$=creatnode(routine_definition,$2,$4); $$->id=$1;  */
+  /* $$->id=$1;  */
   //DECL_SOURCE_FILE (current_function_decl) = $6;
   //DECL_SOURCE_LINE (current_function_decl) = $7;
-  $$=chainon($3,$10);
+  //$$=chainon($3,$10);
   //  DECL_SAVED_TREE (current_function_decl) = $$;
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
@@ -1986,14 +1989,14 @@ declspecs_ts:
 }
 
 io_list2: 
-io_list ':' routine_attribute_list { $$=creatnode(io_list2,$1,$3); }
-|io_list { $$=creatnode(io_list2,$1,0); }
+io_list ':' routine_attribute_list {  }
+|io_list {  }
 ;
 
 io_list: { $$=0; }
-|'(' formal_item_list ')' { $$=creatnode(io_list, $2, 0); }
-|'(' formal_item_list ';' formal_item_list ')' { $$=creatnode(io_list,$2,$4); }
-|'(' ';' formal_item_list ')' { $$=creatnode(io_list, 0, $3); }
+|'(' formal_item_list ')' {  }
+|'(' formal_item_list ';' formal_item_list ')' {  }
+|'(' ';' formal_item_list ')' {  }
 ;
 
 formal_item_list:
@@ -2009,7 +2012,7 @@ formal_item: T_NAME ':' formal_attribute_list
 }
 ;
 routine_attribute_list:
-routine_attribute_list routine_attribute { $$=creatnode(routine_attribute_list,$2,$1); }
+routine_attribute_list routine_attribute {  }
 |routine_attribute { $$=$1; }
 ;
 formal_attribute_list:  map_declaration_attribute_list  { $$=$1; }
@@ -2019,7 +2022,7 @@ formal_attribute_list:  map_declaration_attribute_list  { $$=$1; }
   formal_attribute_list: '(' map_declaration_attribute_list ')' { $$=$2; }
   ;
 */
-map_declaration_attribute_list: map_declaration_attribute_list map_declaration_attribute { $$=creatnode(map_declaration_attribute_list,$2,$1); }
+map_declaration_attribute_list: map_declaration_attribute_list map_declaration_attribute {  }
 |map_declaration_attribute { $$=$1; }
 ;
 
@@ -2038,22 +2041,22 @@ routine_attribute: novalue_attribute { $$=$1; }
 ;
 
 global_routine_declaration:
-K_GLOBAL K_ROUTINE global_routine_definition_list ';' { $$=creatnode(global_routine_declaration, 0, $3); }
+K_GLOBAL K_ROUTINE global_routine_definition_list ';' {  }
 ;
-global_routine_definition_list: global_routine_definition_list ',' global_routine_definition { $$=creatnode(global_routine_definition_list,$3,$1); }
+global_routine_definition_list: global_routine_definition_list ',' global_routine_definition {  }
 |global_routine_definition { $$=$1; }
 ;
-global_routine_definition: T_NAME io_list ':' global_routine_attribute_list '=' exp { $$=creatnode(global_routine_definition,$2,$6);/* $$->middle=$4; $$->id=$1;  */}
-|T_NAME io_list '=' exp { $$=creatnode(global_routine_definition,$2,$4);/* $$->id=$1;  */}
+global_routine_definition: T_NAME io_list ':' global_routine_attribute_list '=' exp { }
+|T_NAME io_list '=' exp { }
 ;
 
 global_io_list2: 
-io_list ':'  global_routine_attribute_list { $$=creatnode(io_list2,$1,$3); }
-|io_list  { $$=creatnode(io_list2,$1,0); }
+io_list ':'  global_routine_attribute_list {  }
+|io_list  {  }
 ;
 
 global_routine_attribute_list: { $$=0; }
-|global_routine_attribute_list global_routine_attribute { $$=creatnode(global_routine_attribute_list,$2,$1); }
+|global_routine_attribute_list global_routine_attribute {  }
 |global_routine_attribute { $$=$1; }
 ;
 global_routine_attribute: novalue_attribute { $$=$1; }
@@ -2064,21 +2067,21 @@ global_routine_attribute: novalue_attribute { $$=$1; }
 ;
 
 forward_routine_declaration:
-K_FORWARD K_ROUTINE forward_routine_item_list ';' { $$=creatnode(forward_routine_declaration, 0, $3); }
+K_FORWARD K_ROUTINE forward_routine_item_list ';' {  }
 ;
 
-forward_routine_item_list: forward_routine_item_list ',' forward_routine_item { $$=creatnode(forward_routine_item_list,$3,$1); }
+forward_routine_item_list: forward_routine_item_list ',' forward_routine_item {  }
 |forward_routine_item  { $$=$1; }
 ;
 forward_routine_item: 
-T_NAME maybe_forward_routine_attribute_list { $$=creatnode(forward_routine_item, 0, $2);/* $$->id=$1;  */}
-/*|T_NAME  { $$=creatnode(forward_routine_item, creatid($1), 0); }*/
+T_NAME maybe_forward_routine_attribute_list { }
+/*|T_NAME  {  }*/
 ;
 maybe_forward_routine_attribute_list: { $$=0; }
 |':' forward_routine_attribute_list { $$=$2; }
 ;
 forward_routine_attribute_list:
-forward_routine_attribute_list forward_routine_attribute { $$=creatnode(forward_routine_attribute_list,$2,$1); }
+forward_routine_attribute_list forward_routine_attribute {  }
 |forward_routine_attribute { $$=$1; }
 ;
 forward_routine_attribute: novalue_attribute { $$=$1; }
@@ -2087,17 +2090,21 @@ forward_routine_attribute: novalue_attribute { $$=$1; }
 |addressing_mode_attribute { $$=$1; }
 ;
 external_routine_declaration:
-K_EXTERNAL K_ROUTINE external_routine_item_list ';' { $$=creatnode(external_routine_declaration, 0, $3); }
+K_EXTERNAL K_ROUTINE external_routine_item_list ';' { }
 ;
 
-external_routine_item_list: external_routine_item_list ',' external_routine_item { $$=creatnode(external_routine_item_list,$3,$1); }
+external_routine_item_list: external_routine_item_list ',' external_routine_item { }
 |external_routine_item { $$=$1; }
 ;
-external_routine_item: T_NAME ':' ext_routine_attribute_list { $$=creatnode(external_routine_item,0,$3);/* $$->id=$1;  */}
-| T_NAME { $$=creatnode(external_routine_item,0,0);/* $$->id=$1;  */}
+external_routine_item: T_NAME ':' ext_routine_attribute_list { }
+| T_NAME { 
+  if (yychar == YYEMPTY)
+    yychar = YYLEX;
+  $$ = build_external_ref ($1, 1);
+}
 ;
 ext_routine_attribute_list:
-ext_routine_attribute_list ext_routine_attribute { $$=creatnode(external_routine_attribute_list,$2,$1); }
+ext_routine_attribute_list ext_routine_attribute {  }
 |ext_routine_attribute { $$=$1; }
 ;
 ext_routine_attribute: novalue_attribute { $$=$1; }
@@ -2106,10 +2113,10 @@ ext_routine_attribute: novalue_attribute { $$=$1; }
 |addressing_mode_attribute { $$=$1; }
 |weak_attribute { $$=$1; }
 ;
-linkage_declaration: K_LINKAGE linkage_definition_list ';' { $$=creatnode (linkage_declaration, 0,$2); }
+linkage_declaration: K_LINKAGE linkage_definition_list ';' {  }
 ;
-enable_declaration: K_ENABLE T_NAME '(' tname_list ')' ';' { $$=creatnode (enable_declaration, 0 , $4);/* $$->id=$2;  */}
-|K_ENABLE T_NAME ';' { $$=creatnode (enable_declaration, 0,0);/* $$->id=$2;  */}
+enable_declaration: K_ENABLE T_NAME '(' tname_list ')' ';' { }
+|K_ENABLE T_NAME ';' { }
 ;
 bound_declaration: 
 literal_declaration { $$= $1; }
@@ -2118,71 +2125,71 @@ literal_declaration { $$= $1; }
 |bind_routine_declaration { $$= $1; }
 ;
 compiletime_declaration: K_COMPILETIME
-{ $$=creatnode (compiletime_declaration, 0,0); } ;
+{  } ;
 macro_declaration: 
 positional_macro_declaration { $$=$1; }
 |keyword_macro_declaration { $$=$1; }
 ;
 require_declaration: K_REQUIRE T_STRING ';'
-{ $$=creatnode (require_declaration, 0,0);/* $$->id=$2;  */} ;
+{ } ;
 library_declaration: K_LIBRARY T_STRING ';'
-{ $$=creatnode (library_declaration, 0,0);/* $$->id=$2;  */} ;
+{ } ;
 psect_declaration: K_PSECT psect_item_list ';'
-{ $$=creatnode (psect_declaration, 0,$2); } ;
+{  } ;
 switches_declaration: K_SWITCHES
-{ $$=creatnode (switches_declaration, 0,0); } ;
+{  } ;
 label_declaration: K_LABEL
-{ $$=creatnode (label_declaration, 0,0); } ;
+{  } ;
 builtin_declaration: K_BUILTIN
-{ $$=creatnode (builtin_declaration, 0,0); } ;
+{  } ;
 undeclare_declaration: K_UNDECLARE tname_list ';'
-{ $$=creatnode (undeclare_declaration, 0,$2); } ;
+{  } ;
 
-literal_declaration: K_LITERAL literal_item_list ';' { $$=creatnode(literal_declaration,0,$2); }
-| K_GLOBAL K_LITERAL literal_item_list{ $$=creatnode(literal_declaration,0,$3); }
+literal_declaration: K_LITERAL literal_item_list ';' {  }
+| K_GLOBAL K_LITERAL literal_item_list{  }
 ;
 
-literal_item_list: literal_item_list ',' literal_item { $$=creatnode(literal_item_list, $3, $1); }
+literal_item_list: literal_item_list ',' literal_item {  }
 | literal_item { $$=$1; }
 ;
 
-literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list { $$=creatnode(literal_item, $3,$5);/* $$->id=$1;  */}
-|T_NAME '=' compile_time_constant_expression { $$=creatnode(literal_item,$3, 0);/* $$->id=$1;  */}
+literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list { }
+|T_NAME '=' compile_time_constant_expression { }
 ;
 
 literal_attribute_list:
-literal_attribute_list literal_attribute { $$=creatnode(literal_attribute_list,$2,$1); }
+literal_attribute_list literal_attribute {  }
 |literal_attribute { $$=$1; }
 ;
 
 literal_attribute: weak_attribute { $$=$1; }
 |range_attribute { $$=$1; }
 ;
-external_literal_declaration: K_EXTERNAL K_LITERAL external_literal_item_list ';' { $$=creatnode(external_literal_declaration,0,$3); }
+external_literal_declaration: K_EXTERNAL K_LITERAL external_literal_item_list ';' {  }
 ;
 
-external_literal_item_list: external_literal_item_list ',' external_literal_item { $$=creatnode(external_literal_item_list, $3, $1); }
+external_literal_item_list: external_literal_item_list ',' external_literal_item {  }
 | external_literal_item { $$=$1; }
 ;
 
-external_literal_item: T_NAME  ':' literal_attribute_list { $$=creatnode(external_literal_item,0, $3);/* $$->id=$1;  */}
-|T_NAME  { $$=creatnode(external_literal_item,0, 0);/* $$->id=$1;  */}
+external_literal_item: T_NAME  ':' literal_attribute_list { }
+|T_NAME  { }
 ;
 
-bind_data_declaration: K_BIND bind_data_item_list ';' { $$=creatnode(bind_data_declaration,0,$2); }
-| K_GLOBAL K_BIND bind_data_item_list{ $$=creatnode(bind_data_declaration,0,$3); }
+bind_data_declaration: K_BIND bind_data_item_list ';' {  }
+| K_GLOBAL K_BIND bind_data_item_list{  }
 ;
 
-bind_data_item_list: bind_data_item_list ',' bind_data_item { $$=creatnode(bind_data_item_list, $3, $1); }
+bind_data_item_list: bind_data_item_list ',' bind_data_item {  }
 | bind_data_item { $$=$1; }
 ;
 
-bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list { $$=creatnode(bind_data_item, $3,$5);/* $$->id=$1;  */}
-|T_NAME '=' expression { $$=creatnode(bind_data_item,$3, 0);/* $$->id=$1;  */}
+bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list { }
+|T_NAME '=' expression { }
 ;
 
 bind_data_attribute_list:
-bind_data_attribute_list bind_data_attribute { $$=creatnode(bind_data_attribute_list,$2,$1); }
+bind_data_attribute_list bind_data_attribute {  }
 |bind_data_attribute { $$=$1; }
 
 bind_data_attribute:
@@ -2194,20 +2201,20 @@ allocation_unit { $$=$1; }
 |weak_attribute { $$=$1; }
 ;
 
-bind_routine_declaration: K_BIND K_ROUTINE bind_routine_item_list ';' { $$=creatnode(bind_routine_declaration,0,$3); }
-| K_GLOBAL K_BIND K_ROUTINE bind_routine_item_list{ $$=creatnode(bind_routine_declaration,0,$4); }
+bind_routine_declaration: K_BIND K_ROUTINE bind_routine_item_list ';' {  }
+| K_GLOBAL K_BIND K_ROUTINE bind_routine_item_list{  }
 ;
 
-bind_routine_item_list: bind_routine_item_list ',' bind_routine_item { $$=creatnode(bind_routine_item_list, $3, $1); }
+bind_routine_item_list: bind_routine_item_list ',' bind_routine_item {  }
 | bind_routine_item { $$=$1; }
 ;
 
-bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list { $$=creatnode(bind_routine_item, $3,$5);/* $$->id=$1;  */}
-|T_NAME '=' expression { $$=creatnode(bind_routine_item,$3, 0);/* $$->id=$1;  */}
+bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list { }
+|T_NAME '=' expression { }
 ;
 
 bind_routine_attribute_list:
-bind_routine_attribute_list bind_routine_attribute { $$=creatnode(bind_routine_attribute_list,$2,$1); }
+bind_routine_attribute_list bind_routine_attribute {  }
 |bind_routine_attribute { $$=$1; }
 
 bind_routine_attribute:
@@ -2216,10 +2223,10 @@ linkage_attribute { $$=$1; }
 |weak_attribute { $$=$1; }
 ;
 
-positional_macro_declaration: K_MACRO positional_macro_definition_list ';' { $$=creatnode(positional_macro_declaration, 0, $2); }
+positional_macro_declaration: K_MACRO positional_macro_definition_list ';' {  }
 ;
 
-positional_macro_definition_list: positional_macro_definition_list ',' positional_macro_definition { $$=creatnode(positional_macro_definition_list,$3,$1); }
+positional_macro_definition_list: positional_macro_definition_list ',' positional_macro_definition {  }
 |positional_macro_definition { $$=$1; }
 ;
 
@@ -2229,16 +2236,16 @@ simple_macro_definition { $$=$1; }
 |iterative_macro_definition { $$=$1; }
 
 simple_macro_definition: 
-T_NAME '(' tname_list ')'  '=' macro_body '%' { $$=creatnode(simple_macro_definition,$3,$6);/* $$->id=$1;  */}
-|T_NAME  '=' macro_body '%'{ $$=creatnode(simple_macro_definition,0,$3);/* $$->id=$1;  */}
+T_NAME '(' tname_list ')'  '=' macro_body '%' { }
+|T_NAME  '=' macro_body '%'{ }
 ;
 conditional_macro_definition:
-T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' { $$=creatnode(conditional_macro_definition,$3,$8);/* $$->id=$1;  */}
-|T_NAME '[' ']' '=' macro_body '%'{ $$=creatnode(conditional_macro_definition,0,$5);/* $$->id=$1;  */}
+T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' { }
+|T_NAME '[' ']' '=' macro_body '%'{ }
 ;
 iterative_macro_definition:
-T_NAME '(' tname_list ')' '[' tname_list ']' '=' macro_body '%' { $$=creatnode(iterative_macro_definition,$3,$9);/* $$->middle=$6; $$->id=$1;  */}
-|T_NAME '[' tname_list ']' '=' macro_body '%'{ $$=creatnode(iterative_macro_definition,0,$6);/* $$->middle=$3; $$->id=$1;  */}
+T_NAME '(' tname_list ')' '[' tname_list ']' '=' macro_body '%' { }
+|T_NAME '[' tname_list ']' '=' macro_body '%'{ }
 ;
 
 default_actual: { $$=0; }
@@ -2257,94 +2264,94 @@ lexeme_list: expression { $$=$1; /*nonfin*/ }
   lexeme_list:  tname_list2 { $$=$1; *nonfin* }
   ;
 */
-keyword_macro_declaration: K_KEYWORDMACRO keyword_macro_definition_list ';' { $$=creatnode(keyword_macro_declaration,0,$2); }
+keyword_macro_declaration: K_KEYWORDMACRO keyword_macro_definition_list ';' {  }
 ;
 
 keyword_macro_definition_list:
-keyword_macro_definition_list ',' keyword_macro_definition { $$=creatnode(keyword_macro_definition_list, $3, $1); }
+keyword_macro_definition_list ',' keyword_macro_definition {  }
 |keyword_macro_definition { $$=$1; }
 ;
 
 keyword_macro_definition:
-T_NAME '(' keyword_pair_list ')' '=' macro_body '%' { $$=creatnode(keyword_macro_definition,$3,$6);/* $$->id=$1;  */}
+T_NAME '(' keyword_pair_list ')' '=' macro_body '%' { }
 ;
 
-keyword_pair_list: keyword_pair_list ',' keyword_pair { $$=creatnode(keyword_pair_list, $3, $1); }
+keyword_pair_list: keyword_pair_list ',' keyword_pair {  }
 |keyword_pair { $$=$1; }
 ;
 
 keyword_pair:
-T_NAME '=' default_actual { $$=creatnode(keyword_pair,0,$3);/* $$->id=$1;  */}
-|T_NAME { $$=creatnode(keyword_pair,0,0);/* $$->id=$1;  */}
+T_NAME '=' default_actual { }
+|T_NAME { }
 ;
 
-linkage_definition_list: linkage_definition_list ',' linkage_definition { $$=creatnode(linkage_definition_list,$3,$1); }
+linkage_definition_list: linkage_definition_list ',' linkage_definition {  }
 |linkage_definition { $$=$1; }
 ;
-linkage_definition: T_NAME '=' linkage_type { $$=creatnode(linkage_definition,$3,0);/* $$->id=$1;  *//*nonfin*/ }
+linkage_definition: T_NAME '=' linkage_type {  }
 ;
 
-linkage_type: U_CALL { $$=creatid("call"); }
-| T_NAME { $$=creatid($1); }
+linkage_type: U_CALL {  }
+| T_NAME {  }
 ;
 
-input_parameter_location_list:input_parameter_location_list ',' input_parameter_location { $$=creatnode(input_parameter_location_list,$3,$1); }
+input_parameter_location_list:input_parameter_location_list ',' input_parameter_location {  }
 |input_parameter_location { $$=$1;}
 ;
-output_parameter_location_list:output_parameter_location_list ',' output_parameter_location { $$=creatnode(output_parameter_location_list,$3,$1); }
+output_parameter_location_list:output_parameter_location_list ',' output_parameter_location {  }
 |output_parameter_location { $$=$1;}
 ;
 
-input_parameter_location: U_STANDARD { $$=creatvalue($1); }
-|K_REGISTER '=' T_DIGITS { $$=creatnode(input_parameter_location,0,0);/* $$->value=$3;  */}
+input_parameter_location: U_STANDARD {  }
+|K_REGISTER '=' T_DIGITS { }
 | { $$=0; }
 ;
 
 output_parameter_location:
-'(' K_REGISTER '=' T_DIGITS ')' { $$=creatnode(output_parameter_location,0,0);/* $$->value=$4;  */}
+'(' K_REGISTER '=' T_DIGITS ')' { }
 ;
 
-psect_item_list: psect_item_list ',' psect_item { $$=creatnode(psect_item_list,$3,$1); }
+psect_item_list: psect_item_list ',' psect_item {  }
 |psect_item { $$=$1; }
 ;
 
-psect_attribute_list: psect_attribute_list ',' psect_attribute { $$=creatnode(psect_attribute_list,$3,$1); }
+psect_attribute_list: psect_attribute_list ',' psect_attribute {  }
 |psect_attribute { $$=$1; }
 ;
 
 psect_item:
-storage_class '=' T_NAME '(' psect_attribute_list ')' { $$=creatnode(psect_item,$1,$5);/* $$->id=$3;  */}
-|storage_class '=' T_NAME { $$=creatnode(psect_item,$1,0);/* $$->id=$3;  */}
+storage_class '=' T_NAME '(' psect_attribute_list ')' { }
+|storage_class '=' T_NAME { }
 ;
 
 storage_class:
-K_OWN { $$=creatnode(storage_class, 0, 0);/* $$->value=$1;  */}
-|K_GLOBAL { $$=creatnode(storage_class, 0, 0);/* $$->value=$1;  */}
-|K_PLIT { $$=creatnode(storage_class, 0, 0);/* $$->value=$1;  */}
-|U_CODE { $$=creatnode(storage_class, 0, 0);/* $$->value=$1;  */}
-|U_NODEFAULT { $$=creatnode(storage_class, 0, 0);/* $$->value=$1;  */}
+K_OWN { }
+|K_GLOBAL { }
+|K_PLIT { }
+|U_CODE { }
+|U_NODEFAULT { }
 ;
 
 psect_attribute:
-U_WRITE  { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
-| U_NOWRITE { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_EXECUTE { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
-| U_NOEXECUTE { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_OVERLAY { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
-| U_CONCATENATE { $$=creatnode(psect_attribute, 0, 0);/* $$->value=$1;  */}
+U_WRITE  { }
+| U_NOWRITE { }
+|U_EXECUTE { }
+| U_NOEXECUTE { }
+|U_OVERLAY { }
+| U_CONCATENATE { }
 |  b32_psect_attribute { $$=$1; }
 ;
 
 b32_psect_attribute:
-U_READ { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_NOREAD { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_SHARE { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_NOSHARE { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_PIC { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_NOPIC { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|K_LOCAL { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|K_GLOBAL { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
-|U_VECTOR { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
+U_READ { }
+|U_NOREAD { }
+|U_SHARE { }
+|U_NOSHARE { }
+|U_PIC { }
+|U_NOPIC { }
+|K_LOCAL { }
+|K_GLOBAL { }
+|U_VECTOR { }
 |alignment_attribute { $$=$1; }
 |addressing_mode_attribute { $$=$1; }
 ;
@@ -2353,9 +2360,9 @@ U_READ { $$=creatnode(b32_psect_attribute, 0, 0);/* $$->value=$1;  */}
 /**** 5.0 LEXICAL PROCESSING FACILITIES *****************************/
 /**** 7.0 MACHINE SPECIFIC NAMES ************************************/
 
-builtin_name: T_NAME  { $$=creatid($1); }
-| machine_specific_function  { $$=creatid($1); }
-| linkage_function { $$=creatid($1); }
+builtin_name: T_NAME  {  }
+| machine_specific_function  {  }
+| linkage_function {  }
 ;
 
 machine_specific_function: T_NAME
@@ -2364,7 +2371,7 @@ machine_specific_function: T_NAME
 linkage_function: T_NAME
 ;
 
-linkage_function_name: T_NAME { $$=creatid($1); }
+linkage_function_name: T_NAME {  }
 ;
 /*
   test		: tok

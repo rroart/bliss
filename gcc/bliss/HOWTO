@@ -8,5 +8,6 @@ next time, for quicker compile, go to gcc and do make quickstrap -k
 until you get bli1
 
 NOTE:
+for use with gcc 3.2
 see generated .s and .rtl files
 it is working just a little, and it need a lot of work
