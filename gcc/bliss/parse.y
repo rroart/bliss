@@ -24,6 +24,7 @@ int yydebug=0;
 #include "config.h"
 
 #include "system.h"
+#include "coretypes.h"
 
 #include "tree.h"
 
@@ -38,6 +39,9 @@ int yydebug=0;
 #include "ggc.h"
 #endif
  //#define IN_GCC
+
+ static short *malloced_yyss;
+ static void *malloced_yyvs;
 
  static int compstmt_count;
 
@@ -56,8 +60,7 @@ extern tree  build_modify_expr (tree, enum tree_code, tree);
   tree  creatvalue (int);
   tree  ForExpand(char *, int, int, tree);
 //  int      yyerror (char *);
-  //  int lineno=1;
-  extern int lineno;
+  //  int input_location.line=1;
 
 void 
 bli_error2 PARAMS ((char * msg));
@@ -115,21 +118,21 @@ bli_common_parse_file(set_yydebug)
 
  struct myfilestackstruct {
    unsigned long yyin;
-   unsigned long input_filename;
+   unsigned long myinput_filename;
  };
 
  struct myfilestackstruct myfilestack[128]; 
 
  static void pushfilestack() {
    myfilestack[filestackno].yyin=yyin;
-   myfilestack[filestackno].input_filename=input_filename;
+   myfilestack[filestackno].myinput_filename=input_filename;
    filestackno++;
  }
 
  static void popfilestack() {
    filestackno--;
    yyin=myfilestack[filestackno].yyin;
-   input_filename=myfilestack[filestackno].input_filename;
+   input_filename=myfilestack[filestackno].myinput_filename;
  }
 
  static int bitstackno = 0;
@@ -151,6 +154,13 @@ bli_common_parse_file(set_yydebug)
    bitstackno--;
  }
 
+ tree my_copy_tree (tree);
+ void my_substitute (tree, tree, tree);
+ void my_fold (tree);
+ tree parm_first_to_last (tree);
+ void add_macro (char *,tree,tree);
+ char * add_underscore (tree, int);
+
 %}
 
 %start mystart
@@ -160,8 +170,7 @@ bli_common_parse_file(set_yydebug)
   char     *type_str;
   tree  type_node_p;
   int type_node_code;
-  const char *filename;
-  int lineno;
+  location_t location;
   enum tree_code code;
 }
 
@@ -445,8 +454,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
 %type <type_node_p> if_then
 /*%type <type_node_p> test tok*/
-%type <filename> save_filename
-%type <lineno> save_lineno
+%type <location> save_location
 
 %{
 #define PUSH_DECLSPEC_STACK                                              \
@@ -484,16 +492,10 @@ bli_common_parse_file(set_yydebug)
 
 /**** 1.0 MODULES ***************************************************/
 
-save_filename:
+save_location:
 { if (yychar == YYEMPTY)
   yychar = YYLEX;
- $$ = input_filename; }
-;
-
-save_lineno:
-{ if (yychar == YYEMPTY)
-  yychar = YYLEX;
- $$ = lineno; }
+ $$ = input_location; }
 ;
 
 mystart: module
@@ -504,10 +506,10 @@ module		: K_MODULE module_head '='
 {
   last_expr_filename=input_filename;
 }
-save_filename save_lineno
+save_location
  start_block K_ELUDOM
 {
-  $$=$7;
+  $$=$6;
   fprintf (stderr, "\n%BLS-I-PARSED-OK-That's a module alright\n");
   while (! global_bindings_p ())
     poplevel (0, 0, 0);
@@ -1029,7 +1031,7 @@ unlabeled_block: unlabeled_block_start
 pushlevel block_body K_END poplevel
 { 
 #ifndef c99
-$$=poplevel (kept_level_p (), 1, 0);
+$$=poplevel (KEEP_MAYBE, 0, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
    = $$;
@@ -1045,7 +1047,7 @@ $$=poplevel (kept_level_p (), 1, 0);
 pushlevel block_body ')' poplevel
 { 
 #ifndef c99
-$$=poplevel (kept_level_p (), 1, 0);
+$$=poplevel (KEEP_MAYBE, 0, 0);
  SCOPE_STMT_BLOCK (TREE_PURPOSE ($5))
    = SCOPE_STMT_BLOCK (TREE_VALUE ($5))
    = $$;
@@ -1114,7 +1116,7 @@ block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 block_action: expression ';' { 
   /*bli_add_stmt ($1);*/
   if ($1) 
-    if (TREE_CODE($1)<SRCLOC)
+    if (TREE_CODE($1)<SIZEOF_EXPR)
       $$=c_expand_expr_stmt($1);
 }
 ;
@@ -1138,7 +1140,7 @@ T_NAME '[' access_actual_list ']' {
   //tree t=build_external_ref ($1, 0);
   tree extref=build_external_ref ($1, 0);
   //tree params = chainon(copy_node(extref), $3);
-  //if (TREE_CHAIN(er)) fprintf(stderr, "\npanic %x\n",lineno);
+  //if (TREE_CHAIN(er)) fprintf(stderr, "\npanic %x\n",input_location.line);
   tree params = $3;
   tree type = xref_tag(STRUCTURE_ATTR,cell__);
   tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
@@ -1272,7 +1274,7 @@ field_reference:
     if (TREE_CODE(TREE_TYPE($1))==POINTER_TYPE) {
       i = build_indirect_ref ($1, "unary *");
     } else {
-      fprintf(stderr, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",lineno);
+      fprintf(stderr, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
       //i = build_indirect_ref (convert(build_pointer_type (integer_type_node), $1), "unary *");
       //i = build_indirect_ref ($1, "unary *");
       //goto fetch_end;
@@ -1284,13 +1286,14 @@ field_reference:
     t=stabilize_reference(t);
     op1 = t; 
   fetch_end:
+	 {}
   }
   /* if (context=='o') */ {
     tree d=$1;
     if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
       d = build_indirect_ref (d, "unary *");
     } else {
-      fprintf(stderr , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", lineno);
+      fprintf(stderr , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
       //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
       //d = build_indirect_ref (d, "unary *");
     }
@@ -1437,10 +1440,10 @@ operator_expression:
   //  if (tree_int_cst_sgn (d3) < 0) 
   if (!tree_expr_nonnegative_p(d3)) {
     $$ = parser_build_binary_op (RSHIFT_EXPR, $1, build_unary_op( NEGATE_EXPR, d3, 0)); 
-    fprintf (stderr, "\n%BLS-I-NOTHING rshift %x\n", lineno);
+    fprintf (stderr, "\n%BLS-I-NOTHING rshift %x\n", input_location.line);
   } else {
     $$ = parser_build_binary_op (LSHIFT_EXPR, $1, d3); 
-    fprintf (stderr, "\n%BLS-I-NOTHING lshift %x\n", lineno);
+    fprintf (stderr, "\n%BLS-I-NOTHING lshift %x\n", input_location.line);
   }
 }
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
@@ -1470,7 +1473,7 @@ opexp9 '=' opexp9 {
       op0=TREE_OPERAND(op0, 0);
 #if 0
       if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
-	fprintf(stderr, "\n\nxyz %x\n\n",lineno);
+	fprintf(stderr, "\n\nxyz %x\n\n",input_location.line);
 	TREE_TYPE(op0)==integer_type_node;
       }
 #endif
@@ -2418,6 +2421,9 @@ structure_definition:
   afun=current_function_decl;
 
   $$=accessfn;
+  pushlevel(0);
+  pushlevel(0);
+
 }
 allocation_formal_list ']' '='
 {
@@ -2430,6 +2436,7 @@ allocation_formal_list ']' '='
   //mydeclares($9);
 
   acfun=cfun;
+  pushlevel(0);
   start_function (current_declspecs, allocfn, all_prefix_attributes);
   store_parm_decls ();
 
@@ -2444,7 +2451,7 @@ structure_size
 
   tree accessfn = $<type_node_p>8;
 
-  finish_function (0, 1); 
+  finish_function (); 
 
   //POP_DECLSPEC_STACK;
 
@@ -2472,12 +2479,20 @@ structure_body
   tree comp2;
 
   //DECL_SAVED_TREE (current_function_decl)=$15;
-  finish_function (0, 1); 
+  poplevel(0,0,0);
+  finish_function (); 
+  poplevel(0,0,0);
+  poplevel(0,0,0);
   poplevel(0,0,0);
   //POP_DECLSPEC_STACK;
 
-  allocer = grokfield (input_filename, lineno, $<type_node_p>12, 0, 0);
-  accesser = grokfield (input_filename, lineno, $<type_node_p>14, 0, 0);
+#if 1
+  allocer = grokfield ($<type_node_p>12, 0, 0);
+  accesser = grokfield ($<type_node_p>14, 0, 0);
+#else
+  allocer = $<type_node_p>12;
+  accesser = $<type_node_p>14;
+#endif
 
   //$$ = finish_structure ( $<type_node_p>5, 0, $6, $9 ,$13, $15, 0);
 
@@ -2489,7 +2504,11 @@ structure_body
   if (!$9) goto none;
   for(tmp=$9->list.purpose;tmp;tmp=TREE_CHAIN(tmp)) {
     tree decl_name = DECL_NAME(tmp);
-    tree grok = grokfield (input_filename, lineno, decl_name, 0, 0);;
+#if 1
+    tree grok = grokfield (decl_name, 0, 0);;
+#else
+    tree grok = decl_name;
+#endif
 
     chainon(prev, grok);
     prev=grok;
@@ -2664,10 +2683,10 @@ io_list
   start_function (current_declspecs, fn, all_prefix_attributes);
   store_parm_decls ();
 }
-routine_attributes '=' save_filename save_lineno exp 
+routine_attributes '=' save_location exp 
 { 
-  if ($11) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$11))); $$=0;
-  finish_function (0, 1); 
+  if ($10) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$10))); $$=0;
+  finish_function (); 
   POP_DECLSPEC_STACK;
 }
 ;
@@ -2699,12 +2718,11 @@ io_list ':' routine_attribute_list
 io_list: { $$=0; }
 | {
   pushlevel (0);
-  clear_parm_order ();
-  declare_parm_level (1);
+  // check: needs mark_forward_parm_decls (); maybe?
+  declare_parm_level ();
 }
 '(' formal_item_list ')'
 { 
-  parmlist_tags_warning ();
   poplevel (0, 0, 0);
   $$ = $3;
 }
@@ -3151,7 +3169,7 @@ here
 yyerror (char *s)
 {
   if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",lineno);
+  fprintf (stderr, "Nu b;lev det fel %d\n",input_location.line);
 }
 
 void 
@@ -3178,7 +3196,7 @@ parse_init ()
 void yy2error (const char *s)
 {
   if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",lineno);
+  fprintf (stderr, "Nu b;lev det fel %d\n",input_location.line);
 }
 
 void
@@ -3189,6 +3207,8 @@ tree
 maybe_apply_renaming_pragma(tree decl, tree asmname) {
   return asmname;
 }
+
+static void init_reswords ();
 
 void
 c_parse_init(void) {
@@ -3254,8 +3274,8 @@ gen_aux_info_record (fndecl, is_definition, is_implicit, is_prototyped)
 }
 
 cpp_reader *
-cpp_create_reader (lang)
-     enum c_lang lang;
+cpp_create_reader (lang, ht)
+     enum c_lang lang; struct ht * ht;
 {
 }
 
@@ -3279,11 +3299,9 @@ cpp_assert (pfile, str)
 {
 }
 
-const char *
-init_c_lex (filename)
-     const char *filename;
+void
+init_c_lex ()
 {
-  return filename;
 }
 
 void
@@ -3362,6 +3380,115 @@ cpp_preprocess_file (pfile, in_fname, out_stream)
 {
 }
 
+tree
+lookup_interface (tree arg ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+tree
+is_class_name (tree arg ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+tree
+objc_is_object_ptr (tree arg ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+tree
+lookup_objc_ivar (tree arg ATTRIBUTE_UNUSED)
+{
+  return 0;
+}
+
+void
+objc_check_decl (tree decl ATTRIBUTE_UNUSED)
+{
+}
+   
+int
+objc_comptypes (tree lhs ATTRIBUTE_UNUSED, tree rhs ATTRIBUTE_UNUSED,
+                int reflexive ATTRIBUTE_UNUSED)
+{ 
+  return -1;
+}
+
+tree
+objc_message_selector (void)
+{ 
+  return 0;
+}
+
+#if 0
+/* Add PATH to the include chain CHAIN. PATH must be malloc-ed and
+   NUL-terminated.  */
+void
+add_path (char *path, int chain, int cxx_aware)
+{
+  struct cpp_dir *p;
+
+#if defined (HAVE_DOS_BASED_FILE_SYSTEM)
+  /* Convert all backslashes to slashes.  The native CRT stat()
+     function does not recognise a directory that ends in a backslash
+     (unless it is a drive root dir, such "c:\").  Forward slashes,
+     trailing or otherwise, cause no problems for stat().  */
+  char* c;
+  for (c = path; *c; c++)
+    if (*c == '\\') *c = '/';
+#endif
+
+  p = xmalloc (sizeof (struct cpp_dir));
+  p->next = NULL;
+  p->name = path;
+  if (chain == SYSTEM || chain == AFTER)
+    p->sysp = 1 + !cxx_aware;
+  else
+    p->sysp = 0;
+
+  if (tails[chain])
+    tails[chain]->next = p;
+  else
+    heads[chain] = p;
+  tails[chain] = p;
+}
+
+/* Used by C front ends, which really should move to using
+   cpp_token_as_text.  */
+const char *
+cpp_type2name (enum cpp_ttype type)
+{
+  return (const char *) token_spellings[type].name;
+}
+#endif
+
+#if 0
+/* Pass an object-like macro and a value to define it to.  The third
+   parameter says whether or not to turn the value into a string
+   constant.  */
+void
+builtin_define_with_value (const char *macro, const char *expansion, int is_str)
+{
+  char *buf;
+  size_t mlen = strlen (macro);
+  size_t elen = strlen (expansion);
+  size_t extra = 2;  /* space for an = and a NUL */
+
+  if (is_str)
+    extra += 2;  /* space for two quote marks */
+
+  buf = alloca (mlen + elen + extra);
+  if (is_str)
+    sprintf (buf, "%s=\"%s\"", macro, expansion);
+  else
+    sprintf (buf, "%s=%s", macro, expansion);
+
+  cpp_define (parse_in, buf);
+}
+#endif
+
 void
 add_struct(struct structure ** s,tree elem) {
   struct structure * t=xmalloc(sizeof(*t));
@@ -3407,8 +3534,6 @@ static const struct resword reswords[] =
   { "__asm__",          RID_ASM,        0 },
   { "__attribute",      RID_ATTRIBUTE,  0 },
   { "__attribute__",    RID_ATTRIBUTE,  0 },
-  { "__bounded",        RID_BOUNDED,    0 },
-  { "__bounded__",      RID_BOUNDED,    0 },
   { "__builtin_choose_expr", RID_CHOOSE_EXPR, 0 },
   { "__builtin_types_compatible_p", RID_TYPES_COMPATIBLE_P, 0 },
   { "__builtin_va_arg", RID_VA_ARG,     0 },
@@ -3437,8 +3562,6 @@ static const struct resword reswords[] =
   { "__signed__",       RID_SIGNED,     0 },
   { "__typeof",         RID_TYPEOF,     0 },
   { "__typeof__",       RID_TYPEOF,     0 },
-  { "__unbounded",      RID_UNBOUNDED,  0 },
-  { "__unbounded__",    RID_UNBOUNDED,  0 },
   { "__volatile",       RID_VOLATILE,   0 },
   { "asm",              RID_ASM,        D_EXT },
   { "auto",             RID_AUTO,       0 },
@@ -3486,9 +3609,6 @@ init_reswords ()
   tree id;
   int mask = (flag_isoc99 ? 0 : D_C89)
               | (flag_no_asm ? (flag_isoc99 ? D_EXT : D_EXT|D_EXT89) : 0);
-
-  if (!flag_objc)
-     mask |= D_OBJC;
 
   /* It is not necessary to register ridpointers as a GC root, because
      all the trees it points to are permanently interned in the
@@ -3682,7 +3802,7 @@ make_macro_string(m,r)
     
   }
   
-  fprintf(stderr, "\n%BLS-I-NOTHING %x line macro expanded to %s\n",lineno,s);
+  fprintf(stderr, "\n%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
   return s;
 }
@@ -3698,6 +3818,31 @@ add_underscore(t,n)
     while (n--)
       ss[IDENTIFIER_LENGTH(t)+n]='_';
     return ss;
+}
+
+/* This is not the ideal place to put these, but we have to get them out
+   of c-lex.c because cp/lex.c has its own versions.  */
+
+/* Parse the file.  */
+void
+c_parse_file (void)
+{
+  yyparse ();
+  /* In case there were missing closebraces, get us back to the global
+     binding level.  */
+  while (! global_bindings_p ())
+    poplevel (0, 0, 0);
+  /* __FUNCTION__ is defined at file scope ("").  This
+     call may not be necessary as my tests indicate it
+     still works without it.  */
+  finish_fname_decls ();
+
+  if (malloced_yyss)
+    {
+      free (malloced_yyss);
+      free (malloced_yyvs);
+      malloced_yyss = 0;
+    }
 }
 
 #include "gt-c-parse.h"
