@@ -1,0 +1,23 @@
+module m=
+begin
+
+structure vector[i; n, unit, ext] =
+[n*unit]
+(vector+i*unit)<0,8*unit>;
+
+routine main=
+begin
+own d:vector[2, 4];
+local m;
+own v:vector[2, 4];
+
+d=%ASCID 'descriptor';
+v=%ASCID 'qwerty';
+
+m=.d;
+
+..d-1
+end;
+
+end
+eludom

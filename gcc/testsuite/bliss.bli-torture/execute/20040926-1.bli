@@ -1,0 +1,17 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+local a;
+
+a=17;
+l=.a<24,8>;
+l=.l-17;
+
+.l
+end;
+
+end
+eludom

@@ -1,0 +1,24 @@
+module m=
+begin
+
+routine swap (x, y)=
+begin
+local temp;
+temp = ..x;
+.x = ..y;
+.y = .temp;
+end;
+
+routine main=
+begin
+local d;
+local m;
+m=1;
+d=0;
+swap(d, m);
+
+.m
+end;
+
+end
+eludom

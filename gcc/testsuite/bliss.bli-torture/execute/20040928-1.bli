@@ -1,0 +1,17 @@
+module m=
+begin
+
+own l;
+own a;
+
+routine main=
+begin
+local s;
+s=PLIT('a little too long string', 42);
+l=..s-7;
+
+.l
+end;
+
+end
+eludom

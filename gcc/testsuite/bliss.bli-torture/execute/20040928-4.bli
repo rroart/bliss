@@ -1,0 +1,20 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+local i;
+l=9;
+
+incr i from 1 to 6 by 3 do
+	( l=.l-1; );
+
+incr i from 1 to 7 do
+	l=.l-1;
+
+.l
+end;
+
+end
+eludom

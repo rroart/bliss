@@ -1,0 +1,28 @@
+module m=
+begin
+
+routine main=
+begin
+local k;
+local l;
+local m;
+k=3;
+l=9;
+m=8;
+
+do
+ k=.k-1
+while .k gtr 1;
+
+do
+begin
+ l=.l-1;
+ m=.m-1;
+end
+until .l eql 1;
+
+.m
+end;
+
+end
+eludom

@@ -1,0 +1,15 @@
+module m=
+begin
+
+routine main=
+begin
+local m;
+m=%X'16';
+
+m=.m-22;
+
+.m
+end;
+
+end
+eludom

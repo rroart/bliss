@@ -1,0 +1,20 @@
+module m=
+begin
+
+routine main=
+begin
+local c;
+local z;
+local i;
+local m;
+c=%ASCIC 'hi';
+i=%ASCII 'hi';
+z=%ASCIZ 'hi';
+
+m=.c-%X'2686900';
+
+.m
+end;
+
+end
+eludom

@@ -1,0 +1,21 @@
+add something in modified files about being modified
+
+proper bitfield semantics
+make return exp work
+fix pointer offsets and adding
+
+check &/* to with function calls
+
+bliss if etc goes for bit 0
+
+check NEQ NEQU etc
+
+check if descriptors on the call stack makes problems or should be like that
+
+make local structure work
+
+rval x[y] does not work properly
+
+decr loop
+
+incr/decr with implicitly declared count

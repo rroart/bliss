@@ -48,11 +48,15 @@ primary exps:
 	routine calls (ordinary)
 	field references (bit)
 	code comments (! ones)
+	numeric literals
+	string literals
+	PLIT (simple)
 computational exps:
 	op exps
 conditional exps:
 	conditional (ifs)
-	tested loop (while)
+	tested loop (pre/post, while/until)
+	indexed loop (incr)
 	return exp
 blocks and decls:
 	blocks (unlabeled)
