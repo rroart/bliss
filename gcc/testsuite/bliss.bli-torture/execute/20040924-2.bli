@@ -1,0 +1,17 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+local m;
+l=1;
+m=1;
+
+if .l eql 1 then (m=0);
+
+.m
+end;
+
+end
+eludom

@@ -1,0 +1,20 @@
+module f1 (main=r)=
+begin
+
+structure myvector[i; n, unit, ext] =
+[n*unit]
+(myvector+i*unit)<0,8*unit>;
+
+own v: myvector[15, 4];
+
+routine main=
+begin
+local l;
+v[5]=3;
+l=.(v+5);
+l=.l-3;
+.l
+end;
+
+end
+eludom

@@ -1,0 +1,20 @@
+module m=
+begin
+
+routine ret(x)=
+begin
+.x-2
+end;
+
+routine main=
+begin
+local l;
+local m;
+l=2;
+m = ret(.l);
+
+.m
+end;
+
+end
+eludom

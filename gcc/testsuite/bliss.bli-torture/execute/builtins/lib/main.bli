@@ -1,0 +1,17 @@
+module m=
+begin
+
+global inside_main;
+
+routine main=
+begin
+external routine main_test;
+inside_main=1;
+main_test();
+inside_main=0;
+0
+end;
+
+end
+eludom
+

@@ -1,0 +1,8 @@
+# This harness is for tests that should be run at all optimisation levels.
+
+load_lib bliss-dg.exp
+
+dg-init
+# was: *.c
+gcc-dg-runtest [lsort [glob $srcdir/$subdir/*.bli]] ""
+dg-finish

@@ -1,0 +1,21 @@
+module m=
+begin
+
+routine main=
+begin
+local l;
+local a;
+
+l=1;
+
+a=17;
+a<4,4>=10;
+a<24,2>=3;
+
+if .a eql 167772369 then (l=0);
+
+.l
+end;
+
+end
+eludom
