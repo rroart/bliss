@@ -99,6 +99,7 @@ int
 bli_parse PARAMS((void));
 
  void get_builtin(void);
+ void add_builtin(void);
  void predef_literal(char * name, int value);
 
  tree igroot;
@@ -567,6 +568,7 @@ mystart: module
 module		: K_MODULE module_head '=' 
 {
   last_expr_filename=input_filename;
+  add_builtin();
 }
 save_location
  start_block K_ELUDOM
@@ -581,7 +583,7 @@ save_location
 |
 expression END_EXPR { last_expr = $1; YYACCEPT; }
 |
-maybe_declaration_list END_BUILTIN { last_expr = $1; YYACCEPT; }
+maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
 ;
 
 module_head	: T_NAME
@@ -1405,10 +1407,16 @@ $$=poplevel (KEEP_MAYBE, 0, 0);
 }
 ;
 
-start_block: K_BEGIN 
-block_body K_END 
-{ $$=$2;} 
-| '(' block_body ')' { $$=$2;} 
+start_block:
+K_BEGIN block_body K_END 
+{
+  $$=$2;
+} 
+|
+'(' block_body ')'
+{
+  $$=$2;
+} 
 ;
 
 
@@ -2542,6 +2550,7 @@ structure_attribute:
   tree type, body_t, size_t, access_t, comp2, access;
   //my_substitute(size,alloc,$3);
   //my_substitute(body,alloc,$3);
+  my_substitute(body,alloc,-1);
   my_fold(size);
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
@@ -3248,7 +3257,7 @@ allocation_name {
   tree t = tree_cons (0, integer_type_node, 0);   
   tree d = tree_cons (t, $1, 0);
  $$ = tree_cons (d, 0, 0);
- push_parm_decl_init($$);
+ push_parm_decl_init($$, $3);
 }
 ;
 
@@ -4780,12 +4789,24 @@ my_substitute_fn  (tp, walk_subtrees, data)
   //  copy_tree_r (tp, walk_subtrees, NULL);
   int i;
   if (DECL_P(*tp)) {
+	 if (l[1]==-1)
+		goto other_minus;
     for(old=TREE_PURPOSE(old);old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
       if (DECL_NAME(*tp)==DECL_NAME(old)) {
-	*tp=TREE_VALUE(new);
-	goto subst_out;
+		  *tp=TREE_VALUE(new);
+		  goto subst_out;
       }
     }
+	 return NULL_TREE;
+  other_minus:
+    for(old=TREE_PURPOSE(old);old;old=TREE_CHAIN(old)) {
+      if (DECL_NAME(*tp)==DECL_NAME(old)) {
+		  if (TREE_CODE(DECL_RESULT(old))==INTEGER_CST)
+			 *tp=copy_node(DECL_RESULT(old));
+		  goto subst_out;
+      }
+    }
+	 return NULL_TREE;
   }
  subst_out:
   /* Keep iterating.  */
@@ -5023,7 +5044,7 @@ void get_builtin(void) {
   add_macro("%bliss32",SIMP_MACRO,0,0,get_identifier("%remaining"));
 
   predef_literal("%bpval",32);
-  predef_literal("%bpunit",4);
+  predef_literal("%bpunit",8);
   predef_literal("%bpaddr",32);
   predef_literal("%upval",4);
 
@@ -5037,6 +5058,29 @@ void get_builtin(void) {
 
   do_builtin=0;
 #endif
+}
+
+// See language reference 11.10
+
+char * bliss_builtin_struct_1 = "structure vector[i; n, unit=4, ext=0] = [n*unit] (vector + i*unit)<0,8*unit,ext>;";
+
+//char * bliss_builtin_struct_1 = "structure vector[i; n, unit=%upval, ext=0] = [n*unit] (vector+i*unit)<0,%bpunit*unit,ext>;";
+
+char * bliss_builtin_struct_2 = "structure bitvector[i; n] = [(n+7)/8] bitvector<i,1>;";
+
+char * bliss_builtin_struct_3 = "structure block[o, p, s, e; bs, unit=4] = [bs*unit] (block+o*unit)<p,s,e>;";
+
+char * bliss_builtin_struct_4 = "structure blockvector[i, o, p, s, e; n, bs, unit=4] = [n*bs*unit] (blockvector+(i*bs+o)*unit)<p,s,e>;";
+
+// was bblock. starlet lets $$block be block_byte
+char * bliss_builtin_struct_5 = "structure block_byte [o, p, s, e; n] = [n] (block_byte + o) <p, s, e>;";
+
+void add_builtin(void) {
+  parse_this(bliss_builtin_struct_1);
+  parse_this(bliss_builtin_struct_2);
+  parse_this(bliss_builtin_struct_3);
+  parse_this(bliss_builtin_struct_4);
+  parse_this(bliss_builtin_struct_5);
 }
 
 int
