@@ -1333,8 +1333,12 @@ pushlevel block_body K_END poplevel
 	 = $$;
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
- $$=$1;
- $$=$3;
+ $$ = $3;
+#if 0
+ $$ = build_nt (BLOCK_BODY, $1, $3);
+ if ($3) TREE_TYPE($$)=TREE_TYPE($3);
+ else TREE_TYPE($$)=void_type_node;
+#endif
 #else
  $$=0;
 #endif
@@ -1419,6 +1423,35 @@ block_action: expression ';' {
 
 maybe_block_value: { $$=build_int_2(0,0); }
 |block_value
+{
+#if 0
+  if ($1) 
+    if (TREE_CODE($1)<SIZEOF_EXPR)
+		c_expand_expr_stmt($1);
+  $$=$1; 
+#endif
+
+  tree type = integer_type_node;
+
+  // next something based on cp build_local_temp
+  tree slot = build_decl (VAR_DECL, NULL_TREE, type);
+  DECL_ARTIFICIAL (slot) = 1;
+  DECL_CONTEXT (slot) = current_function_decl;
+  layout_decl (slot, 0);
+
+  tree decl = slot;
+  tree value = $1;
+  // next something based on cp build_target_expr
+
+  tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value,
+						0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+  TREE_SIDE_EFFECTS (t) = 1;
+  $$ = copy_node(t); //t;
+
+  c_expand_expr_stmt(t);
+  TREE_TYPE($$)=integer_type_node;
+
+}
 ;
 
 block_value: expression 
@@ -3150,7 +3183,8 @@ io_list
 }
 routine_attributes '=' save_location exp 
 { 
-  if ($10) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$10))); $$=0;
+  tree block_value = $10; 
+  if (block_value) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$10))); $$=0;
   finish_function (); 
   POP_DECLSPEC_STACK;
 }
