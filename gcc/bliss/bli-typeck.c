@@ -1231,7 +1231,7 @@ build_indirect_ref (ptr, errorstring)
   tree pointer = default_conversion (ptr);
   tree type = TREE_TYPE (pointer);
 
-  if (TREE_CODE (type) == POINTER_TYPE || TREE_CODE (type) == REFERENCE_TYPE)
+  if (TREE_CODE (type) == POINTER_TYPE /*|| TREE_CODE (type) == INTEGER_TYPE*/ || TREE_CODE (type) == REFERENCE_TYPE)
     {
       if (TREE_CODE (pointer) == ADDR_EXPR
 	  && !flag_volatile
@@ -1241,6 +1241,7 @@ build_indirect_ref (ptr, errorstring)
       else
 	{
 	  tree t = TREE_TYPE (type);
+	  //	  if (t==0) t = integer_type_node;
 	  tree ref = build1 (INDIRECT_REF, TYPE_MAIN_VARIANT (t), pointer);
 
 	  if (!COMPLETE_OR_VOID_TYPE_P (t) && TREE_CODE (t) != ARRAY_TYPE)
@@ -3047,9 +3048,12 @@ build_unary_op (code, xarg, flag)
 
       /* Anything not already handled and not a true memory reference
 	 or a non-lvalue array is an error.  */
+#if 0
+      // testing without
       else if (typecode != FUNCTION_TYPE && !flag
 	       && !lvalue_or_else (arg, "invalid lvalue in unary `&'"))
 	return error_mark_node;
+#endif
 
       /* Ordinary case; arg is a COMPONENT_REF or a decl.  */
       argtype = TREE_TYPE (arg);
@@ -3153,6 +3157,7 @@ lvalue_p (ref)
     {
     case REALPART_EXPR:
     case IMAGPART_EXPR:
+    case BIT_FIELD_REF:  
     case COMPONENT_REF:
       return lvalue_p (TREE_OPERAND (ref, 0));
 

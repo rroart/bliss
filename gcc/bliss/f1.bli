@@ -4,6 +4,20 @@ begin
 !vector[i; n, unit, ext] =
 ![n*unit] 
 !(vector + i*unit)<0,8*unit>;
+
+routine prepredummy=
+begin
+external routine undecl;
+own a;
+a=17;
+a<4,4>=10;
+a<24,2>=3;
+!69188<24,2>=3;
+undecl(128,.a);
+end;
+
+routine predummy=3;
+
 routine dummy2=
 begin
 !own def : vector[5];
@@ -27,14 +41,15 @@ end;
 
 routine zzzz=
 begin
-own mybyte: byte;
-own myword: word;
+!own mybyte: byte;
+!own myword: word;
 external routine undecl;
-mybyte=4;
-myword=3333;
-mybyte=.myword;
-undecl(.mybyte,.myword);
-undecl(65535,1);
+!mybyte=4;
+!myword=3333;
+!mybyte=.myword;
+!undecl(.mybyte,.myword);
+!undecl(65535,1);
+undecl(43,43);
 end;
 
 routine pppp(par1, par2)=
@@ -45,9 +60,12 @@ undecl(64,96);
 undecl(par1, par2);
 undecl(.par1,.par2);
 !par2=3;
-myown=par1<16,8>;
+myown=par1<48,8>;
+undecl(par1, .myown);
+myown=(.par1)<0,8>;
 undecl(par1, .myown);
 undecl(64,97);
+prepredummy();
 end;
 
 routine q=3;
