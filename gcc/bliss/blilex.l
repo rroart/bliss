@@ -526,7 +526,10 @@ hexdigit [0-9a-f]
 	 char * my_end=strchr(my_yytext, ')');
 	 int my_yyleng=1+my_end-my_yytext;
 	 *my_end=0;
+	 int is32v=my_strcasestr(my_yytext,"32v");
 	 int is32=strstr(my_yytext,"32"); // shortcut
+	 if (is32v)
+		is32=0;
 	 *my_end=')';
 	 char myline[255];
 	 printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
@@ -1645,6 +1648,11 @@ hexdigit [0-9a-f]
 	 goto ifall;
   }
 
+  if (macrostart==0) {
+	 yyless(0);
+	 goto ifall;
+  }
+
   if (macrostart) {
     switch (*yytext) {
     case ']':
@@ -1679,9 +1687,12 @@ hexdigit [0-9a-f]
   }
  out:
 
-  newmacrocomma=*yytext==',';
+  newmacrocomma=*yytext;
 
-  if (macrocomma && newmacrocomma) chainon(macroact,tree_cons(0,0,0));
+  if (macrocomma && newmacrocomma==',') {
+	 fprintf(stderr,"macroact chainon\n");
+	 //chainon(macroact,tree_cons(0,0,0));
+  }
 
   macrocomma=newmacrocomma;
 
@@ -1690,7 +1701,13 @@ hexdigit [0-9a-f]
 <macro>{name}|{digit}+				{
   downcase (yytext);
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
-  macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
+  if (macrocomma=='=') {
+	 TREE_TYPE(macroact)=copy_node(get_identifier(strdup(yytext)));
+	 goto out_macro_comma;
+  }
+  if (macrocomma) 
+	 macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
+ out_macro_comma:
   macrocomma=1;
 }
 
