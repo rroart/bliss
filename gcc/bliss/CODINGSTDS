@@ -1,0 +1,289 @@
+================================
+Coding Standards for BLISSForGCC
+================================
+
+Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, the Front-Cover texts being nothing, and
+with the Back-Cover Texts being nothing.  A copy of the
+license is included in the file named fdl.texi.
+
+1. Why Coding Standards?
+========================
+
+1.1.  To ensure portability. 
+1.2.  To make it possible to understand code quickly. 
+1.3.  To prevent common problems. 
+1.4.  To ensure code is tested.
+1.5.  To assist reuse and ensure copyright is clear.
+
+This document provides a brief and hopefully useful summary of the
+coding standards.  The FSF and GCC standards, which this standard uses,
+total about 70 pages but this should be all you need.
+
+The standard is not perfect, but it is better than no standard and it
+works.  Therefore to be accepted, code needs to conform to the
+standard.
+
+The most useful thing you can contribute to the project is working,
+tested, compliant code.  
+
+Type of code               | Value
+---------------------------+------
+                           |  
+Untested noncompliant code |  0
+Untested compliant code    |  2
+Tested noncompliant code   |  5
+Tested compliant code      | 10
+
+However, absolute perfection is not needed.  This is pragmatic
+requirement to meet the needs listed above. 
+
+2.  Where Do the Standards Come From?
+====================================
+
+These standards consist of the Free Software Foundation coding
+standards (http://www.fsf.org/prep/standards.html) amended by the GCC
+coding standards (http://gcc.gnu.org/???) plus project specific
+standards.
+
+3.  The Standard
+===============
+
+These standards are listed in order of importance and likelihood of
+being an issue.  The source of a given rule is given as: FSF = Free
+Software Foundation standards; GCC = GCC standards; BLI = BLISSForGCC
+standards.  
+
+3.1.  File Name Structure (BLI).  
+-----------------------------
+
+3.1.1 Compiler: bliss/blic*
+
+3.1.2 Runtime: bliss/blir_*
+
+3.1.3 Runtime Tests: bliss/test_blir_*
+
+3.1.4 Compiler tests: testsuite/bliss/a14gcciNN.bli.  Expected output
+of compile a14gcc.outNN (standard output) and a14gcc.outNNerr
+(standard error).  Expected output of running of program
+a14gccoNNrunpgm (standard output) and a14gccoNNrunpgmerr (standard
+error). The return code expected is specified qin the file blisstests.exp. 
+
+3.1.5 The names of related files should be related in a logical way
+e.g.  blir_x.c would be tested by test_blir_x.c.
+
+3.2.  Clean Compilation (GCC).
+-----------------------------
+
+3.2.1 (GCC) Compile programs with gcc with the options "-W -Wall -Wwrite-strings
+-Wstrict-prototypes -Wmissing-prototypes" and  ensure a clean compile
+with no warnings.  
+
+3.3.  Tests (BLI).
+-----------------
+
+3.3.1 (BLI) Every feature must have a test.  For runtime routines that test is one
+or more programs that
+
+3.3.2.1.  produce output sufficient to check correctness.
+
+3.3.2.2.  have a defined return/exit code.
+
+3.3.2.3.  do not depend on manual input (an input file is OK).  
+
+3.3.2.4.  cover the possible cases sufficiently.  
+
+3.4.  Comments (GCC, BLI)
+------------------------
+
+3.4.1.  A comment at the start of the file...
+
+3.4.1.1.  describing briefly the function of the file/program.
+
+3.4.1.2.  that includes a copyright statement.  
+
+3.4.1.2.1.  for compiler code or utilities, the GPL version (base on
+blicc1.c).
+
+3.4.1.2.2.  For runtime code, the LGPL version (base on blir_main.c)
+and copyright yourself or the Free Software Foundation.
+
+3.4.1.2.3.  For compiler code, the copyright must be Free Software
+Foundation.  You (and possibly your employer and school) will need to
+lodge the appropriate copyright assignment before contributing such
+code.  Runtime code can be copyright yourself though. 
+
+3.4.2.  A comment before every function 
+
+3.4.2.1.  listing all parameters in UPPER CASE with usage and meaning.
+
+3.4.2.2.  describing the meaning of the returned value if any.  
+
+3.4.2.3.  briefly describing what the function does.
+
+3.4.3.  A comment before every static or global variable indicating its
+purpose and meaning.
+
+3.4.4.  A ChangeLog entry for each change.  Include a brief indication
+what you are doing, then details of each change by function and
+global/static variable affected.  These go in the ChangeLog file in the
+directory concerned, with most recent at the top.  For example:
+
+2002-05-11  Tim Josling  <tej@melbpc.org.au>
+
+        Adding support for Gray format integers.
+
+	* gray.c: New file.  
+
+        * blicc1.c (option_test): recognize -gray option
+        (option_gray): record -gray option status.
+
+3.4.5.  All comments in English.
+
+3.4.6.  Avoid flowerpot comments, as they are annoying to maintain.
+Simple /* Comment.  Comment2.  */ comments will suffice.
+
+3.4.7.  Within comments, follow a full stop by two spaces or a
+newline.  Every sentence should start with a capital letter.  
+
+3.5.  Names (FSF)
+----------------
+
+3.5.1.  Use meaningful names, indicating what the variable or functon
+is, but not overly long, except for completely trivial loop indexes
+for which you can use i,j.  
+
+3.5.2.  Macro names in UPPER CASE e.g.  BLI_INT.
+
+3.5.3.  Other names in lower case, with words separated by "_"
+e.g.  convert_upper.
+
+3.5.4.  No polish style variable names.  e.g.  pzString.  
+
+3.5.5.  All names in English.  
+
+3.6.  Types (BLI)
+----------------
+
+3.6.1.  For all integral, character, string and floating types, use
+the types defined in blir_temp_config.h.  The source files should not
+have any char, int, etc.  This is to ensure portability.  One man's
+int is another man's long.  Eventually this file will be built from the
+configuration process to different values per machine.
+
+3.6.2.  Use BLI_UINT8 (= unsigned char usually) for most character and
+string variables, or BLI_INT8 for signed where necessary, although
+signed char seems to cause a lot of problems so should only be used
+where needed.  Where char is needed, cast to BLI_CHAR e.g.  to avoid
+warnings of type mismatch when calling string functions.
+
+3.6.1.  Use BLI_UINT32 for most ints, or BLI_INT32 for signed.  
+
+3.7.  Layout (FSF, GCC, BLI).  
+----------------------------
+
+3.7.1.  No line longer than 80 characters.  
+
+3.7.2.  No tabs in source files.  
+
+3.7.3.  As for whitespace, follow the GCC formatting
+recommendations.  The program look is like this:
+
+/* Add together A and B and return their sum, truncated to an integer.
+   Note this function does not actually seem to work.  */
+
+BLI_INT32
+my_function (BLI_FLOAT_DOUBLE A, BLI_FLOAT_DOUBLE B)
+{
+  BLI_CHAR *bar;
+  if (x < foo (y, z))
+    haha = bar[4] + 5;
+  else
+    {
+      while (z)
+        {
+          haha += foo (z, z);
+          z--;
+        }
+      return ++x + bar ();
+    }
+}
+
+Note that there are lots of spaces, especially after commas, around
+most operators, and before parentheses.  However pointer derefencing
+and auto-increment do not have spaces after them.  Braces are on their
+own line.  The top level braces of a function start right at the start
+of the line and the function name also starts at the start of the
+line.  
+
+3.7.4.  Every #endif should have a comment indicating which #if it
+corresponds to.
+
+3.7.5.  The GCC standard requires placement of ^L every so often to
+make printouts look better.  This is optional because noone uses
+printouts any more.
+
+3.7.6.  Files in Unix format (line feed at end) rather than doc format
+(carriage return line feed at end). The DOS2UNIX utility can be used
+to fix this up. 
+
+3.8.  Declarations
+-----------------
+
+3.8.1.  Declare structs and unions separately from any data items.  
+
+3.8.2.  All functions need a full prototype.  If a function is used in
+more than one file, it needs a prototype in a .h file.  Otherwise if it
+is local to one file, make it static.  
+
+3.9.  System Environment
+-----------------------
+
+3.9.1.  See the GCC and FSF standards for limitations on use of system
+functions (only use standard C functions and do not rely on the return
+value of sprintf, avoid vfprintf), Makefile structure, use of
+utilities in a Makefile, error message formats, standards for option
+processing, library name standards, etc.
+
+3.10.  Robustness.
+-----------------
+
+3.10.1.  Check the result of every function and take appropriate
+action.
+
+3.10.2.  Do not have any hard coded limits.  If this is unavoidable
+(e.g. based on word size limitations), then document the limit and
+test for its being exceeded.  
+
+3.11.  Extreme Programming
+-------------------------
+
+3.11.1.  Every feature must have a test.  
+
+3.11.2.  Only write the code you need to implement the feature you are
+implementing.  
+
+3.11.3.  Do not over generalize.  Most probably "You ain't gonna need
+it!" and it will slow you down.
+
+3.11.4.  When a piece of code is needed in two different places,
+refactor it out into a common subroutine unless this makes it
+significantly more complex.
+
+3.11.5.  Keep functions short and comprehensible.  Do the simplest thing
+that is likely to work.  
+
+3.11.6.  Do not reinvent the wheel.  Reuse existing code where this makes
+sense.  We are not going to run out of code to write any time soon.  It
+is most productive to add new features rather than to rewrite existing
+features.  Rewriting existing features also annoys the people who wrote
+the original code.  So only do so if necessary.  
+
+-------------------
+
+Tim Josling
+May 2002

@@ -1,0 +1,125 @@
+Bliss for GCC
+*************
+
+This is a BLISS compiler for linux. It is currently the official 'GNU
+BLISS' and it is intended to integrate it with the GCC compiler at a
+later stage.
+
+It is at an early stage of development and is made available for
+information only - it would not be any use to anyone at this stage.
+
+It is probably fairly portable to other Unix-like operating systems as
+well. For DOS and its successors there will be some issues (file name
+delimiters, line delimiters, command line length, BSOD) but it is
+probably do-able.
+
+See progress to date below for the functions delivered.
+
+See bliss.texi, tree.texi or the html files generated from them for a
+list of files and their functions and all the other documentation.
+
+NO WARRANTY.
+************
+
+This is free software (GPL/LGPL) and has no warranty. See COPYING and
+COPYING.LIB for restrictions on copying the software. If the absence
+of the warranty or the restrictions on copying are unacceptable, don't
+use or copy the program.
+
+You should do any testing and analysis required to verify correct
+operation of the program before you rely on it in any way.
+
+---
+
+This program is free software; you can redistribute it and/or modify it  
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, 59 Temple Place - Suite 330,
+Boston, MA 02111-1307, USA.
+
+In other words, you are welcome to use, share and improve this program.
+You are forbidden to forbid anyone else to use, share and improve
+what you give them.   Help stamp out software-hoarding!  
+
+---
+   
+The runtime libraries are be under a different and less restrictive
+licence (LGPL - the GNU LIBRARY GENERAL PUBLIC LICENSE. See the file
+COPYING.LIB for details). You may therefore be able to build a
+commercial or otherwise closed source product with this program if you
+wish.
+
+Progress to date
+****************
+
+Features implemented so far are
+
+Utilities:
+
+to expand tabs, convert ascii <-> ebcdic, convert fixed format
+records to variable format and convert between DOS and Unix text
+formats.
+
+Preprocessor (blipre) to handle:
+
+- line continuations
+- copy and replace verbs
+- comment-entries
+
+Main compiler (blicc1):
+
+Grammar for nucleus level 2 and a few other features. Including all
+the hacks to get bison to recognise the BLISS grammar. See blicprs.tpl
+for details.
+
+I have most of the so-called compiler subset working now. See
+blicprs.tpl for details of the compiler subset. What is left to do is
+CALL/FUNCTIONS. This subset will be sufficient to write the remaining
+runtime routines in this subset of BLISS.
+
+Some of the runtime routines for other nucleus functions are done such
+as move edited, unedit, string, unstring, inspect.
+
+Features not implemented
+************************
+
+Most of bliss. See the bliss.texi file.
+
+Objective:
+**********
+
+Full BLISS 85 implementation with selective extensions from specific
+BLISS implementations and from the draft BLISS 2002 standard. 
+
+Building Instructions:
+**********************
+
+See the bliss.texi file (find 'installation').
+
+Note that you need the latest GCC snapshot to do a successful build
+(ie the latest weekly snapshot).. See blicc1.c for details of the
+latest snapshot used by the current source.
+
+Credits
+*******
+
+AUTHORS has the credits. 
+
+Contributors are welcome
+************************
+
+See the bliss.texi file. Main points being: every piece of code must
+have an automated test; GNU coding standards are used - meaningful
+variable names + comments detailing the interface to each function
+(see file CODINGSTDS).
+
+Send bug reports, fixes, enhancements. 

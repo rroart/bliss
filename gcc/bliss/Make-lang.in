@@ -1,0 +1,801 @@
+# Top level makefile fragment for BLISS For GCC. -*- makefile -*-
+# Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+
+#This file is part of GNU CC.
+
+#GNU CC is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2, or (at your option)
+#any later version.
+
+#GNU CC is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with GNU CC; see the file COPYING.  If not, write to
+#the Free Software Foundation, 59 Temple Place - Suite 330,
+#Boston, MA 02111-1307, USA.
+
+# This file provides the language dependent support in the main Makefile.
+# Each language makefile fragment must provide the following targets:
+#
+# foo.all.build, foo.all.cross, foo.start.encap, foo.rest.encap,
+# foo.info, foo.dvi,
+# foo.install-normal, foo.install-common, foo.install-info, foo.install-man,
+# foo.uninstall, foo.distdir,
+# foo.mostlyclean, foo.clean, foo.distclean, foo.extraclean,
+# foo.maintainer-clean, foo.stage1, foo.stage2, foo.stage3, foo.stage4
+#
+# where `foo' is the name of the language.
+#
+# It should also provide rules for:
+#
+# - making any compiler driver (eg: gcc)
+# - the compiler proper (eg: bliss)
+# - define the names for selecting the language in LANGUAGES.
+#
+
+## note program-prefix and program-suffix options are not supported
+## just program_transform_name which is a sed script to transform the
+## names
+
+LEX = flex
+
+# bison for the preprocessor and maybe something else for the main compiler. 
+
+#YACC = msta
+#YACCFLAGS = 
+
+# xxx; need dependencies on the configuration files. 
+
+# back end compiler libraries etc
+BLI_BE_LIBS = toplev.o main.o libbackend.a $(LIBIBERTY) $(INTLLIBS) $(LIBS) $(LIBDEPS) 
+BLI_PRE_LIBS = $(LIBIBERTY) 
+#safe-ctype.o
+BLISS_EXTRAS = -B./ -B./bliss/
+blisrc=$(srcdir)/bliss
+#-I./ -I./include
+#GCC_FOR_BLISS = ./xgcc
+#$(CC) 
+#./xgcc 
+# $(BLISS_EXTRAS)
+#	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+#	  -DTARGET_NAME=\"$(target_alias)\" \
+#	  -c $(srcdir)/toplev.c $(OUTPUT_OPTION)
+GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
+	    echo ./xgcc ; \
+	 else \
+	    echo $(CC) ; \
+	 fi`
+
+BLI_GENERATED = $(blisrc)/blia2e.c $(blisrc)/blie2a.c $(blisrc)/blid2u.c\
+	$(blisrc)/bliu2d.c $(blisrc)/bliutab.c\
+	$(blisrc)/blif2v.c $(blisrc)/blippr1.c $(blisrc)/blippr1.y\
+	$(blisrc)/blippr1.h\
+	$(blisrc)/blickw.txt $(blisrc)/blickw.c\
+	$(blisrc)/blicprs.y $(blisrc)/blicprs.c $(blisrc)/bliclex.c\
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(blisrc)/blictkt.h
+
+BLI_EXES = bliss/blia2e$(exeext) bliss/blie2a$(exeext) bliss/blid2u$(exeext) bliss/bliu2d$(exeext) \
+	bliss/bliutab$(exeext)\
+	bliss/blif2v$(exeext) bliss/blipre$(exeext) bliss/test_bliutil$(exeext)\
+	bliss/test_blir_display$(exeext)\
+	bliss/test_blir_inspect_replacing$(exeext)\
+	bliss/test_blir_inspect_converting$(exeext)\
+	bliss/test_blir_inspect_tallying$(exeext)\
+	bliss/test_blir_compare$(exeext)\
+	bliss/test_blir_string$(exeext)\
+	bliss/test_blir_exponentiation$(exeext)\
+	bliss/test_blir_cmp$(exeext)\
+	bliss/test_blir_convert$(exeext)\
+	bliss/test_blir_moveall$(exeext)\
+	bliss/test_blir_stop$(exeext)\
+	bliss/test_blir_bin128$(exeext) bliss/test_blir_decbin$(exeext)\
+	bliss/test_blir_editMove$(exeext) bliss/bli1$(exeext)\
+	bliss/test_blir_intrinsic_case_conversions$(exeext) 
+
+BLISS_TEST_DRIVERS = bliss/test_bliutil$(exeext) bliss/test_blir_bin128$(exeext) \
+	bliss/test_blir_decbin$(exeext) bliss/test_blir_editMove$(exeext)\
+	bliss/test_blir_display$(exeext)\
+	bliss/test_blir_compare$(exeext)\
+	bliss/test_blir_inspect_replacing$(exeext)\
+	bliss/test_blir_inspect_converting$(exeext)\
+	bliss/test_blir_inspect_tallying$(exeext)\
+	bliss/test_blir_string$(exeext)\
+	bliss/test_blir_exponentiation$(exeext)\
+	bliss/test_blir_cmp$(exeext)\
+	bliss/test_blir_intrinsic_case_conversions$(exeext)\
+	bliss/test_blir_convert$(exeext)\
+	bliss/test_blir_moveall$(exeext)\
+	bliss/test_blir_stop$(exeext)
+
+BLI_LIBS = bliss/libbli4gcc.a
+
+BLI_NEW_UTIL_H = $(blisrc)/bliumsc.h $(blisrc)/bliumsg.h $(blisrc)/bliumem.h\
+	$(blisrc)/blir_temp_config.h\
+	$(blisrc)/blir_globals.h $(blisrc)/blidebug.h 
+
+BLI_NEW_UTIL_C = $(blisrc)/bliumsc.c $(blisrc)/bliumsg.c $(blisrc)/bliumem.c
+
+BLI_NEW_UTIL = $(BLI_NEW_UTIL_H) $(BLI_NEW_UTIL_C) 
+
+BLI_NEW_UTILS = bliss/bliumsc.o bliss/bliumsg.o bliss/bliumem.o
+
+#no -Wtraditional warnings, allow long long
+bliss-warn = $(LOOSE_WARN) -pedantic -Wno-long-long -Wmissing-prototypes -Wmissing-declarations
+
+#
+# Define the names for selecting bliss in LANGUAGES.
+
+.phony: bliss BLISS
+
+bliss BLISS:bliss.done bliss.check.drivers.done
+
+bliss.done: bliss/blia2e$(exeext) bliss/blie2a$(exeext) bliss/blid2u$(exeext) bliss/bliu2d$(exeext)\
+	bliss/bliutab$(exeext) bliss/blif2v$(exeext) bliss/blipre$(exeext) bliss/bli1$(exeext)\
+	bliss/libbli4gcc.a
+	${STAMP} bliss.done
+
+# little utility programs
+
+bliss/blia2e$(exeext): bliss/blia2e.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/blia2e.o bliss/bliutil.o 
+
+bliss/blie2a$(exeext): bliss/blie2a.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/blie2a.o bliss/bliutil.o 
+
+bliss/blid2u$(exeext): bliss/blid2u.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/blid2u.o bliss/bliutil.o 
+
+bliss/bliu2d$(exeext): bliss/bliu2d.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/bliu2d.o bliss/bliutil.o 
+
+bliss/bliutab$(exeext): bliss/bliutab.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/bliutab.o bliss/bliutil.o 
+
+bliss/blif2v$(exeext): bliss/blif2v.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/blif2v.o bliss/bliutil.o 
+
+# preprocessor
+
+bliss/blipre$(exeext): bliss/blipre.o bliss/blipre1.o $(BLI_NEW_UTILS)\
+	 bliss/bliplex.o bliss/blippr1.o bliss/blippru.o bliss/blipmsg.o $(BLI_PRE_LIBS)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) $(ALL_CFLAGS) $(LDFLAGS) -o $@ bliss/blipre.o bliss/blipre1.o\
+	 $(BLI_NEW_UTILS)\
+	 bliss/bliplex.o bliss/blippr1.o bliss/blippru.o bliss/blipmsg.o $(BLI_PRE_LIBS)
+
+# core compiler 
+bliss/bli1$(exeext): bliss/blicgty.o bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o\
+	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
+	 bliss/blicast.o bliss/blicbei.o c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
+	 bliss/blicc1.o bliss/blickw.o bliss/bliclex.o attribs.o\
+	 bliss/blicpru.o bliss/blicsyt.o bliss/blicprs.o $(BLI_NEW_UTILS) bliss/blicmsg.o\
+	 bliss/blicast.o bliss/blicbei.o bliss/blicgty.o c-convert.o c-common.o c-typeck.o c-decl.o $(BLI_BE_LIBS) 
+
+# test drivers
+.phony: bliss-check
+check-bliss: bliss.check
+bliss.check.drivers.done: $(BLISS_TEST_DRIVERS)
+	${STAMP} bliss.check.drivers.done
+
+bliss/test_bliutil$(exeext): bliss/test_bliutil.o bliss/bliutil.o
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_bliutil.o bliss/bliutil.o
+
+bliss/test_blir_bin128$(exeext): bliss/blir_bin128LLL.o bliss/blir_bin128ULLL.o bliss/test_blir_bin128.o \
+	bliss/test_blir_bin128_debug.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_bin128.o bliss/blir_bin128LLL.o \
+	bliss/blir_bin128ULLL.o bliss/test_blir_bin128_debug.o bliss/bliutil.o 
+
+bliss/test_blir_decbin$(exeext): bliss/blir_decbin.o bliss/blir_decbin16.o \
+	bliss/blir_decbin32.o bliss/blir_decbin64.o bliss/blir_globals.o bliss/test_blir_decbin.o\
+	bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_decbin.o \
+	bliss/blir_decbin.o bliss/blir_decbin16.o bliss/blir_decbin32.o \
+	bliss/blir_decbin64.o bliss/blir_globals.o bliss/bliutil.o 
+
+bliss/test_blir_editMove$(exeext): bliss/test_blir_editMove.o bliss/blir_editMove.o bliss/blir_overpunch.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_editMove.o bliss/blir_editMove.o bliss/blir_overpunch.o  bliss/bliutil.o 
+
+bliss/test_blir_display$(exeext): bliss/test_blir_display.o bliss/blir_display.o\
+	bliss/blir_editMove.o bliss/blir_overpunch.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_display.o bliss/blir_display.o\
+	bliss/blir_editMove.o bliss/blir_overpunch.o bliss/bliutil.o 
+
+bliss/test_blir_compare$(exeext): bliss/test_blir_compare.o bliss/blir_compare.o bliss/blir_overpunch.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_compare.o bliss/blir_compare.o \
+	bliss/blir_overpunch.o  bliss/bliutil.o 
+
+bliss/test_blir_string$(exeext): bliss/test_blir_string.o bliss/blir_string.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_string.o bliss/blir_string.o  bliss/bliutil.o 
+
+bliss/test_blir_exponentiation$(exeext): bliss/test_blir_exponentiation.o bliss/blir_exponentiation.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_exponentiation.o bliss/blir_exponentiation.o  bliss/bliutil.o 
+
+bliss/test_blir_cmp$(exeext): bliss/test_blir_cmp.o bliss/blir_cmp.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_cmp.o bliss/blir_cmp.o  bliss/bliutil.o 
+
+bliss/test_blir_intrinsic_case_conversions$(exeext): bliss/test_blir_intrinsic_case_conversions.o bliss/blir_intrinsic_case_conversions.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_intrinsic_case_conversions.o bliss/blir_intrinsic_case_conversions.o  bliss/bliutil.o 
+
+bliss/test_blir_convert$(exeext): bliss/test_blir_convert.o bliss/blir_convert.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_convert.o bliss/blir_convert.o  bliss/bliutil.o 
+
+bliss/test_blir_moveall$(exeext): bliss/test_blir_moveall.o bliss/blir_moveall.o  bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_moveall.o bliss/blir_moveall.o  bliss/bliutil.o 
+
+bliss/test_blir_stop$(exeext): bliss/test_blir_stop.o bliss/blir_display.o bliss/blir_stop.o bliss/blir_editMove.o bliss/blir_overpunch.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_stop.o bliss/blir_display.o\
+	bliss/blir_stop.o\
+	bliss/blir_editMove.o bliss/blir_overpunch.o bliss/bliutil.o 
+
+bliss/test_blir_inspect_converting$(exeext): bliss/test_blir_inspect_converting.o\
+	bliss/blir_inspect_converting.o	bliss/blir_inspect_index.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_inspect_converting.o\
+	bliss/blir_inspect_converting.o bliss/blir_inspect_index.o bliss/bliutil.o 
+
+bliss/test_blir_inspect_tallying$(exeext): bliss/test_blir_inspect_tallying.o\
+	bliss/blir_inspect_tallying.o bliss/blir_inspect_index.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_inspect_tallying.o\
+	bliss/blir_inspect_tallying.o bliss/blir_inspect_index.o bliss/bliutil.o 
+
+bliss/test_blir_inspect_replacing$(exeext): bliss/test_blir_inspect_replacing.o\
+	bliss/blir_inspect_replacing.o bliss/blir_inspect_index.o bliss/bliutil.o 
+	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ bliss/test_blir_inspect_replacing.o\
+	bliss/blir_inspect_replacing.o bliss/blir_inspect_index.o bliss/bliutil.o 
+
+#
+# Compiling object files from source files.
+
+# Note that dependencies on obstack.h are not written
+# because that file is not part of GCC.
+
+bliss/libbli4gcc.a: bliss/blir_main.o bliss/blir_bin128LLL.o bliss/blir_decbin32.o bliss/blir_globals.o bliss/blir_bin128ULLL.o bliss/blir_decbin64.o bliss/blir_stop.o bliss/blir_decbin.o bliss/blir_display.o bliss/blir_compare.o bliss/blir_string.o bliss/blir_decbin16.o bliss/blir_editMove.o bliss/blir_overpunch.o bliss/blir_exponentiation.o bliss/blir_convert.o bliss/blir_moveall.o  bliss/blir_cmp.o bliss/blir_intrinsic_case_conversions.o bliss/blir_MP_add.o
+	-rm -f bliss/libbli4gcc.a
+	$(AR_CREATE_FOR_TARGET) bliss/libbli4gcc.a bliss/blir_main.o bliss/blir_bin128LLL.o bliss/blir_decbin32.o bliss/blir_globals.o bliss/blir_bin128ULLL.o bliss/blir_decbin64.o bliss/blir_stop.o bliss/blir_decbin.o bliss/blir_display.o bliss/blir_compare.o bliss/blir_string.o bliss/blir_exponentiation.o bliss/blir_decbin16.o bliss/blir_editMove.o bliss/blir_overpunch.o bliss/blir_convert.o  bliss/blir_moveall.o bliss/blir_cmp.o bliss/blir_intrinsic_case_conversions.o 
+	if $(RANLIB_TEST_FOR_TARGET) ; then $(RANLIB_FOR_TARGET) bliss/libbli4gcc.a; else true; fi;
+
+# object file makes
+
+bliss/blia2e.o: $(blisrc)/blia2e.c \
+	$(BLI_UTIL_H) $(blisrc)/blia2ex.h $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blie2a.o: $(blisrc)/blie2a.c $(BLI_UTIL_H) \
+	$(blisrc)/blie2ax.h $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blid2u.o: $(blisrc)/blid2u.c $(BLI_UTIL_H) $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliu2d.o: $(blisrc)/bliu2d.c $(BLI_UTIL_H) $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliutab.o: $(blisrc)/bliutab.c $(BLI_UTIL_H) $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blif2v.o: $(blisrc)/blif2v.c $(BLI_UTIL_H) $(blisrc)/bli_version.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliutil.o: $(blisrc)/bliutil.c $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_bliutil.o: $(blisrc)/test_bliutil.c $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliplex.o: $(blisrc)/bliplex.c $(blisrc)/blipre.h \
+	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
+	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blippr1.o: $(blisrc)/blippr1.c $(blisrc)/blipre.h \
+	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blipre.o: $(blisrc)/blipre.c $(blisrc)/blipre.h \
+	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
+	$(blisrc)/blippr1b.h \
+	$(BLI_NEW_UTIL_H) $(blisrc)/bli_version.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blipre1.o: $(blisrc)/blipre1.c $(blisrc)/blipre.h \
+	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
+	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blippru.o: $(blisrc)/blippru.c $(blisrc)/blipre.h \
+	$(blisrc)/bliplx2.h $(blisrc)/bliplex.h \
+	$(blisrc)/blippr1b.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blickw.o: $(blisrc)/blickw.c $(blisrc)/bliclex.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliclex.o: $(blisrc)/bliclex.c $(blisrc)/bliclex.h \
+	 $(blisrc)/blicsymn.h $(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
+	 $(blisrc)/blicpru.h $(BLI_UTIL_H) \
+	 $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicpru.o: $(blisrc)/blicpru.c $(blisrc)/blicpru.h \
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyt.h \
+	$(blisrc)/bliclex.h $(blisrc)/blicc1.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicsyt.o: $(blisrc)/blicsyt.c $(blisrc)/blicsyt.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blicsymn.h 
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicprs.o: $(blisrc)/blicprs.c $(blisrc)/bliclex.h\
+	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h $(blisrc)/blicpru.h $(BLI_UTIL_H)\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicc1.o: $(blisrc)/blicc1.c $(blisrc)/blicc1.h \
+	$(blisrc)/blicsyt.h $(blisrc)/blicpru.h $(blisrc)/blictkt.h \
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_NEW_UTIL_H) \
+	$(blisrc)/bli_version.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicbei.o: $(blisrc)/blicbei.c $(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
+	$(blisrc)/blicsyt.h\
+	$(blisrc)/blicpru.h $(blisrc)/blictkt.h\
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H)\
+	config.h $(srcdir)/system.h $(srcdir)/tree.h\
+	$(srcdir)/flags.h $(srcdir)/output.h\
+	$(srcdir)/c-tree.h\
+	$(srcdir)/rtl.h tm_p.h $(srcdir)/ggc.h $(srcdir)/toplev.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+# $(srcdir)/c-lex.h
+#	config.h $(srcdir)/system.h (srcdir)/ansidecl.h $(srcdir)/tree.h\
+
+bliss/blicgty.o: $(blisrc)/blicgty.c $(blisrc)/blicgty.h \
+	gtype-bliss.h \
+	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h\
+	$(blisrc)/blicsyt.h $(blisrc)/bliumem.h \
+	$(blisrc)/blicpru.h $(blisrc)/blictkt.h\
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H)\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicast.o: $(blisrc)/blicast.c\
+	$(blisrc)/blicc1.h $(blisrc)/blicsyt.h \
+	$(blisrc)/blicpru.h $(blisrc)/blictkt.h \
+	$(blisrc)/blicsymn.h $(blisrc)/blicsyms.h $(BLI_UTIL_H) $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliumem.o: $(blisrc)/bliumem.c  $(BLI_NEW_UTIL_H) 
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliumsc.o: $(blisrc)/bliumsc.c $(BLI_NEW_UTIL_H) 
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/bliumsg.o: $(blisrc)/bliumsg.c  $(BLI_NEW_UTIL_H) 
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blipmsg.o: $(blisrc)/blipmsg.c  $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blicmsg.o: $(blisrc)/blicmsg.c  $(BLI_NEW_UTIL_H) $(blisrc)/blicc1.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_bin128LLL.o: $(blisrc)/blir_bin128LLL.c \
+	$(blisrc)/blir_bin128LLL.h $(blisrc)/blir_bin128.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_bin128ULLL.o: $(blisrc)/blir_bin128ULLL.c \
+	$(blisrc)/blir_bin128ULLL.h $(blisrc)/blir_bin128.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_bin128.o: $(blisrc)/test_blir_bin128.c  \
+	$(blisrc)/blir_bin128.h  $(blisrc)/blir_bin128LLL.h\
+	$(blisrc)/blir_bin128ULLL.h  $(blisrc)/test_blir_bin128_debug.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_bin128_debug.o: $(blisrc)/test_blir_bin128_debug.c \
+	$(blisrc)/test_blir_bin128_debug.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_decbin.o: $(blisrc)/blir_decbin.c $(blisrc)/blir_decbin.h \
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_editMove.o: $(blisrc)/blir_editMove.c $(blisrc)/blir_editMove.h \
+	$(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_overpunch.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_decbin16.o: $(blisrc)/blir_decbin16.c $(blisrc)/blir_decbxx.h \
+	$(blisrc)/blir_decbin.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_decbin32.o: $(blisrc)/blir_decbin32.c $(blisrc)/blir_decbxx.h \
+	$(blisrc)/blir_decbin.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_decbin64.o: $(blisrc)/blir_decbin64.c $(blisrc)/blir_decbxx.h \
+	$(blisrc)/blir_decbin.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_globals.o: $(blisrc)/blir_globals.c\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_decbin.o: $(blisrc)/test_blir_decbin.c $(blisrc)/blir_decbin.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_editMove.o: $(blisrc)/test_blir_editMove.c $(blisrc)/blir_editMove.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_display.o: $(blisrc)/blir_display.c $(blisrc)/blir_display.h\
+	$(blisrc)/blir_editMove.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_main.o: $(blisrc)/blir_main.c
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_compare.o: $(blisrc)/blir_compare.c $(blisrc)/blir_compare.h\
+	$(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_overpunch.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_overpunch.o: $(blisrc)/blir_overpunch.c $(blisrc)/blir_overpunch.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_stop.o: $(blisrc)/blir_stop.c $(blisrc)/blir_display.h\
+	$(blisrc)/blir_stop.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_string.o: $(blisrc)/blir_string.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_string.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_exponentiation.o: $(blisrc)/blir_exponentiation.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_exponentiation.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_cmp.o: $(blisrc)/blir_cmp.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_cmp.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_intrinsic_case_conversions.o: $(blisrc)/blir_intrinsic_case_conversions.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_intrinsic_case_conversions.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_MP_add.o: $(blisrc)/blir_MP_add.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_MP.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_convert.o: $(blisrc)/blir_convert.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_convert.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_moveall.o: $(blisrc)/blir_moveall.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_moveall.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_inspect_replacing.o: $(blisrc)/blir_inspect_replacing.c $(blisrc)/blir_inspect.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_inspect_converting.o: $(blisrc)/blir_inspect_converting.c $(blisrc)/blir_inspect.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_inspect_tallying.o: $(blisrc)/blir_inspect_tallying.c $(blisrc)/blir_inspect.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_inspect_index.o: $(blisrc)/blir_inspect_index.c $(blisrc)/blir_inspect.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/blir_inspect_substring.o: $(blisrc)/blir_inspect_substring.c $(blisrc)/blir_inspect.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_display.o: $(blisrc)/test_blir_display.c $(blisrc)/blir_display.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_compare.o: $(blisrc)/test_blir_compare.c $(blisrc)/blir_compare.h\
+	$(BLI_NEW_UTIL_H) $(blisrc)/blir_overpunch.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_string.o: $(blisrc)/test_blir_string.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_string.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_exponentiation.o: $(blisrc)/test_blir_exponentiation.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_exponentiation.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_cmp.o: $(blisrc)/test_blir_cmp.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_cmp.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_intrinsic_case_conversions.o: $(blisrc)/test_blir_intrinsic_case_conversions.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_intrinsic_case_conversions.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_convert.o: $(blisrc)/test_blir_convert.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_convert.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_moveall.o: $(blisrc)/test_blir_moveall.c $(BLI_NEW_UTIL_H)\
+	$(blisrc)/blir_moveall.h
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_stop.o: $(blisrc)/test_blir_stop.c\
+	$(blisrc)/blir_stop.h\
+	$(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_inspect_replacing.o: $(blisrc)/test_blir_inspect_replacing.c \
+	$(blisrc)/blir_inspect.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_inspect_converting.o: $(blisrc)/test_blir_inspect_converting.c \
+	$(blisrc)/blir_inspect.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+bliss/test_blir_inspect_tallying.o: $(blisrc)/test_blir_inspect_tallying.c \
+	$(blisrc)/blir_inspect.h $(BLI_NEW_UTIL_H)
+	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) $< 
+
+# generated files the files from lex and yacc are put into the source
+# directory in case someone wants to build but does not have
+# lex/yacc/autogen
+
+$(blisrc)/blia2e.c: $(blisrc)/blia2e.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/blia2e.c $(blisrc)/blia2e.l
+
+$(blisrc)/blie2a.c: $(blisrc)/blie2a.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/blie2a.c $(blisrc)/blie2a.l
+
+$(blisrc)/blid2u.c: $(blisrc)/blid2u.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/blid2u.c $(blisrc)/blid2u.l
+
+$(blisrc)/bliu2d.c: $(blisrc)/bliu2d.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliu2d.c $(blisrc)/bliu2d.l
+
+$(blisrc)/bliutab.c: $(blisrc)/bliutab.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliutab.c $(blisrc)/bliutab.l
+
+$(blisrc)/blif2v.c: $(blisrc)/blif2v.l 
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/blif2v.c $(blisrc)/blif2v.l
+
+$(blisrc)/bliplex.c: $(blisrc)/bliplex.l
+	$(LEX) $(LEXFLAGS) -o$(blisrc)/bliplex.c $(blisrc)/bliplex.l
+
+$(blisrc)/blickw.c: $(blisrc)/blickw.txt 
+	gperf -D -t -L ANSI-C -K keyword_name -H kw_hash -N kw_lookup -k '*' \
+	$(blisrc)/blickw.txt >$(blisrc)/blickw.c 
+
+$(blisrc)/blippr1.c: $(blisrc)/blippr1.y
+	$(BISON) $(BISONFLAGS) $(blisrc)/blippr1.y --name-prefix=yy2 \
+	--output=$(blisrc)/blippr1.c
+
+$(blisrc)/bliclex.c: $(blisrc)/bliclex.l
+	$(LEX) $(LEXFLAGS) -Pz1z -o$(blisrc)/bliclex.c $(blisrc)/bliclex.l
+
+$(blisrc)/blicprs.c: $(blisrc)/blicprs.y
+	$(BISON) $(BISONFLAGS) --name-prefix bli_ $(blisrc)/blicprs.y \
+	--output=$(blisrc)/blicprs.c -d -k
+
+# -v for verbose .output file
+
+$(INTL_TARGETS): 
+
+#ggc types
+
+gtype-bliss.h : s-gtype
+	@true
+
+s-gtype: $(blisrc)/blicast.c $(blisrc)/blicbei.c\
+	$(blisrc)/blicgty.c $(blisrc)/blicgty.h $(blisrc)/blicc1.c $(blisrc)/blicc1.h \
+	$(blisrc)/bliclex.c $(blisrc)/blicsyt.c $(blisrc)/bliumsc.c \
+	$(blisrc)/bliumsg.c $(blisrc)/bliumem.c $(blisrc)/blir_temp_config.h
+
+# Build hooks:
+
+bliss.all.build: bliss
+bliss.all.cross: 
+	_error_not_here_yet - havent even thought about it - it may even work
+
+bliss.start.encap:
+bliss.rest.encap: 
+
+bliss.info:
+bliss.dvi:
+
+bliss.generated-manpages:
+
+#
+# Install hooks:
+
+# Nothing to do here.
+bliss.install-normal: bliss.install.common
+
+# Install 
+.phony:bliss.install.common
+.phony:bliss.install
+
+bliss.install bliss.install.common bliss.install-common: bliss.install.common.done
+
+bliss.install.common.done: installdirs bliss.done bliss.check.drivers.done
+	echo `pwd`
+	for name in $(BLI_EXES) $(BLI_LIBS); \
+	do \
+	   if [ -f $$name ] ; then \
+	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
+	    rm $(bindir)/$$name2$(exeext) | true; \
+	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(bindir)/$$name2$(exeext); \
+	    $(INSTALL_PROGRAM) $$name$(exeext) $(bindir)/$$name2$(exeext); \
+	    chmod a+x $(bindir)/$$name2$(exeext); \
+	  fi ; \
+	done
+	${STAMP} bliss.install.common.done
+
+bliss.install-info:
+
+bliss.install-man: 
+
+bliss.uninstall:
+	for name in $(BLI_EXES) $(BLI_LIBS) $(BLISS_TEST_DRIVERS); \
+	do \
+	  echo $$name; \
+	  name2="`echo $$name | sed -e '$(program_transform_name)' `"; \
+	  echo becomes $$name2; \
+	  echo rm $(bindir)/$$name2$(exeext); \
+	  rm $(bindir)/$$name2$(exeext) | true; \
+	done
+	-rm bliss.install.common.done
+
+#
+# Clean hooks:
+# A lot of the ancillary files are deleted by the main makefile.
+# We just have to delete files specific to us.
+
+bliss.mostlyclean: 
+	for name in $(BLI_EXES) $(BLI_LIBS) $(BLISS_TEST_DRIVERS); \
+	do \
+	  echo deleting $$name; \
+	  if [ -f bliss/$$name$(exeext) ] ; then \
+	    rm -f bliss/$$name$(exeext); \
+	  fi ; \
+	done
+	-rm -f bliss/*.o
+	-rm bliss*.done
+
+
+bliss.clean: bliss.mostlyclean
+
+bliss.distclean: bliss.clean
+	-rm -f bliss/config.status 
+	-rm -f bliss/*.output
+
+bliss.extraclean: bliss.distclean
+
+bliss.maintainer-clean: bliss.extraclean
+	for name in $(BLI_GENERATED); \
+	do \
+	  if [ -f $(blisrc)/$$name ] ; then \
+             echo deleting $(blisrc)/$$name; \
+	     rm -f $(blisrc)/$$name; \
+	  fi ; \
+	done
+
+
+#
+# Stage hooks:
+# The main makefile has already created stage?/bliss.
+
+bliss.stage1: stage1-start
+	-mv bliss/*$(objext) stage1/bliss
+bliss.stage2: stage2-start
+	-mv bliss/*$(objext) stage2/bliss
+bliss.stage3: stage3-start
+	-mv bliss/*$(objext) stage3/bliss
+bliss.stage4: stage4-start
+	-mv bliss/*$(objext) stage4/bliss
+#
+# Maintenance hooks:
+
+# This target creates the files that can be rebuilt, but go in the
+# distribution anyway.  It then copies the files to the distdir directory.
+bliss.distdir:
+	not here yet
+
+# test hook
+# the other languages are hard coded in the main makefile.in - that seems to be wrong 
+
+check: bliss.check
+
+TESTSUITEDIR = testsuite
+
+# You have to do make install before running this
+bliss.check: $(TESTSUITEDIR)/site.exp
+	-mkdir testsuite/bliss 
+	-rootme=`pwd`; export rootme; \
+	srcdir=`cd ${srcdir}; pwd` ; export srcdir ; \
+	cd testsuite; \
+	EXPECT=${EXPECT} ; export EXPECT ; \
+	TRANSFORM=$(program_transform_name); export TRANSFORM; \
+	if [ -f $${rootme}/../expect/expect ] ; then  \
+	   TCL_LIBRARY=`cd .. ; cd ${srcdir}/../tcl/library ; pwd` ; \
+	   export TCL_LIBRARY ; fi ; \
+	PATH=`cd ..;pwd`:`cd ..;pwd`/bliss:$$PATH; export PATH; \
+	gcc_extras="-B`cd ..;pwd` -B`cd ..;pwd`/bliss"; export gcc_extras; \
+	time nice $(RUNTEST) --tool bliss $(RUNTESTFLAGS)
+
+#	PATH=$(bindir):$$PATH; export PATH; \
+
+# copy the output files from the current test to source ie say the new results are OK
+bliss.check.fix: force
+	srcdir=`cd ${srcdir}; pwd` ; export srcdir ; 
+	-cp testsuite/bliss/*.out* t
+	-cp testsuite/bliss/*runpgm* t
+	-rm -f t/*nofilename
+
+bliss.wc: force
+	-rm -R -f temp
+	mkdir temp
+	-cp ${srcdir}/bliss/* temp
+	-cp ${srcdir}/testsuite/bliss/*.bli temp
+	-rm -f temp/*~
+	-rm -f temp/TAGS
+	-rm -f temp/*.html
+	-rm -f temp/*.output
+	LC_ALL=C; export LC_ALL; wc temp/*.texi temp/[a-z]*.txt temp/[A-Z]*
+	-rm -f temp/*.texi
+	-LC_ALL=C; export LC_ALL; rm -f temp/[A-Z]*
+	-rm -f temp/*.txt
+	-(cd temp; echo rm -f `echo ${BLI_GENERATED}|sed -e s\"${srcdir}/bliss/\"\"g`)
+	wc temp/*
+	-rm -R -f temp
+
+#
+
+# Update the tags table for emacs find label (alt-.) function
+TAGS: bliss.tags
+
+.PHONY: bliss.tags
+
+bliss.tags:
+	cd $(blisrc);						\
+	etags -l c blia2e.l blia2ex.h blicast.c blicbei.c blicc1.c	\
+blicgty.c blibgty.h \
+blicc1.h blickw.tpl bliclex.h bliclex.l blicprs.tpl blicpru.c		\
+blicpru.h blicsymn.tpl blicsyms.tpl blicsyt.c blicsyt.h blictkt.tpl	\
+blid2u.l blidebug.h blie2a.l blie2ax.h blif2v.l bliplexplex.c.l	\
+blippr1.c blippr1.h blippr1.y blippru.c blipre.c blipre.h blipre1.c	\
+blir_bin128LLL.c blir_bin128ULLL.c blir_decbin16.c blir_decbin32.c		\
+blir_decbin64.c blir_decbin.c blir_decbin.h blir_decbxx.h blir_globals.c	\
+blir_globals.h blir_temp_config.h bliu2d.l bliumem.c bliumem.h		\
+bliumsc.c bliumsc.h bliumsg.c bliumsg.h bliutab.l bliutil.c bliutil.h	\
+test_blir_bin128.c test_blir_bin128_debug.c test_blir_decbin.c		\
+test_bliutil.c blir_editMove.c blir_editMove.h test_blir_editMove.c \
+blir_stop.c blir_display.c blir_compare.c\
+blir_inspect.h blir_inspect_converting.c blir_inspect_tallying.c\
+test_blir_inspect_converting.c blir_inspect_index.c\
+test_blir_inspect_replacing.c blir_inspect_replacing.c\
+test_blir_inspect_tallying.c blir_inspect_substring.c\
+blir_string.c blir_string.h test_blir_string.c\
+blir_exponentiation.c blir_exponentiation.h test_blir_exponentiation.c\
+blir_convert.c blir_convert.h test_blir_convert.c \
+blir_moveall.c blir_moveall.h test_blir_moveall.c \
+blir_cmp.c blir_intrinsic_case_conversions.c blir_cmp.h test_blir_cmp.c
+
+.PHONY: bliss.html
+
+bliss.html:
+	texi2html -verbose -menu -split_chapter -number -I $(blisrc) $(blisrc)/bliss.texi
+	mv bliss*.html $(blisrc)

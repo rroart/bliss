@@ -1,0 +1,148 @@
+List of files in this directory
+-------------------------------
+
+ChangeLog       List of changes to the programs
+BLISSInformationBulletins.txt List of corrections and clarifications to BLISS 85
+CODINGSTDS      Coding Standards for this project
+COPYING         Copyright details for GPLed parts of the compiler
+COPYING.LIB     Copyright details for LGPLed parts of the compiler (ie most of the runtime)
+Make-lang.in    Makefile fragment, included into the gcc/Makefile by the configure process
+Makefile.in     Makefile fragment, used as a basis for the gcc/BLISS/Makefile by the configure process
+README          Starting point for exploring the source
+
+bli_version.h   Include file for version string.
+
+blia2e.c        (generated file from blia2e.l)
+blia2e.l        ASCII to EBCDIC conversion program in the form of input to the lexical analyser.
+blia2ex.h       ASCII to EBCDIC conversion table
+
+blic*           Core BLISS compiler:
+blicast.c       - abstract sytax tree maintenance  
+blicbei.c       - back end (gcc) code generation interface
+blicc1.c        - top level for BLISS, called by toplev.c; controls core compile
+blicc1.h        - core compiler header
+blicgty.c       - interface to automatic garbage collection routines. 
+blicgty.h       - header for interface to auto GC.
+blickw.c        - (generated file from blickw.tpl via *.txt)
+blickw.tpl      - keyword lookup table and code - skeleton file
+blickw.txt      - (generated file from blickw.tpl)
+bliclex.c       - (generated file from bliclex.l)
+bliclex.h       - lexical analysis header file
+bliclex.l       - lexical analysis
+bliconst.h      - Compiler constants (used in preprocessor and main compiler)
+blicmsg.c       - message management routines specific to core compiler
+blicprs.c       - (generated file from blicprs.tpl via *.y)
+blicprs.tpl     - parser - skeleton file
+blicprs.y       - (generated file from blicprs.tpl)
+blicpru.c       - parser utilities
+blicpru.h       - parser utilities header file
+blicsymn.h      - (generated file from blicsymn.tpl)
+blicsymn.tpl    - symbol numbers - skeleton file
+blicsyms.h      - (generated file from blicsyms.tpl)
+blicsyms.tpl    - strings for symbols - skeleton file
+blicsyt.c       - symbol table management
+blicsyt.h       - symbol table management header
+blictkt.h       - (generated file from blictkt.tpl)
+blictkt.tpl     - token types (language dial;ect affinity) - skeleton file
+blictok.def - all the variable data associated with symbols and tokens,
+used with the .tpl files to generate many token related files
+
+blid2u.c        (generated file from blid2u.l)
+blid2u.l        DOS to Unix text file conversion utility
+blidebug.h      Assorted debug definitions - place to turn off BLI_ASSERTs
+blie2a.c        (generated file from blie2a.l)
+blie2a.l        EBCDIC to ASCII conversion utility
+blie2ax.h       EBCDIC to ASCII conversion table
+blif2v.c        (generated file from blif2v.l)
+blif2v.l        Fixed to variable length file conversion utility
+
+bliss.el        Emacs text editor editing mode for BLISS.
+bliss.texi      Texinfo format manual 
+bliss_*.html    HTML files generated from bliss.texi
+
+blip*           BLISS Preprocessor (COPY, REPLACE, continuations etc):
+bliplex.c       - (geenerated file from bliplex.l)
+bliplex.h       - lexical analyser for preprocessor header
+bliplex.l       - lexical analyser for preprocessor
+bliplx2.h       - (generated file from blippr1.y via blippr1.h - token values)
+blipmsg.c       - message management routines specific to preprocesor
+blippr1.c       - (generated file from blippr1.y - parser code)
+blippr1.h       - (generated file from blippr1.y - token values)
+blippr1.y       - preprocessor parser
+blippr1b.h      - production names used in preprocessor parse tree
+blipprs1.sed    - 'sed' script to convert blippr1.h into bliplx2.h
+blippru.c       - preprocessor parser utilities
+blipre.c        - preprocessor main
+blipre.h        - preprocessor main header
+blipre1.c       - preprocessor phase 1
+
+blir*           Runtime routines used by compiler generated code.
+
+blir_bin128.h    - 128 bit support header
+blir_bin128LLL.c  - 128 bit signed support
+blir_bin128LLL.h  - 128 bit signed support header
+blir_bin128ULLL.c - 128 bit unsigned support
+blir_bin128ULLL.h - 128 bit unsigned support header
+blir_bin128_readme.txt - doco on the 128 bit support
+
+blir_decbin.c - decimal to bniary conversion routines
+blir_decbin.h
+blir_decbin.readme.txt
+blir_decbin128.c - 128 bit not working yet
+blir_decbin16.c - 16 bit
+blir_decbin32.c - 32 bit
+blir_decbin64.c - 64 bit
+blir_decbxx.h   - skeletons used by specific size routines
+
+blir_main.c  - main routine - calls toplevel bliss program
+blir_display.c  - display routines
+blir_display.h  - header for display routines
+
+blir_MP.h - header for multi-precision arithmetic routines. 
+blir_MP_add.h - multi-precision add routine.
+
+blir_stop.c  - stop routines
+blir_stop.h  - header for stop routines
+
+blir_editMove.c  - move with edit
+blir_editMove.h  - header for move with edit
+
+blir_globals.c - common runtime routines - error message
+blir_globals.h
+
+blir_temp_config.h - temp int sizes until we get configure all set up
+
+bliu2d.c        (generated file from bliu2d.l)
+bliu2d.l        Unix to DOS text file conversion utility
+
+bliumem.c       Memory management routines
+bliumem.h       Memory management routines header
+bliumsc.c       Miscellaneous routines
+bliumsc.h       Miscellaneous routines header
+bliumsg.c       Message management routines
+bliumsg.h       Message management routines header
+
+bliutab.c       (generated file from bliutab.l)
+bliutab.l       Untab utility routine
+
+bliutil.c       Various compiler utility routines - being phased out
+bliutil.h       Compiler utility routines header
+
+config-lang.in  Instructions to configure on building the make files - including which make files to build
+
+fdl.texi        Free Documentation Licence
+
+index.html      Web page for Source Forge project Bliss For GCC
+
+lang-options.h  List of unique options for BLISS, included into toplev.c
+lang-specs.h    Specifications of how to call the BLISS compiler from the gcc master driver.
+
+test_bliutil.c  Program to test various compiler utility routines
+test_blir_bin128.c Test driver for 128 bit binary routines
+test_blir_bin128_debug.c Test driver for 128 bit binary routines debug
+test_blir_bin128_debug.h Test driver for 128 bit binary routines debug header
+
+test_blir_editMove.c Test driver for edit move
+test_blir_display.c Test driver for display
+test_blir_stop.c Test driver for stop run/literal
+

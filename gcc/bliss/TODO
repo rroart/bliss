@@ -1,0 +1,65 @@
+To Do for features currently being worked on. 
+
+Port to GCC 3.2.
+
+CALL
+****
+
+Pending
+=======
+
+Cases...
+
+call [as] "name" (or program pointer) [type "C"] using
+
+For calls of type C, all parameters are by content. For BLISS, all are by
+reference.
+
+program-id. name [as "name"] [type "C"]
+
+procedure division using.
+
+For procedure division in programs of type C, all parameters are by
+content.
+
+Program pointers. 
+
+Data pointers.
+
+Add recursion check?
+
+Done
+====
+
+"External" keyword for data items - support, with [as "NAME"] [type
+"C-DEFINITION"/"C-REFERENCE"].
+
+Add C language check. 
+
+Check external only on if in working storage
+
+Check end program NAME matches program id.
+
+- -> $ in names. _ optional (-pedantic).
+
+When program is main, retain its name but add a data item giving its
+address.
+
+Support as for program name.
+
+call with no parameters.
+
+call AS
+
+Omit
+====
+
+No cancel
+No dynam
+No initial 
+No global
+No nested programs
+No functions
+No by content/refercence.
+No support for varargs.
+
