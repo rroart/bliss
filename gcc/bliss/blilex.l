@@ -19,7 +19,9 @@ extern int yy2debug;
 
 char * s;
 
-//#define do_build_string(c) do { c=strdup(yytext); yylval=build_string(strlen(c),c); } while(0);
+#if 0
+#define do_build_string(c) do { c=strdup(yytext); yylval=build_string(strlen(c),c); } while(0);
+#endif
 
 #if 0
 static inline char *strdup(const char *s1) {
@@ -29,7 +31,9 @@ return strdup(s1);
 
 #include "config.h"
 #include <stdio.h>
-//#include <ctype.h>
+#if 0
+#include <ctype.h>
+#endif
 
 #undef IN_GCC
 
@@ -38,14 +42,22 @@ return strdup(s1);
 
 #include "parse.h"
 
-//#define yylval bli_lval
+#if 0
+#define yylval bli_lval
+#endif
 YYSTYPE yylval;
-//static YYSTYPE yy2lval;
+#if 0
+static YYSTYPE yy2lval;
+#endif
+#if 0
 static unsigned char *upper_work = NULL;
 static unsigned int upper_work_length = 0;
+#endif
 unsigned int intern_hash_size=0;
 unsigned int estimated_token_count=0;
-//struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
+#if 0 
+struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
+#endif
 
 char *p_title;
   int undefmode=0;
@@ -54,47 +66,43 @@ char *p_title;
   int macromode=0;
 
 #ifndef NOYTABH
-//#include "blippr1.h"
+#if 0
+#include "blippr1.h"
 #endif
-//#include <string.h>
-//#include <strings.h>
-//#include <ctype.h>
-//#include "blicc1.h"
+#endif
+#if 0
+#include <string.h>
+#include <strings.h>
+#include <ctype.h>
+#include "blicc1.h"
+#endif
 
 int blipre_lineno=1;
 int blipre_charno=1;
 int blipre_debug_line=0; 
 
+#if 0
 static struct file_struct * save_file;
+#endif
 #define LEXINIT_INVALID 3
+#if 0
 static int blipre_lexinit=LEXINIT_INVALID;
+#endif
 int which_lex=LEXINIT_INVALID;
+#if 0
 static int next_blicc1_lineno=1;
 static int next_blicc1_charno=1;
 static int next_blicc1_debug_line=0;
 static int first_time_flag=1;
 static int next_char_offset=0;
+#endif
 
 struct bli_token_struct * first_token=NULL;
 
-//#define yylval yy2lval
-//extern YYSTYPE yy2lval;
-
-  static int keyword ();
-  static int ukeyword ();
-  static void downcase ();
-
-static char * save_filename=NULL;
-
-/* file length in bytes */
-static int save_buffer_length=0;
-
-/* file buffer */
-static char * save_buffer=NULL;
-
-#define MAX_INCLUDE_DEPTH 10
-YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
-int include_stack_ptr = 0;
+#if 0
+#define yylval yy2lval
+extern YYSTYPE yy2lval;
+#endif
 
 struct mymacro {
   struct mymacro * next;
@@ -103,14 +111,43 @@ struct mymacro {
   tree body;
 };
 
+  static int keyword (char *);
+  static int ukeyword (char *);
+  static void downcase (char *);
+  void push_macro(char *);
+  void push_req_stack(char *);
+  void pop_req_stack(void);
+  void * find_macro(struct mymacro *,char *);
+  void yy2error (const char *);
+  char * make_macro_string(struct mymacro *, tree);
+  int isupper(int);
+  int islower(int);
+  int tolower(int);
+  int bli_init_reswords (void);
+  int yylex ( void );
+  int something_that_uses_yyunput(void);
+
+#if 0
+static char * save_filename=NULL;
+
+/* file length in bytes */
+static int save_buffer_length=0;
+
+/* file buffer */
+static char * save_buffer=NULL;
+#endif
+
+#define MAX_INCLUDE_DEPTH 10
+YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+int include_stack_ptr = 0;
+
 char macrostart=0;
 struct mymacro * macr=0;
 tree macroact=0;
 char macrocomma=1;
 
 void
-push_macro(new)
-char *new;
+push_macro(char *new)
 {
 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
  
@@ -118,8 +155,7 @@ yy_switch_to_buffer(yy_scan_string(new));
 }
 
 void
-push_req_stack(new)
-char *new;
+push_req_stack(char *new)
 {
 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
 yyin = fopen( new, "r" );
@@ -133,12 +169,14 @@ yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
 }
 
 void
-pop_req_stack()
+pop_req_stack(void)
 {
 if ( --include_stack_ptr < 0 )
 {
 fprintf(stderr, "\nempty include stack\n");
+#if 0
 return YY_NULL;
+#endif
 }
 else
 {
@@ -146,6 +184,11 @@ yy_delete_buffer( YY_CURRENT_BUFFER );
 yy_switch_to_buffer(include_stack[include_stack_ptr] );
 }
 }
+
+#if 0
+void *
+find_macro(struct mymacro * s,char * name);
+#endif
 
 %}
 
@@ -168,15 +211,21 @@ hexdigit [0-9a-f]
 {delim}				{
 
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#if 0
+  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#endif
   /*yylval.type_str = strdup(yytext);*/
   return *yytext;
 }
 
 {digit}+			{
-//  yylval.type_int = atoi(yytext);
+#if 0
+  yylval.type_int = atoi(yytext);
+#endif
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#if 0
+  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#endif
   s=strdup(yytext);
   yylval.type_node_p=copy_node(get_identifier(s));
   return T_DIGITS;
@@ -193,13 +242,15 @@ hexdigit [0-9a-f]
 
   downcase (yytext);
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#if 0
+  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#endif
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
 	 {
-  struct mymacro * m=find_macro(0,yytext);
+  struct mymacro * m=(void*)find_macro(0,yytext);
   macr=m;
   if (m) { 
     if (m->param==0) goto ifall;
@@ -209,11 +260,13 @@ hexdigit [0-9a-f]
 #if 0
   if (m) {
     push_macro(make_macro_string(m));
-    continue;                   // not obvious at all...
+    continue;                   /* not obvious at all... */
   }
 #endif
 	 onlytname:
-//		yylval.type_str=strdup(yytext);
+#if 0
+		yylval.type_str=strdup(yytext);
+#endif
 s=strdup(yytext);
 yylval.type_node_p=get_identifier(s);
    if (m==0) return T_NAME;
@@ -244,17 +297,22 @@ yylval.type_node_p=get_identifier(s);
 }
 
 {string}			{
+  struct mymacro * m;
   /* store that string w/o '' */
-//  yylval.type_str = strdup(yytext);
+#if 0
+  yylval.type_str = strdup(yytext);
+#endif
   if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
-  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
-  struct mymacro * m=find_macro(0,yytext);
+#if 0
+  if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+#endif
+  m=(void*)find_macro(0,yytext);
   macr=m;
   if (m) BEGIN(macro);
 #if 0
   if (m) {
     push_macro(make_macro_string(m));
-    continue;                   // not obvious at all...
+    continue;                   /* not obvious at all...*/
   }
 #endif
   s=strdup(yytext);
@@ -283,7 +341,9 @@ else
 yy_delete_buffer( YY_CURRENT_BUFFER );
 yy_switch_to_buffer(include_stack[include_stack_ptr] );
 }
-//pop_req_stack();
+#if 0
+pop_req_stack();
+#endif
 } 
 
 <macro>{delim}				{
@@ -333,7 +393,7 @@ out:
 
 
 struct dict {
-  char *d_text;
+  const char *d_text;
   int	d_num;
 };
 
@@ -657,7 +717,7 @@ static int keyword (cp)
 {
   int first, last, half, c;
 
-  if (yy2debug) fprintf(stderr, "key %x %s\n",cp,cp);
+  if (yy2debug) fprintf(stderr, "key %x %s\n",(unsigned int)cp,cp);
 
   first = 0;				/* inclusive */
   last = NKEYW;				/* exclusive */
@@ -681,7 +741,7 @@ static int ukeyword (cp)
 {
   int first, last, half, c;
 
-  if (yy2debug) fprintf(stderr, "ukey %x %s\n",cp,cp);
+  if (yy2debug) fprintf(stderr, "ukey %x %s\n",(unsigned int)cp,cp);
   first = 0;				/* inclusive */
   last = NUKEYW;				/* exclusive */
   while (first < last)
@@ -702,11 +762,13 @@ static int ukeyword (cp)
 int
 yywrap(void)
 {
+  return 1;
 }
 
 tree *bli_ridpointers;
 #define N_reswords (sizeof keywords / sizeof (struct dict))
-bli_init_reswords ()
+int
+bli_init_reswords (void)
 {
   unsigned int i;
   tree id;
@@ -718,14 +780,25 @@ bli_init_reswords ()
     {
       /* If a keyword is disabled, do not enter it into the table
          and so create a canonical spelling that isn't a keyword.  */
-      //if (reswords[i].disable & mask)
-      //  continue;
+#if 0
+      if (reswords[i].disable & mask)
+        continue;
+#endif
 
       id = get_identifier (keywords[i].d_text);
-      // C_RID_CODE (id) = keywords[i].rid;
-      //C_IS_RESERVED_WORD (id) = 1;
-      //TREE_LANG_FLAG_0 (id) = 1;
-      //id->common.lang_flag_0 = 1;
+#if 0
+      C_RID_CODE (id) = keywords[i].rid;
+      C_IS_RESERVED_WORD (id) = 1;
+      TREE_LANG_FLAG_0 (id) = 1;
+      id->common.lang_flag_0 = 1;
+#endif
       bli_ridpointers [(int) keywords[i].d_num] = id;
     }
+  return 0;
+}
+
+int something_that_uses_yyunput(void) {
+  void (*f)(int c, char *);
+  f=yyunput;
+  return 0;
 }
