@@ -25,3 +25,5 @@ leave . with ..
 get a working if_then with value 
 
 check if block_value implementation is usable?
+
+fix up the grammer with regard to shift/reduce reduce/reduce
