@@ -1,11 +1,11 @@
 COMPILE/INSTALL/RUN:
-unpack a gcc 3.4.2 distribution
+unpack a gcc 3.4.3 distribution
 
 put the bliss directories in gcc (alongside cp ada etc)
-by something like ln -s gcc-3.4.2 bliss and untar it right
+by something like ln -s gcc-3.4.3 bliss and untar it right
 (bliss is based on C routines)
 
-make a separate build directory in the same directory as gcc-3.4.2.
+make a separate build directory in the same directory as gcc-3.4.3.
 
 in each, do a ../configure --enable-languages=bliss.
 do a make bootstrap in it
