@@ -31,6 +31,6 @@
 
 language="bliss"
 
-compilers="bli1\$(exeext) blipre\$(exeext)"
+compilers="bli1\$(exeext)"
 
 #stagestuff=
