@@ -503,6 +503,13 @@ bliss_init (const char *filename)
       in_fname = NULL;
       return NULL;
     }
+
+  {
+    extern rtx c_expand_expr PARAMS ((union tree_node *, rtx, enum machine_mode, enum expand_modifier modifier));
+    extern rtx (*lang_expand_expr) PARAMS ((union tree_node *, rtx, enum machine_mode, enum expand_modifier modifier));
+    lang_expand_expr = c_expand_expr;
+  }
+
   return (char *)((in_fname = (uchar *)filename));
 }
 

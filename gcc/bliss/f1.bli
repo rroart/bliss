@@ -3,12 +3,25 @@ begin
 own dd;
 routine r=
 begin
-own a;
+own a,b;
 a=3;
 dd=3;
-decr a from 10 to 1 by 1 do begin
+if b then dd=4;
 dd=3;
 end;
+routine s=
+begin
+own c,d;
+while c do r();
+r();
+d=3;
+r();
+end;
+routine t=
+begin
+own e,f;
+f=3;
+e=2;
 end;
 end
 eludom

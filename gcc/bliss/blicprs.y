@@ -1007,7 +1007,8 @@ maybe_block_value /* $$=creatnode(block_body,$1,$3); $$->middle=$2;  */
   void * v = $1;
   void * w = $3;
   fprintf(stderr,"vw %x %x\n",v,w);
-  $$ = chainon($1, $3);
+  //  $$ = chainon(0, $3);
+  $$=$3;
 }
 ;
 /*
@@ -1115,7 +1116,13 @@ routine_call: ordinary_routine_call  { $$=$1; }
 ;
 
 ordinary_routine_call:
-T_NAME '(' io_list3 ')' { $$=creatnode(ordinary_routine_call,0,$3);/* $$->id=$1;  */}
+T_NAME '(' io_list3 ')' { 
+  void * ref;
+  if (yychar == YYEMPTY)
+    yychar = YYLEX;
+  ref = build_external_ref ($1, yychar == '(');
+  $$ = build_function_call (ref, $3); 
+}
 /*nonfin should be routine_designator, but it did not work*/
 ;
 
@@ -1401,6 +1408,7 @@ exp
 K_THEN exp
 {
   c_finish_then ();
+  c_expand_end_cond ();
 }
 /*K_IF exp K_THEN exp  K_ELSE exp { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,$6)); }
 |K_IF exp K_THEN exp  { $$=creatnode(conditional_expression,$2,creatnode(conditional_expression2,$4,0)); }*/
@@ -1470,7 +1478,6 @@ indexed_loop_type
   $<type_node_p>$ = build_stmt (FOR_STMT, NULL_TREE, NULL_TREE,
 			  NULL_TREE, NULL_TREE);
   add_stmt ($<type_node_p>$);  
-
 }
  T_NAME
 K_FROM exp   K_TO exp   K_BY exp  K_DO exp { }
@@ -1483,7 +1490,16 @@ pre_tested_loop  { $$=$1; }
 | post_tested_loop  { $$=$1; }
 ;
 pre_tested_loop:  
-K_WHILE exp K_DO exp  { $$=creatnode(pre_tested_loop,$2,$4);/* $$->value=1;  */}
+K_WHILE 
+{ $<type_node_p>$ = c_begin_while_stmt(); }
+exp
+{ $3 = truthvalue_conversion ( $3 ); 
+ c_finish_while_stmt_cond (truthvalue_conversion ( $3 ),
+			   $<type_node_p>2);
+ $<type_node_p>$ = add_stmt ($<type_node_p>2); }
+ K_DO exp  {
+  RECHAIN_STMTS ($<type_node_p>4, WHILE_BODY ($<type_node_p>4));
+ } 
 | K_UNTIL  exp K_DO exp { $$=creatnode(pre_tested_loop,$2,$4);/* $$->value=0;  */}
 ;
 post_tested_loop:
@@ -1505,7 +1521,7 @@ K_EXITLOOP  exp  { $$=$2; }
 ;
 
 return_expression: 
-K_RETURN  exp { $$ = c_expand_return ($2); }
+K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); }
 |K_RETURN { $$ = c_expand_return (NULL_TREE); }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
