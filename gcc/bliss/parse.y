@@ -1528,6 +1528,8 @@ maybe_block_value: { $$=build_int_2(0,0); }
   tree value = $1;
   // next something based on cp build_target_expr
 
+  if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
+  //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
   tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value,
 						0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
   TREE_SIDE_EFFECTS (t) = 1;
@@ -3885,7 +3887,14 @@ external_literal_item_list: external_literal_item_list ',' external_literal_item
 ;
 
 external_literal_item: literal_name ':' literal_attribute_list 
-|literal_name  
+|
+literal_name  
+{
+  tree decl = build_decl (CONST_DECL, $1, integer_type_node);
+  DECL_EXTERNAL(decl)=1;
+  DECL_INITIAL(decl)=build_int_2(0,0); // workaround. should not be.
+  pushdecl(decl);
+}
 ;
 
 bind_data_declaration: K_BIND bind_data_item_list ';'  { $$ = 0; }
