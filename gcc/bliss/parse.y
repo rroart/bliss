@@ -213,6 +213,8 @@ bli_common_parse_file(set_yydebug)
  void * find_macro(struct mymacro * s,char * name);
  char * make_macro_string(struct mymacro * m, tree r);
  tree find_init_attr(tree t);
+ char * my_strcat(const char *, const char *, int);
+ char * my_strcat_gen(const char *, const char *, int);
 
 %}
 
@@ -823,8 +825,16 @@ list_option:  U_SOURCE    { $$ = 0; }
 | U_NOCOMMENTARY     { $$ = 0; }
 ;
 
-tname_list: tname_list ',' T_NAME { $$ = chainon ($1, copy_node($3)); }
-|T_NAME { copy_node($1); }
+tname_list:
+tname_list ',' T_NAME
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+T_NAME
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 tname_list2: tname_list2  T_NAME 
@@ -2305,6 +2315,14 @@ indexed_loop_type
 K_FROM exp  
 {
   // $6
+  tree decl = lookup_name ($3);
+  if (decl)
+	 goto skip_decl;
+  // bad, but temp workaround
+  tree tmp = start_decl($3, 0, 0, 0);
+  finish_decl(tmp, 0, 0);
+ skip_decl:
+  {}
   tree count = build_external_ref($3,1);
   tree init = build_modify_expr (count, NOP_EXPR, $5);
   c_expand_expr_stmt(init);
@@ -3663,7 +3681,7 @@ require_declaration: K_REQUIRE T_STRING ';'
   char * brack = strchr(new,']');
   if (brack)
 	 new=brack+1;
-  char * new2 = strcat(new,".req");
+  char * new2 = my_strcat(new,".req",0);
   push_req_stack(new2);
 
   //  pop_srcloc();
@@ -3684,7 +3702,7 @@ library_declaration: K_LIBRARY T_STRING ';'
   char * brack = strchr(new,']');
   if (brack)
 	 new=brack+1;
-  char * new2 = strcat(new,".req");
+  char * new2 = my_strcat(new,".req",0);
   push_req_stack(new2);
 
   //  pop_srcloc();
@@ -4112,8 +4130,13 @@ T_NAME '=' { macromode=1; } macro_body '%'
 }
 ;
 
-keyword_pair_list: keyword_pair_list ',' keyword_pair 
-|keyword_pair 
+keyword_pair_list:
+keyword_pair_list ',' keyword_pair 
+{
+  $$ = chainon($1, $3);
+}
+|
+keyword_pair 
 ;
 
 keyword_pair:
@@ -4125,7 +4148,16 @@ T_NAME '='
   one_lexeme = 1;
 }
 default_actual 
-|T_NAME 
+{
+  $$ = build_tree_list($4, $1);
+  //$$ = build_nt(KEYWORD_PAIR, $1, $4);
+}
+|
+T_NAME 
+{
+  $$ = build_tree_list(0, $1);
+  //$$ = build_nt(KEYWORD_PAIR, $1, 0);
+}
 ;
 
 linkage_definition_list: linkage_definition_list ',' linkage_definition 
@@ -4904,25 +4936,103 @@ make_macro_string(m,r)
   tree b = m->body;
   tree p = m->param;
   tree t;
+  int is_quote=0;
+  if (m->type!=SIMP_MACRO && m->type!=KEYW_MACRO)
+	 goto other_macro;
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
     char * l = IDENTIFIER_POINTER(t);
+	 // check. not quite sure about doing quoting here
+	 if (is_quote) {
+		is_quote=0;
+		goto subst_out;
+	 }
+	 is_quote=(0==strcasecmp(l,"%quote"));
+	 if (is_quote)
+		continue;
+	 if (m->type==KEYW_MACRO)
+		goto keyw_macro;
     for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
-      if (0==strcmp(l,IDENTIFIER_POINTER(old))) {
-	l=IDENTIFIER_POINTER(new);
-	goto subst_out;
+      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+		  l=IDENTIFIER_POINTER(new);
+		  goto subst_out;
+      }
+    }
+	 goto subst_out;
+  keyw_macro:
+    for(new=r;new;new=TREE_CHAIN(new)) {
+		//fprintf(stderr,"IDD3 %x %x %x\n",l,IDENTIFIER_POINTER(TREE_TYPE(new)),IDENTIFIER_POINTER(new));
+      if (0==strcmp(l,IDENTIFIER_POINTER(new))) {
+		  if (TREE_TYPE(new))
+			 l=IDENTIFIER_POINTER(TREE_TYPE(new));
+		  goto subst_out;
+      }
+    }
+    for(old=p;old;old=TREE_CHAIN(old)) {
+		//printf("IDD4 %x %x %x\n",l,l,l);
+      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+		  l=IDENTIFIER_POINTER(TREE_PURPOSE(old));
+		  goto subst_out;
       }
     }
   subst_out:
     if (s==0) s=xstrdup(l);
     else
-      s=strcat(xstrdup(s),xstrdup(l));  
-    
+      s=my_strcat(s,l,1);
   }
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
   return s;
+ other_macro:
+  if (m->type==COND_MACRO)
+	 goto cond_macro;
+  tree iter=m->param2;
+  tree new=r;
+  tree tmp=p;
+  for(;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
+  while (new) {
+	 tree par=iter;
+	 fprintf(stderr,"new %x\n",new);
+	 tree t;
+	 for(t=b;t;t=TREE_CHAIN(t)) {
+		char * l = IDENTIFIER_POINTER(t);
+		tree new2=new;
+		tree par2=par;
+		for(;new2 && par2;new2=TREE_CHAIN(new2),par2=TREE_CHAIN(par2)) {
+#if 0
+		  // check. not quite sure about doing quoting here
+		  if (is_quote) {
+			 is_quote=0;
+			 goto subst_out2;
+		  }
+		  is_quote=(0==strcasecmp(l,"%quote"));
+		  if (is_quote)
+			 continue;
+#endif
+		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(par2)))) {
+			 l=IDENTIFIER_POINTER(new2);
+			 goto subst_out2;
+		  }
+		}
+		tree old3, new3;
+		for(old3=p,new3=r;old3 && new3;old3=TREE_CHAIN(old3),new3=TREE_CHAIN(new3)) {
+		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old3)))) {
+			 l=IDENTIFIER_POINTER(new3);
+			 goto subst_out2;
+		  }
+		}
+	 subst_out2:
+		s = my_strcat_gen(s,l,1);
+	 } // end outer for
+	 for(tmp=iter;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
+	 if (new)
+		s = my_strcat(s,",",0); // remember to fix punctuation later
+  } // end while
+  fprintf(stderr, "ITER %s\n",s);
+  return s;
+ cond_macro:
+  return 0;
 }
 
 char *
@@ -4936,7 +5046,7 @@ print_remain(r)
     char * l = IDENTIFIER_POINTER(t);
     if (s==0) s=xstrdup(l);
     else
-      s=strcat(xstrdup(s),xstrdup(l));  
+      s=my_strcat(s,l,0);
     
   }
   
@@ -5039,6 +5149,7 @@ const struct ggc_root_tab gt_ggc_r_gt_c_pragma_h[] = {
 char * bliss_builtin = "MACRO %BLISS16[] = % , %BLISS36[] = % , %BLISS32[] = %REMAINING % ; ";
 
 void get_builtin(void) {
+  // change from SIMP_MACRO later
   add_macro("%bliss16",SIMP_MACRO,0,0,0);
   add_macro("%bliss36",SIMP_MACRO,0,0,0);
   add_macro("%bliss32",SIMP_MACRO,0,0,get_identifier("%remaining"));
@@ -5134,8 +5245,8 @@ print_tree(r)
     char * l = IDENTIFIER_POINTER(t);
     if (s==0) s=xstrdup(l);
     else {
-      s=strcat(xstrdup(s),xstrdup(l));  
-      s=strcat(xstrdup(s),xstrdup(","));
+      s=my_strcat(s,l,0);  
+      s=my_strcat(s,",",0);
     }
 	 s[strlen(s)-1]=0;
   }
@@ -5180,3 +5291,44 @@ is_label(t)
 {
   return IDENTIFIER_LABEL_VALUE(t);
 }
+
+char *
+my_strcat(str1, str2, space)
+	  const char * str1;
+	  const char * str2;
+	  int space;
+{
+  if (space)
+	 space=1;
+  int len1=strlen(str1);
+  int len2=strlen(str2);
+  char * str = xmalloc(len1+len2+1+space);
+  memcpy(str,str1,len1);
+  if (space)
+	 str[len1]=32;
+  memcpy(str+len1+space,str2,len2);
+  str[len1+len2+space]=0;
+  return str;
+}
+
+char *
+my_strcat_gen(str1, str2, space)
+	  const char * str1;
+	  const char * str2;
+	  int space;
+{
+  if (str1==0)
+	 return xstrdup(str2);
+  if (space)
+	 space=1;
+  int len1=strlen(str1);
+  int len2=strlen(str2);
+  char * str = xmalloc(len1+len2+1+space);
+  memcpy(str,str1,len1);
+  if (space)
+	 str[len1]=32;
+  memcpy(str+len1+space,str2,len2);
+  str[len1+len2+space]=0;
+  return str;
+}
+
