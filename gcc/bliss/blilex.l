@@ -1,3 +1,5 @@
+%x macro
+
 %{
   /* File lexlex.l
 	* The Unknown Scandinavian was here
@@ -46,10 +48,10 @@ unsigned int estimated_token_count=0;
 //struct intern_hash_entry ** GTY ((length ("intern_hash_size"))) intern_hash_table = NULL;
 
 char *p_title;
-  int linenumb;
   int undefmode=0;
   int anymode=0;
   int tnamemode=0;
+  int macromode=0;
 
 #ifndef NOYTABH
 //#include "blippr1.h"
@@ -93,6 +95,27 @@ static char * save_buffer=NULL;
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_stack_ptr = 0;
+
+struct mymacro {
+  struct mymacro * next;
+  char * name;
+  tree param;
+  tree body;
+};
+
+char macrostart=0;
+struct mymacro * macr=0;
+tree macroact=0;
+char macrocomma=1;
+
+void
+push_macro(new)
+char *new;
+{
+include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+ 
+yy_switch_to_buffer(yy_scan_string(new));
+}
 
 void
 push_req_stack(new)
@@ -139,27 +162,23 @@ hexdigit [0-9a-f]
 */
 
 %%
-   
-{any}+ { if (anymode) { 
 
-if (yy2debug) fprintf(stderr, "\nanymode %s\n",yytext); 
-//yylval.type_str = strdup(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
-return T_NAME;
-} else REJECT;  }
-
-\n            linenumb++; lineno++;
+\n            lineno++;
 
 {delim}				{
+
+  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
   /*yylval.type_str = strdup(yytext);*/
   return *yytext;
 }
 
 {digit}+			{
 //  yylval.type_int = atoi(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
+  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+  s=strdup(yytext);
+  yylval.type_node_p=copy_node(get_identifier(s));
   return T_DIGITS;
 }
 
@@ -173,16 +192,31 @@ yylval.type_node_p=get_identifier(s);
   int key=0;
 
   downcase (yytext);
+  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
 	 {
+  struct mymacro * m=find_macro(0,yytext);
+  macr=m;
+  if (m) { 
+    if (m->param==0) goto ifall;
+    BEGIN(macro);
+    continue;
+  }
+#if 0
+  if (m) {
+    push_macro(make_macro_string(m));
+    continue;                   // not obvious at all...
+  }
+#endif
 	 onlytname:
 //		yylval.type_str=strdup(yytext);
 s=strdup(yytext);
 yylval.type_node_p=get_identifier(s);
-		return T_NAME;
+   if (m==0) return T_NAME;
 	 }
   /*yylval.type_str=strdup(yytext);*/
   yylval.type_node_p=get_identifier(yytext);
@@ -204,6 +238,7 @@ yylval.type_node_p=get_identifier(s);
 }
 
 "%"				{
+  if (macromode) macromode=0;
   yylval.type_str = strdup(yytext);
   return '%';
 }
@@ -211,8 +246,19 @@ yylval.type_node_p=get_identifier(s);
 {string}			{
   /* store that string w/o '' */
 //  yylval.type_str = strdup(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
+  if (macromode) { yylval.type_node_p = copy_node(get_identifier(strdup(yytext))); return LEXEME; }
+  //if (macromode) { yylval.type_str = strdup(yytext); return LEXEME; }
+  struct mymacro * m=find_macro(0,yytext);
+  macr=m;
+  if (m) BEGIN(macro);
+#if 0
+  if (m) {
+    push_macro(make_macro_string(m));
+    continue;                   // not obvious at all...
+  }
+#endif
+  s=strdup(yytext);
+  yylval.type_node_p=copy_node(get_identifier(s));
   return T_STRING;
 }
 
@@ -239,6 +285,49 @@ yy_switch_to_buffer(include_stack[include_stack_ptr] );
 }
 //pop_req_stack();
 } 
+
+<macro>{delim}				{
+int newmacrocomma;
+  if (*yytext=='[' || *yytext=='(' || *yytext=='<') { if (macrostart==0) macrostart=*yytext; }
+
+ if (macrostart) {
+  switch (*yytext) {
+    case ']':
+      goto ifall;
+      break;
+    case ')':
+      goto ifall;
+      break;
+    case '>': 
+      goto ifall;
+      break;
+  }
+goto out;
+ifall:
+  push_macro(make_macro_string(macr,macroact));
+  macrostart=0;
+  macr=0;
+  macroact=0;
+  macrocomma=1;
+  BEGIN(0);
+  continue;
+}
+out:
+
+  newmacrocomma=*yytext==',';
+
+  if (macrocomma && newmacrocomma) chainon(macroact,tree_cons(0,0,0));
+
+  macrocomma=newmacrocomma;
+
+}
+
+<macro>{name}|{digit}+				{
+  downcase (yytext);
+  if (macrocomma==0) fprintf(stderr, "\nmacrocomma missing %x\n",lineno);
+  macroact=chainon(macroact,copy_node(get_identifier(strdup(yytext))));
+  macrocomma=1;
+}
 
 %%
 
@@ -609,38 +698,6 @@ static int ukeyword (cp)
   if (yy2debug) fprintf(stderr, "ukeynot\n");
   return -1;				/* Not a keyword */
 }
-
-/*
-{idigit}+			{
-//yylval.type_str=strdup(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
-				  return T_IDIGITS;
-				}
-*/
-/*
-{any}+ {
-if (anymode) {
-anymode=0;
-if (yy2debug) fprintf(stderr, "anymode\n");
-//yylval.type_str=strdup(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
-				     return T_NAME;
-   }
-else REJECT;
-}
-*/
-/*
-  {others} {
-  if (yy2debug) fprintf(stderr, "anymode\n"); 
-//  yylval.type_str = strdup(yytext);
-s=strdup(yytext);
-yylval.type_node_p=get_identifier(s);
-  return T_NAME;
-  }
-
-*/
 
 int
 yywrap(void)
