@@ -280,25 +280,25 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> control_expression language_list list_option_list
 %type <type_node_p> numeric_literal decimal_literal character_code_literal
 %type <type_node_p> float_literal integer_literal language_name_list
-%type <type_node_p> character_code_literal single_precision_float_literal 
+%type <type_node_p> single_precision_float_literal 
 %type <type_node_p> double_precision_float_literal extended_exponent_double_precision_float_literal
 %type <type_node_p> extended_exponent_extended_precision_float_literal mantissa
 %type <type_node_p> string_literal plit3 plit_item_list
 %type <type_node_p> forward_routine_attribute_list plit_group allocation_unit
 %type <type_node_p> string_type plit2 
 %type <type_node_p> ctce replicator plit_expression linkage_time_constant_expression
-%type <type_node_p> plit  plit_item plit_group list_option_list
+%type <type_node_p> plit  plit_item
 %type <type_int> U_SOURCE  U_NOSOURCE  U_REQUIRE  U_NOREQUIRE
 %type <type_int> U_EXPAND  U_NOEXPAND  U_TRACE  U_NOTRACE
 %type <type_int> U_LIBRARY  U_NOLIBRARY  U_OBJECT  U_NOOBJECT
 %type <type_int> U_ASSEMBLY  U_NOASSEMBLY  U_SYMBOLIC  U_NOSYMBOLIC
 %type <type_int> U_BINARY  U_NOBINARY  U_COMMENTARY  U_NOCOMMENTARY
 %type <type_node_p>  plit_string attached_label_list list_option language_name
-%type <type_node_p> block labeled_block attached_label unlabeled_block
+%type <type_node_p> block labeled_block attached_label
 %type <type_node_p> block_body block_action block_value structure_reference
 %type <type_node_p> ordinary_structure_reference default_structure_reference
 %type <type_node_p> general_structure_reference segment_name access_actual
-%type <type_node_p> access_part field_set_name field_name declaration attribute
+%type <type_node_p> access_part field_set_name field_name attribute
 %type <type_node_p> data_declaration structure_declaration
 %type <type_node_p> field_declaration routine_declaration access_actual_list
 %type <type_node_p> ordinary_routine_declaration global_routine_declaration
@@ -312,10 +312,12 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> extension_attribute T_STRING2 string_par_list string_par
 %type <type_node_p>  field_attribute cond_handling_function_name
 %type <type_node_p>  initial_attribute executable_function_named
-%type <type_node_p> alignment_attribute preset_attribute 
-%type <type_node_code> K_AND K_OR K_NOT K_EQV K_XOR op7
+%type <type_node_p> alignment_attribute preset_attribute op7 
+/*
+%type <type_node_code> K_AND K_OR K_NOT K_EQV K_XOR
 %type <type_node_code> K_EQL K_EQLA K_EQLU K_NEQ K_NEQA K_NEQU K_LSS K_LSSA K_LSSU
 %type <type_node_code> K_LEQ K_LEQA K_LEQU K_GTR K_GTRA K_GTRU K_GEQ K_GEQA K_GEQU
+*/
 %type <type_node_p> linkage_attribute tname_list tname_list2 char_par_list char_par
 %type <type_node_p> range_attribute novalue_attribute /*pot_expression*/
 %type <type_node_p> /*opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
