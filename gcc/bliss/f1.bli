@@ -17,14 +17,18 @@ r();
 d=3;
 r();
 undecl(d);
-undecl(2);
+undecl(2,3);
 undecl2();
 end;
 routine t=
 begin
 own e,f;
 f=3;
-while f do r();
+while f do begin
+r();
+undecl(9,f);
+f=f-1;
+end;
 return;
 e=2;
 end;

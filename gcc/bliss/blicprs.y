@@ -93,6 +93,7 @@ bli_parse PARAMS((void));
   int type_node_code;
   const char *filename;
   int lineno;
+  enum tree_code code;
 }
 
 /* test */
@@ -1149,12 +1150,12 @@ actual_parameter_list: actual_parameter_list ',' actual_parameter {  }
 |actual_parameter { $$=$1; }
 ;
 
-io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter {  }
-|io_actual_parameter { $$=$1; }
+io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { chainon ($1, build_tree_list (NULL_TREE, $3)); }
+|io_actual_parameter { $$ = build_tree_list (NULL_TREE, $1);  }
 ;
 
 io_actual_parameter: { $$=0 }
-|expression { $$ = build_tree_list (NULL_TREE, $1); }
+|expression 
 ;
 
 general_routine_call:
@@ -1220,8 +1221,8 @@ operator_expression:
 | opexp9 K_MOD opexp9 { }
 | opexp9 '*' opexp9 { }
 | opexp9 '/' opexp9 { }
-| opexp9 '+' opexp9 { }
-| opexp9 '-' opexp9 { }
+| opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
+| opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
 | opexp9 infix_operator opexp9 { $$ = parser_build_binary_op ($2, $1, $3); }
 | K_NOT opexp9 {  }
 | opexp9 K_AND opexp9 { }
@@ -1233,7 +1234,7 @@ operator_expression:
 
 opexp9:
 primary  { $$=$1; }
-| operator_expression  { $$=c_expand_expr_stmt($1); abort(); }
+| operator_expression  { /*$$=c_expand_expr_stmt($1); abort(); */}
 |executable_function { $$=$1; }
 ;
 infix_expression: op_exp infix_operator op_exp { abort(); }
