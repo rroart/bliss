@@ -27,8 +27,13 @@ char *p_title;
 
 #include "config.h"
 #include <stdio.h>
-#include <ctype.h>
+//#include <ctype.h>
 #include "gansidecl.h"
+
+#undef IN_GCC 
+
+#include "system.h"
+#include "tree.h"
 
 #define GTY(a)
 
