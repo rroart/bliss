@@ -15,6 +15,8 @@ next time, for quicker compile, do make quickstrap
 resulting binary compilers are named different (gcc relative directory):
  language=bliss: bliss/bli1
    can only be used with bli1, and it makes only .s -files
+   compile with: bliss/bli1  bliss/f1.bli
+   link with: ./xgcc -Bbliss -L. -g t.c bliss/f1.s -o t
  language=bliss.cp: bliss, bli1
    can be used with xgcc, and can make both .s and .o.
    the output is mangled, so use nm *.o when you are going to link
@@ -22,11 +24,11 @@ resulting binary compilers are named different (gcc relative directory):
 NOTE:
 see generated .s and .rtl files
 it is working just a little, and it need a lot of work
+the bliss.cp based stuff is much less developed (will be removed some time)
 
 EXAMPLE:
-"compile" with ./bli1 f1.bli
-or use gdb bli1 with set arg -dr f1.bli (bliss.cp needs simpler files)
-link with gcc -g t.c f1.s
+there are two files f1.bli and f2.bli
+use gdb bliss/bli1 with set arg -dr f1.bli (bliss.cp needs simpler files)
 useful compiler paramters:
 -c,-L: usual ones
 -B: for setting binary compiler searchpatch
@@ -39,14 +41,25 @@ Sparc/Solaris
 FreeBSD (got some yet unexplained severe problems)
 
 FEATURES:
+blocks
 routines with input-parameters (not bliss.cp)
 routine calls with input-parameters
 own declarations and variables
 field references
+some operator expressions
 assignment
 if then
 while do
 byte word long attributes (not bliss.cp)
+structure
 
 IN THE WORKS:
-structure
+?
+
+BUGS:
+address+n semantics
+signed/unsigned
+and really lots more
+
+QUESTIONS:
+BIT_FIELD_REFS with non-CONSTANT pos and bits, is that legal?
