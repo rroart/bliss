@@ -4135,6 +4135,12 @@ c_expand_expr (tree exp, rtx target, enum machine_mode tmode,
 	return expand_expr_real (decl, target, tmode, modifier, alt_rtl);
       }
 
+	 case IF_STMT:
+	 case EXPR_STMT:
+	 case COMPOUND_STMT:
+		/*return*/ expand_stmt (exp);///*TREE_OPERAND (exp, 0)*/, target, tmode, modifier);
+	 return const0_rtx;
+
     default:
       abort ();
     }
@@ -5859,11 +5865,12 @@ c_parse_error (const char *msgid, enum cpp_ttype token, tree value)
 // BLISS adds
 
 rtx
-bli_expand_expr (exp, target, tmode, modifier)
+bli_expand_expr (exp, target, tmode, modifier, alt_rtl)
      tree exp;
      rtx target;
      enum machine_mode tmode;
      int modifier;
+     rtx *alt_rtl;
 {
   switch (TREE_CODE (exp))
     {
@@ -5879,9 +5886,10 @@ bli_expand_expr (exp, target, tmode, modifier)
 	break;
       }
 #endif
+
     default:
-      abort();
-      //return c_expand_expr (exp, target, tmode, modifier);
+		//abort();
+      return c_expand_expr (exp, target, tmode, modifier, alt_rtl);
     }
 
   abort ();
