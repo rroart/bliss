@@ -21,7 +21,6 @@ int yydebug=0;
 
  extern int undefmode;
  extern int tnamemode;
- extern int linenumb;
 
 #define malloc xmalloc
 
@@ -147,7 +146,7 @@ int yyparse() {
 %left  <type_node_code> '+' '-'
 %left <type_node_code> K_MOD '*' '/'
 %left <type_node_code> '^'
-%left <type_node_code> UMINUS UPLUS
+%right <type_node_code> UMINUS UPLUS
 %right <type_node_code> '.'
 %right <type_node_code> UNARY
 /*%token apo ''' yacc*/
@@ -237,7 +236,7 @@ int yyparse() {
 %type <type_int>  P_TITLE U_CALL U_STANDARD
 %type <type_node_p> linkage_definition_list linkage_definition p_stuff
 %type <type_int> U_BLISS16 U_BLISS32 U_BLISS36 
-%type <type_node_p> infix_operator
+%type <type_int> infix_operator
 /*%type <type_node_p> executable_expression control_expression*/
 %type <type_node_p> input_parameter_location_list input_parameter_location
 %type <type_node_p>  output_parameter_location_list output_parameter_location
@@ -1340,11 +1339,12 @@ operator_expression:
 { pushbitstack();
  setbitcontext('f');
 } 
-'.' opexp9 %prec UNARY  { 
+'.' opexp9 %prec '.'  { 
   if (TREE_CODE($3)==BIT_FIELD_REFS) {
     $$ = TREE_OPERAND ($3, 1);
     if (TREE_OPERAND($$, 1)) TREE_OPERAND($$, 1)=fold(TREE_OPERAND($$, 1));
     if (TREE_OPERAND($$, 2)) TREE_OPERAND($$, 2)=fold(TREE_OPERAND($$, 2));
+    TREE_TYPE(TREE_OPERAND($$, 2)) = ubitsizetype;
   } else {
     $$ = build_indirect_ref ($3, "unary *"); 
   }
@@ -1352,29 +1352,22 @@ operator_expression:
   popbitstack();
 }
 /*
-| '+' opexp9 %prec UMINUS {  $$->id="+"; }
-| '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
-| opexp9 '^' opexp9 
-| opexp9 K_MOD opexp9 
+| '+' opexp9 %prec UNARY { $$ = build_unary_op (CONVERT_EXPR, $2, 0); }
+| '-' opexp9 %prec UNARY { $$ = build_unary_op (NEGATE_EXPR, $2, 0); }*/
+| opexp9 '^' opexp9 { $$ = parser_build_binary_op (LSHIFT_EXPR, $1, $3); }
+| opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
 | opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
-| opexp9
-{
-  fprintf (stderr, "here I am 22\n");
-}
-  '/' opexp9 
-{
-  fprintf (stderr, "here I am 21\n");
-}
+| opexp9 '/' opexp9 { $$ = parser_build_binary_op (TRUNC_DIV_EXPR, $1, $3); }
 | opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
 | opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
 | opexp9 infix_operator opexp9 {
-// $$ = parser_build_binary_op ($2, $1, $3);
+  $$ = parser_build_binary_op ($2, $1, $3);
  }
-| K_NOT opexp9 { $$ = 0; }
-| opexp9 K_AND opexp9 
-|  opexp9 K_OR opexp9 
-| opexp9 K_EQV opexp9 
-| opexp9 K_XOR  opexp9 
+| K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, $2, 0); }
+| opexp9 K_AND opexp9 { $$ = parser_build_binary_op (BIT_AND_EXPR, $1, $3); }
+|  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, $1, $3); }
+| opexp9 K_EQV opexp9 { $$ = build_unary_op(BIT_NOT_EXPR,parser_build_binary_op (BIT_XOR_EXPR, $1, $3),0); }
+| opexp9 K_XOR  opexp9 { $$ = parser_build_binary_op (BIT_XOR_EXPR, $1, $3); }
 |
 opexp9 '=' opexp9 { 
   tree t=$1;
@@ -1383,6 +1376,7 @@ opexp9 '=' opexp9 {
     tree op0=TREE_OPERAND(b, 0);
     if (TREE_OPERAND(b, 1)) TREE_OPERAND(b, 1)=fold(TREE_OPERAND(b, 1));
     if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
+    TREE_TYPE(TREE_OPERAND(b, 2)) = ubitsizetype;
     tree newop0;
     if (TREE_CODE(op0)==INDIRECT_REF) {
       newop0=op0;
@@ -1443,24 +1437,24 @@ infix_expression: op_exp infix_operator op_exp { abort(); }
  | '^' { $$="^";} 
  |*/
 infix_operator:  
-K_EQL   { $$ = 0; }
-| K_EQLA   { $$ = 0; }
-| K_EQLU  { $$ = 0; }
-| K_NEQ   { $$ = 0; }
-| K_NEQA   { $$ = 0; }
-| K_NEQU   { $$ = 0; }
-| K_LSS   { $$ = 0; }
-| K_LSSA   { $$ = 0; }
-| K_LSSU   { $$ = 0; }
-| K_LEQ  { $$ = 0; }
-| K_LEQA   { $$ = 0; }
-| K_LEQU   { $$ = 0; }
-| K_GTR   { $$ = 0; }
-| K_GTRA   { $$ = 0; }
-| K_GTRU   { $$ = 0; }
-| K_GEQ   { $$ = 0; }
-| K_GEQA  { $$ = 0; }
-| K_GEQU   { $$ = 0; }
+K_EQL   { $$ = EQ_EXPR; }
+| K_EQLA   { $$ = EQ_EXPR; }
+| K_EQLU  { $$ = EQ_EXPR; }
+| K_NEQ   { $$ = NE_EXPR; }
+| K_NEQA   { $$ = NE_EXPR; }
+| K_NEQU   { $$ = NE_EXPR; }
+| K_LSS   { $$ = LT_EXPR; }
+| K_LSSA   { $$ = LT_EXPR; }
+| K_LSSU   { $$ = LT_EXPR; }
+| K_LEQ  { $$ = LE_EXPR; }
+| K_LEQA   { $$ = LE_EXPR; }
+| K_LEQU   { $$ = LE_EXPR; }
+| K_GTR   { $$ = GT_EXPR; }
+| K_GTRA   { $$ = GT_EXPR; }
+| K_GTRU   { $$ = GT_EXPR; }
+| K_GEQ   { $$ = GE_EXPR; }
+| K_GEQA  { $$ = GE_EXPR; }
+| K_GEQU   { $$ = GE_EXPR; }
 /* | K_AND  
  | K_OR  
  | K_EQV  
@@ -2171,7 +2165,7 @@ structure_definition:
 {
   //$5
 //$$ = start_struct(RECORD_TYPE, $3);
-
+  pushlevel(0);
 #if 1
   tree e=tree_cons(0,integer_type_node,0);
   tree f=tree_cons(e,$3,0); 
@@ -2248,6 +2242,7 @@ structure_body
 
   //DECL_SAVED_TREE (current_function_decl)=$15;
   finish_function (0, 1); 
+  poplevel(0,0,0);
   //POP_DECLSPEC_STACK;
 
   tree comp;  
@@ -2310,6 +2305,7 @@ structure_body
 
   //$$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
   //add_struct(&mystructs,$$); 
+  POP_DECLSPEC_STACK;
 }
 ;
 
@@ -2338,7 +2334,13 @@ allocation_name {
   $$ = tree_cons (f,0,0);
 #endif
 }
-|allocation_name '=' allocation_default { $$ = tree_cons ($3, $1, NULL_TREE); }
+|allocation_name '=' allocation_default { 
+  //$$ = tree_cons ($3, $1, NULL_TREE); 
+  tree t = tree_cons (0, integer_type_node, 0);   
+  tree d = tree_cons (t, $1, 0);
+ $$ = tree_cons (d, 0, 0);
+ push_parm_decl($$);
+}
 ;
 
 allocation_default: exp 
@@ -2923,7 +2925,7 @@ here
 yyerror (char *s)
 {
   if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
+  fprintf (stderr, "Nu b;lev det fel %d\n",lineno);
 }
 
 void 
@@ -2956,7 +2958,7 @@ with YYDEBUG set");
 void yy2error (char *s)
 {
   if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
+  fprintf (stderr, "Nu b;lev det fel %d\n",lineno);
 }
 
 void
