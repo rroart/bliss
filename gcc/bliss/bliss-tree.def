@@ -1,3 +1,5 @@
-DEFTREECODE (STRUCTURE_DECL, "structure_decl", 'd', 0)
-DEFTREECODE (STRUCTURE_ATTR, "structure_attr", 'd', 0)
-
+DEFTREECODE (STRUCTURE_STUFF, "structure_stuff", 't', 1)
+DEFTREECODE (STRUCTURE_DECL, "structure_decl", 't', 0)
+DEFTREECODE (STRUCTURE_ATTR, "structure_attr", 't', 0)
+DEFTREECODE (STRUCTURE_TYPE, "structure_type", 't', 0)
+DEFTREECODE (BIT_FIELD_REFS, "bit_field_refs", 'r', 3)
