@@ -2021,8 +2021,6 @@ int something_that_uses_yyunput(void) {
   return 0;
 }
 
-#endif
-
 tree parse_this (char * this) {
   expr_parse++;
   include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
