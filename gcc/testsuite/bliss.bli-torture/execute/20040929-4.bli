@@ -3,6 +3,7 @@ begin
 
 routine main=
 begin
+label b;
 local l;
 b: begin
 l=0;
