@@ -6734,3 +6734,26 @@ finish_structure (t, fieldlist, access_formal, allocation_formal, structure_size
   return t;
 }
 
+void
+push_parm_decl_init (tree parm, tree init)
+{
+  tree decl;
+
+  /* Don't attempt to expand sizes while parsing this decl.
+     (We can get here with i_s_e 1 somehow from Objective-C.)  */
+  int save_immediate_size_expand = immediate_size_expand;
+  immediate_size_expand = 0;
+
+  decl = grokdeclarator (TREE_VALUE (TREE_PURPOSE (parm)),
+			 TREE_PURPOSE (TREE_PURPOSE (parm)),
+			 PARM, 0, NULL);
+  decl_attributes (&decl, TREE_VALUE (parm), 0);
+
+  decl = pushdecl (decl);
+
+  finish_decl (decl, NULL_TREE, NULL_TREE);
+  DECL_INITIAL(decl)=init;
+
+  immediate_size_expand = save_immediate_size_expand;
+}
+
