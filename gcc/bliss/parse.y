@@ -333,21 +333,21 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> external_declaration forward_declaration
 %type <type_node_p> local_declaration stackglocal_declaration
 %type <type_node_p> register_declaration
-%type <type_node_p> global_register_declaration
+%type <type_node_p> global_reg_itemister_declaration
 %type <type_node_p> external_register_declaration
 %type <type_node_p> map_declaration
 %type <type_node_p> own_item global_item
 %type <type_node_p> external_item forward_item
 %type <type_node_p> local_item 
 %type <type_node_p> register_item
-%type <type_node_p> global_reg_item global_reg_item
-%type <type_node_p>  external_reg_item external_reg_item_list
+%type <type_node_p> global_reg_item 
+%type <type_node_p> external_reg_item external_reg_item_list
 %type <type_node_p> map_item map_item_list segment_expression
 %type <type_node_p> allocation_name access_formal structure_body structure_size
-%type <type_node_p> expression executable_function routine_call codecomment
-%type <type_node_p> field_reference integer_literal integer_digit_list
+%type <type_node_p> executable_function routine_call codecomment
+%type <type_node_p> field_reference integer_digit_list
 %type <type_node_p> integer_digit digits field_stuff_list
-%type <type_node_p> opt_sign psect_name declaration_list access_actual_list
+%type <type_node_p> opt_sign psect_name declaration_list
 %type <type_node_p> block_action_list dsr1
 %type <type_node_p> structure_definition structure_definition_list builtin_name
 %type <type_node_p>  global_item_list external_item_list
@@ -356,58 +356,53 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> global_reg_item_list alloc_actual_list
 %type <type_node_p> alloc_actual sign_ext_flag
 %type <type_node_p> initial_item_list ctce_access_actual_list preset_item_list
-%type <type_node_p> initial_string own_item_list global_item_list
-%type <type_node_p> attribute_list local_item_list
-%type <type_node_p> routine_call ordinary_routine_call general_routine_call
+%type <type_node_p> initial_string own_item_list 
+%type <type_node_p> attribute_list 
+%type <type_node_p> ordinary_routine_call general_routine_call
 %type <type_node_p> routine_designator actual_parameter_list
-%type <type_node_p> actual_parameter_list actual_parameter_list linkage_name
-%type <type_node_p> actual_parameter routine_address block
-%type <type_node_p> field_selector codecomment quoted_string_list
-%type <type_node_p> operator_expression fetch_expression /*prefix_expression*/
+%type <type_node_p> linkage_name
+%type <type_node_p> actual_parameter routine_address
+%type <type_node_p> field_selector quoted_string_list
+%type <type_node_p> fetch_expression /*prefix_expression*/
 %type <type_node_p> infix_expression assign_expression op_exp op_exp1
 %type <type_node_p> op_exp2 op_exp3 op_exp4 op_exp5 op_exp6 op_exp7 op_exp8
 %type <type_node_p> op_exp9 op_exp10 op_exp11 op_exp12
 %type <type_node_p> b32_psect_attribute psect_attribute
-%type <type_int> U_READ U_NOREAD U_SHARE U_NOSHARE U_PIC U_NOPIC K_LOCAL 
-%type <type_node_p> actual_parameter standard_function_name executable_function
+%type <type_int> U_READ U_NOREAD U_SHARE U_NOSHARE U_NOPIC K_LOCAL 
+%type <type_node_p> standard_function_name
 %type <type_int> K_SETUNWIND  K_SIGNAL K_STOP U_OVERLAY  U_CONCATENATE U_VECTOR
 %type <type_int>  K_REF U_CODE U_NODEFAULT U_WRITE U_NOWRITE U_EXECUTE U_NOEXECUTE
-%type <type_node_p> control_expression conditional_expression  case_expression
+%type <type_node_p> conditional_expression  case_expression
 %type <type_node_p> select_expression loop_expression case_label_list 
 %type <type_int>  select_type K_OTHERWISE  K_ALWAYS
 %type <type_node_p> case_line case_line_list select_line select_line_list
 %type <type_node_p> select_label select_label_list case_action select_action
-%type <type_node_p> loop_expression indexed_loop_expression tested_loop_expression
+%type <type_node_p> indexed_loop_expression tested_loop_expression
 %type <type_node_p> leave_expression exitloop_expression case_label
-%type <type_node_p> unlabeled_block block_body ltce
-%type <type_node_p> ordinary_structure_reference field_declaration
-%type <type_node_p> routine_declaration linkage_declaration enable_declaration
-%type <type_node_p> bound_declaration compiletime_declaration
+%type <type_node_p> ltce
+%type <type_node_p> field_declaration
 %type <type_node_p>  pre_tested_loop post_tested_loop
 %type <type_int> K_TO K_INRANGE K_OUTRANGE indexed_loop_type
 %type <type_int> K_INCR K_INCRA K_INCRU K_DECR K_DECRA K_DECRU
 %type <type_int> K_SELECT K_SELECTA K_SELECTU K_WHILE K_DO K_UNTIL
 %type <type_int> K_SELECTONE K_SELECTONEA K_SELECTONEU
 %type <type_int> K_LEAVE K_WITH  K_EXITLOOP K_RETURN
-%type <type_node_p> executable_function_name standard_function_name 
+%type <type_node_p> executable_function_name
 %type <type_node_p> linkage_function_name character_handling_function_name
 %type <type_node_p> machine_specific_function_name select_index
-%type <type_node_p> routine_address position_exp size_exp 
-%type <type_node_p> exit_expression loop_expression return_expression exp
-%type <type_node_p> T_NAME
+%type <type_node_p> position_exp size_exp 
+%type <type_node_p> exit_expression return_expression exp
 %type <type_int> K_PLIT K_UPLIT K_LONG K_WORD K_BYTE P_CTCE P_LTCE
 %type <type_int> K_SIGNED  K_UNSIGNED K_OWN K_GLOBAL K_VOLATILE
-%type <type_int> K_FORWARD K_STACKLOCAL  K_REGISTER K_LOCAL K_FORWARD
-%type <type_int> K_SIGNED K_UNSIGNED K_VOLATILE K_ROUTINE
+%type <type_int> K_FORWARD K_STACKLOCAL  K_REGISTER
+%type <type_int> K_ROUTINE
 %type <type_node_p> setspecs declspecs_ts
 %type <type_node_p> allocation_default allocation_name allocation_formal
 %type <type_node_p> routine_definition_list io_list2 formal_item_list
-%type <type_node_p> ordinary_routine_declaration global_routine_declaration
-%type <type_node_p> forward_routine_declaration external_routine_declaration
-%type <type_node_p> routine_declaration routine_attribute_list
-%type <type_node_p> formal_item io_list routine_definition io_list
-%type <type_node_p> formal_attribute_list exp io_list3 global_io_list2
-%type <type_node_p> routine_attribute map_declaration_attribute routine_attribute
+%type <type_node_p> routine_attribute_list
+%type <type_node_p> formal_item routine_definition io_list
+%type <type_node_p> formal_attribute_list io_list3 global_io_list2
+%type <type_node_p> map_declaration_attribute routine_attribute
 %type <type_node_p> forward_routine_attribute
 %type <type_node_p> global_routine_attribute  ext_routine_attribute
 %type <type_node_p> global_routine_declaration global_routine_definition_list
@@ -415,21 +410,13 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> forward_routine_item_list forward_routine_attribute_list
 %type <type_node_p> forward_routine_declaration external_routine_item_list
 %type <type_node_p> ext_routine_attribute_list forward_routine_item
-%type <type_node_p> external_routine_declaration map_declaration_attribute_list
+%type <type_node_p> map_declaration_attribute_list
 %type <type_node_p> external_routine_item
-%type <type_node_p> field_declaration enable_declaration bound_declaration
-%type <type_node_p> compiletime_declaration macro_declaration require_declaration
-%type <type_node_p> library_declaration psect_declaration switches_declaration 
-%type <type_node_p> label_declaration builtin_declaration undeclare_declaration
-%type <type_node_p> linkage_declaration
 %type <type_node_p>  maybe_declaration_list maybe_block_action_list maybe_block_value
-%type <type_node_p> executable_function initial_item_list
-%type <type_node_p> actual_parameter_list access_formal_list  allocation_formal_list
+%type <type_node_p> access_formal_list  allocation_formal_list
 %type <type_node_p> compile_time_constant_expression
-%type <type_node_p> structure_size  structure_body
-%type <type_node_p> require_declaration library_declaration
 %type <type_int>  K_STRUCTURE K_FIELD K_ALIGN K_INITIAL
-%type <type_int> K_PSECT K_VOLATILE K_NOVALUE K_LINKAGE 
+%type <type_int> K_PSECT K_NOVALUE K_LINKAGE 
 %type <type_int> K_ADDRESSING_MODE K_WEAK K_PRESET
 %type <type_int> P_B P_O P_DECIMAL P_X
 %type <type_node_p> bind_data_attribute positional_macro_declaration
@@ -438,28 +425,21 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> bind_data_item bind_data_item_list bind_routine_attribute
 %type <type_node_p> bind_routine_attribute_list bind_routine_declaration
 %type <type_node_p> bind_routine_item bind_routine_item_list
-%type <type_node_p> bound_declaration external_literal_declaration
+%type <type_node_p> external_literal_declaration
 %type <type_node_p> external_literal_item external_literal_item_list
 %type <type_node_p> literal_attribute literal_attribute_list
 %type <type_node_p>  literal_declaration literal_item literal_item_list
 %type <type_node_p> positional_macro_definition mode_16 mode_32
 %type <type_node_p> keyword_macro_definition simple_macro_definition
 %type <type_node_p> conditional_macro_definition iterative_macro_definition
-%type <type_node_p> conditional_macro_definition 
-%type <type_node_p> default_actual iterative_macro_definition 
-%type <type_node_p> keyword_macro_declaration keyword_macro_definition_list
+%type <type_node_p> default_actual
+%type <type_node_p> keyword_macro_definition_list
 %type <type_node_p> keyword_pair keyword_pair_list lexeme_list macro_body
-%type <type_node_p> positional_macro_declaration positional_macro_definition
-%type <type_node_p> positional_macro_definition_list simple_macro_definition
-%type <type_node_p> conditional_macro_definition iterative_macro_definition
-%type <type_node_p> keyword_macro_definition_list macro_body
-%type <type_node_p> keyword_macro_definition
-%type <type_node_p> positional_macro_definition_list positional_macro_definition
+%type <type_node_p> positional_macro_definition_list
 %type <type_int> U_ABSOLUTE U_RELATIVE U_GENERAL U_LONG_RELATIVE U_WORD_RELATIVE
 %type <type_node_p> macro_call positional_macro_call keyword_macro_call macro_name
 %type <type_node_p> macro_actuals macro_actual_parameter_list macro_actual_parameter
 %type <type_node_p> keyword_assignments keyword_assignment keyword_formal_name
-%type <type_node_p> macro_actual_parameter 
 %type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
 /*%type <type_node_p> test tok*/
 %type <filename> save_filename
