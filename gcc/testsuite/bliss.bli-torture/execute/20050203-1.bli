@@ -1,0 +1,12 @@
+module f1=
+begin
+
+literal mylit=9;
+
+routine main=
+begin
+return mylit-9;
+end;
+
+end
+eludom

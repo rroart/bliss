@@ -198,6 +198,11 @@ loops needs it in case there is no block.
 TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
+0.005
+Compiletime
+Lexicals
+Bind
+
 0.004
 Strings and numeric literals
 PLIT
