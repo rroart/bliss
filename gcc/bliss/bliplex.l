@@ -22,11 +22,17 @@ extern int yydebug;
 extern int yy2debug;
 char *p_title;
 
+#include "blir_temp_config.h"
+
 #include "config.h"
 #include <stdio.h>
 #include <ctype.h>
 #include "gansidecl.h"
+
+#define GTY(a)
+
 #include "blidebug.h"
+#include "bliumem.h"
 #include "blipre.h"
 #include "ignorance.h"
 #include "bliplex.h"
@@ -46,10 +52,12 @@ char *p_title;
 //#include <strings.h>
 //#include <ctype.h>
 //#include "blicc1.h"
+#include "blicsyt.h"
+#include "blicprs.h"
 
-int blipre_lineno=1;
-int blipre_charno=1;
-int blipre_debug_line=0; 
+uint32 blipre_lineno=1;
+uint32 blipre_charno=1;
+uint32 blipre_debug_line=0; 
 static struct file_struct * save_file;
 static int blipre_lexinit=LEXINIT_INVALID;
 int which_lex=LEXINIT_INVALID;

@@ -54,6 +54,7 @@
 #ifndef __BLIR_TEMP_CONFIG_H__
 #define __BLIR_TEMP_CONFIG_H__
 
+#define GTY(a)
 #ifndef GTY
 #define GTY(a)
 #define _BLIR_GTY_SET_

@@ -9,9 +9,7 @@
 //  int yydebug=0;
 #define YYERROR_VERBOSE
 
-enum {
-module
-};
+#include "blir_temp_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,10 +17,13 @@ module
 
 #include "gansidecl.h"
 
+#include "bliumem.h"
 #include "blipre.h"
 #include "blidebug.h"
 #include "bliumsg.h"
-#include "bliumem.h"
+#include "tree.def"
+#include "tree.h"
+#include "blicsyt.h"
 
 #include "ignorance.h"
 //#include "symbtab.h"

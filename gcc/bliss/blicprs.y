@@ -177,6 +177,7 @@ bli_parse PARAMS((void));
 %token PD_CH_DOLLAR_WCHAR_A PD_FORTRAN PD_FORTRAN_FUNC PD_FORTRAN_SUB PD_F10 PD_MAX PD_MAXA PD_MAXU
 %token PD_MIN PD_MINA PD_MINU PD_SETUNWIND PD_SIGN PD_SIGNAL PD_SIGNAL_STOP PD_VECTOR PD__DOLLAR_CODE_DOLLAR_
 %token PD__DOLLAR_GLOBAL_DOLLAR_ PD__DOLLAR_HIGH_DOLLAR_ PD__DOLLAR_LOW_DOLLAR_ PD__DOLLAR_OWN_DOLLAR_ PD__DOLLAR_PLIT_DOLLAR_ U_VECTOR
+%token REALLY_MAX
 
 /* types */
 %type <type_int> onoffmodes CODE NOCODE DEBUG NODEBUG ERRS NOERRS OPTIMIZE
@@ -3790,7 +3791,11 @@ void newscosym(void) { }
 
 symrec *cur_sym_table;
 
-int bli_lex(void) 
+int bli_lex(void) {
+  return z1zlex();
+}
+
+int bli_lex_not_now(void) 
 {
   struct bli_token_struct* prev;
   prev=current_token;

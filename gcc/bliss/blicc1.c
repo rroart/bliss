@@ -97,6 +97,7 @@ int yyparse(void) {
 #include "blicsyt.h"
 #include "blicpru.h"
 #include "blicsyms.h"
+#include "blicprs.h"
 
 /* Language for usage for messages.  */
 
@@ -191,6 +192,13 @@ static uint32 version_done = 0;  /* 1 If we have output the version string.  */
     Almost the main routine for bliss compiler.  FLAG non-zero means
     do parser trace.  */
 
+struct dict {
+  char *d_text;
+  int   d_num;
+};
+
+extern struct dict keywords[];
+
 void
 bliss_parse_file (int flag)
 {
@@ -226,17 +234,26 @@ bliss_parse_file (int flag)
    ******************************************  */
 
   max_token_nbr = 0;
+#if 0
   for (token_ix = 0; token_ix < sizeof (token_lits) / sizeof (token_lits[0]);
        token_ix ++)
     if (token_lit_nbrs[token_ix] > max_token_nbr)
       max_token_nbr = token_lit_nbrs[token_ix];
+#endif
+  max_token_nbr = REALLY_MAX;
   BLI_ASSERT (max_token_nbr > 0);
 
   token_lit_ptrs = BLI_ALLOC (sizeof (uchar *)*(max_token_nbr + 1));
 
+#if 0
   for (token_ix = 0; token_ix < sizeof (token_lits) / sizeof (token_lits[0]);
        token_ix ++)
     token_lit_ptrs[token_lit_nbrs[token_ix]] = (uchar *)token_lits[token_ix];
+#endif
+
+  for (token_ix = 0; token_ix < max_token_nbr;
+       token_ix ++)
+    token_lit_ptrs[token_ix] = (uchar *)keywords[token_ix].d_text;
 
   token_flags = BLI_ALLOC (sizeof (struct token_flag_struct) * (max_token_nbr + 1));
 
@@ -550,7 +567,7 @@ cmp_process_file (struct bli_file_struct *file_ptr,
 
   yylexinit (file_ptr->bli_file_name, file_ptr->bli_file_buffer, file_ptr->bli_file_length);
 
-  first_token = initial_lexical_analysis ( & token_count);
+  //  first_token = initial_lexical_analysis ( & token_count);
 
   if (option_lexer_trace)
     {
@@ -562,6 +579,8 @@ cmp_process_file (struct bli_file_struct *file_ptr,
         }
 
     }
+
+  token_count=1000;
 
   create_symbol_table (token_count);
 

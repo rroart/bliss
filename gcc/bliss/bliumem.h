@@ -27,6 +27,10 @@
    
    ------------------------------------------------------------------.  */
 
+
+#ifndef bliumem_h
+#define bilumem_h
+
 /* Allocate size bytes.  */
 
 #define BLI_ALLOC(size)  bliumem_alloc(size);
@@ -34,8 +38,6 @@
 void *bliumem_alloc (size_t size);
 
 /* Dynamically growable array.  */
-
-#define GTY(a)
 
 struct dynarray_struct GTY(())
 {
@@ -96,3 +98,5 @@ void bliumem_dynarray_upsize (dynarray *dynarray1, uint32 entry);
 #define FREE_DYN(dynarray1)  bliumem_dynarray_free(dynarray1)
 
 void bliumem_dynarray_free (dynarray *dynarray1);
+
+#endif

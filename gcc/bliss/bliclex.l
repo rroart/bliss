@@ -206,7 +206,7 @@ static void downcase (cp)
   }
 }
 
-static struct dict keywords[] = 
+struct dict keywords[] = 
 {
   { "%allocation", P_ALLOCATION },	/* percent names */
   { "%ascic", P_ASCIC },
@@ -639,7 +639,8 @@ initial_lexical_analysis(uint32 * token_count)
     {
       my_token_count ++;
       new_token = BLI_ALLOC (sizeof (struct bli_token_struct));
-      memcpy (new_token, ((struct bli_token_struct *)(&yylval)), sizeof (struct bli_token_struct));
+//      memcpy (new_token, ((struct bli_token_struct *)(&yylval)), sizeof (struct bli_token_struct));
+      new_token->type_int=yylval.type_int;
       BLI_ASSERT (new_token->string_details);
 
       if (first_token)

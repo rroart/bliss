@@ -213,6 +213,10 @@ struct token_struct
   unsigned token_flag_replacement : 1;
   unsigned token_flag_recent_replacement : 1;  /* Replaced in current operation.  */
   unsigned token_flag_from_pseudo_text : 1;
+
+  char *id;
+
+
 };
 
 typedef struct token_struct token;
