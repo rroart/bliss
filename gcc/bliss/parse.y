@@ -211,6 +211,7 @@ bli_common_parse_file(set_yydebug)
  char * add_underscore (tree, int);
  void * find_macro(struct mymacro * s,char * name);
  char * make_macro_string(struct mymacro * m, tree r);
+ tree find_init_attr(tree t);
 
 %}
 
@@ -232,7 +233,7 @@ bli_common_parse_file(set_yydebug)
 
 /*%token_table yacc*/
 %token <type_node_p> T_DIGITS
-%token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME
+%token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME T_LABELNAME
 %token <type_node_p> P_SOFTERROR P_SOFTERROR2 P_SOFTERROR3 P_SOFTERROR4
 %token <type_node_p> START_CTCE START_LEX START_EXPR END_EXPR END_BUILTIN
 
@@ -404,7 +405,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> map_declaration
 %type <type_node_p> own_item global_item
 %type <type_node_p> external_item forward_item
-%type <type_node_p> local_item 
+%type <type_node_p> local_item local_name
 %type <type_node_p> register_item
 %type <type_node_p> global_reg_item 
 %type <type_node_p> external_reg_item external_reg_item_list
@@ -509,6 +510,11 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> by_exp k_while_or_until
 %type <type_node_p> if_then compile_time_item compile_time_name compile_time_value
 %type <type_node_p> field_definition field_component_list field_component
+%type <type_node_p> maybe_bind_data_attribute_list
+%type <type_node_p> own_name bind_data_name formal_name routine_name
+%type <type_node_p> global_name register_name literal_name label_name
+%type <type_node_p> data_name_value maybe_bind_routine_attribute_list
+%type <type_node_p> bind_routine_item_rest label_name_list
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -1332,12 +1338,19 @@ unlabeled_block
 }
 ;
 
-attached_label_list: attached_label_list attached_label 
-| attached_label 
+label_name:
+T_LABELNAME
+{ /* was: T_NAME, but it caused some grammar problems, so therefore
+     this workaround */
+}
 ;
 
 attached_label: 
-T_NAME ':' 
+label_name ':'
+;
+
+attached_label_list: attached_label_list attached_label 
+| attached_label 
 ;
 
 unlabeled_block_start: K_BEGIN { 
@@ -2321,8 +2334,9 @@ exit_expression:  leave_expression
 | exitloop_expression  
 ;
 leave_expression: 
-K_LEAVE T_NAME K_WITH exp 
+K_LEAVE T_LABELNAME K_WITH exp 
 {
+  // as said earlier, was T_NAME, but workaround
   tree decl;
   tree name=$2;
   decl = lookup_label(name);
@@ -2338,7 +2352,7 @@ K_LEAVE T_NAME K_WITH exp
   EXIT_BLOCK_RETURN(t)=c_expand_expr_stmt($4);
   $$=t;
 }
-|K_LEAVE T_NAME  
+|K_LEAVE T_LABELNAME  
 {
   tree decl;
   tree name=$2;
@@ -2377,7 +2391,7 @@ K_EXITLOOP  exp  { $$=0; }
 return_expression: 
 /*K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); $$=0; }*/
 /*K_RETURN  exp { $$ = c_expand_return (c_expand_expr_stmt($2)); $$=0; }*/
-K_RETURN  exp { $$ = c_expand_return ($2); $$=0; }
+K_RETURN exp { $$ = c_expand_return ($2); $$=0; }
 |K_RETURN { $$ = c_expand_return (NULL_TREE); $$=0; }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
@@ -2539,7 +2553,11 @@ field_stuff_list: field_stuff_list ','  field_name
 | field_name 
 ;
 
-initial_attribute: K_INITIAL '(' initial_item_list ')' { $$ = 0; }
+initial_attribute:
+K_INITIAL '(' initial_item_list ')'
+{
+  $$ = build_nt(INIT_ATTR, $3);
+}
 ;
 
 initial_item_list: initial_item_list ',' initial_item 
@@ -2625,7 +2643,11 @@ own_item_list: own_item_list ',' own_item
 | declspecs_ts setspecs own_item
 ;
 
-own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
+own_name:
+T_NAME
+;
+
+own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
   tree attr = current_declspecs;
@@ -2730,7 +2752,10 @@ global_item_list:  global_item_list global_item
 |global_item 
 ;
 
-global_item: T_NAME ':' attribute_list 
+global_name:
+T_NAME;
+
+global_item: global_name ':' attribute_list 
 ;
 
 external_declaration: K_EXTERNAL external_item_list ';' { $$ = 0; }
@@ -2740,13 +2765,21 @@ external_item_list: external_item_list external_item
 |external_item 
 ;
 
-external_item: T_NAME ':' attribute_list 
+external_name:
+T_NAME
+;
+
+external_item: external_name ':' attribute_list 
 ;
 
 forward_declaration: K_FORWARD forward_item_list ';'  { $$ = 0; }
 ;
 
-forward_item: T_NAME ':' attribute_list 
+forward_name:
+T_NAME
+;
+
+forward_item: forward_name ':' attribute_list 
 ;
 
 forward_item_list: forward_item_list forward_item 
@@ -2780,7 +2813,11 @@ T_NAME ':' attribute_list
 ;
 */
 
-local_item: T_NAME maybe_local_attribute_list setspecs { //maybe... is a declspecs
+local_name:
+T_NAME
+;
+
+local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a declspecs
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
   tree attr = current_declspecs;
@@ -2828,10 +2865,20 @@ local_item: T_NAME maybe_local_attribute_list setspecs { //maybe... is a declspe
     cell=cell_;
   }
 
-  cell_decl_p = start_decl (cell, current_declspecs, 0,
+  init = find_init_attr(myattr);
+  if (init)
+	 init = TREE_OPERAND(init, 0);
+
+  int do_init = 0;
+  if (init)
+	 do_init=1;
+
+  cell_decl_p = start_decl (cell, 0/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   //printf("xxx %x\n",d);
-  finish_decl (cell_decl_p, 0, NULL_TREE);
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+  finish_decl (cell_decl_p, init, NULL_TREE);
 
 #ifndef NEW_POINTER
   decl_p = make_pointer_declarator(0,$1);
@@ -2862,7 +2909,11 @@ register_item_list: register_item_list register_item
 |register_item 
 ;
 
-register_item: T_NAME '=' ctce ':' attribute_list 
+register_name:
+T_NAME
+;
+
+register_item: register_name '=' ctce ':' attribute_list 
 ;
 
 global_register_declaration:
@@ -2873,7 +2924,7 @@ global_reg_item_list: global_reg_item_list global_reg_item
 |global_reg_item 
 ;
 
-global_reg_item: T_NAME '=' ctce attribute_list 
+global_reg_item: register_name '=' ctce attribute_list 
 ;
 
 external_register_declaration:
@@ -2884,7 +2935,7 @@ external_reg_item_list:external_reg_item_list external_reg_item
 |external_reg_item 
 ;
 
-external_reg_item: T_NAME '=' ctce ':' attribute_list 
+external_reg_item: register_name '=' ctce ':' attribute_list 
 ;
 
 map_declaration: K_MAP map_item_list ';' { $$ = 0; }
@@ -2894,7 +2945,11 @@ map_item_list: map_item_list ',' map_item
 |map_item 
 ;
 
-map_item: T_NAME ':' attribute_list 
+map_name:
+T_NAME
+;
+
+map_item: map_name ':' attribute_list 
 ;
 
 structure_declaration:
@@ -3294,8 +3349,12 @@ formal_item_list:
 |formal_item { $$ = get_parm_info (1);  }
 ;
 
+formal_name:
+T_NAME
+;
+
 formal_item: /*T_NAME ':' formal_attribute_list 
-|*/declspecs_ts setspecs  T_NAME { 
+|*/declspecs_ts setspecs  formal_name { 
 
 #ifdef NEW_ROUTINE_CALL
 #if 0
@@ -3378,8 +3437,13 @@ K_FORWARD K_ROUTINE forward_routine_item_list ';' { $$ = 0; }
 forward_routine_item_list: forward_routine_item_list ',' forward_routine_item 
 |forward_routine_item  
 ;
+
+routine_name:
+T_NAME
+;
+
 forward_routine_item: 
-T_NAME maybe_forward_routine_attribute_list 
+routine_name maybe_forward_routine_attribute_list 
 /*|T_NAME  */
 ;
 maybe_forward_routine_attribute_list: { $$=0; }
@@ -3401,8 +3465,8 @@ K_EXTERNAL K_ROUTINE external_routine_item_list ';' { $$ = 0; }
 external_routine_item_list: external_routine_item_list ',' external_routine_item 
 |external_routine_item 
 ;
-external_routine_item: T_NAME ':' ext_routine_attribute_list 
-| T_NAME { 
+external_routine_item: routine_name ':' ext_routine_attribute_list 
+| routine_name { 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, 1);
@@ -3455,8 +3519,23 @@ psect_declaration: K_PSECT psect_item_list ';' { $$ = 0; }
  ;
 switches_declaration: K_SWITCHES { $$ = 0; }
  ;
-label_declaration: K_LABEL { $$ = 0; }
- ;
+
+label_name_list:
+label_name_list ',' T_NAME
+|
+T_NAME
+{
+  lookup_label($1);
+}
+;
+
+label_declaration:
+K_LABEL label_name_list ';'
+{
+  $$ = 0;
+}
+;
+
 builtin_declaration: K_BUILTIN { $$ = 0; }
  ;
 undeclare_declaration: K_UNDECLARE tname_list ';' { $$ = 0; }
@@ -3470,8 +3549,12 @@ literal_item_list: literal_item_list ',' literal_item
 | declspecs_ts setspecs literal_item 
 ;
 
-literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list 
-|T_NAME '=' compile_time_constant_expression setspecs
+literal_name:
+T_NAME
+;
+
+literal_item: literal_name '=' compile_time_constant_expression ':' literal_attribute_list 
+|literal_name '=' compile_time_constant_expression setspecs
 {
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
 
@@ -3572,8 +3655,8 @@ external_literal_item_list: external_literal_item_list ',' external_literal_item
 | external_literal_item 
 ;
 
-external_literal_item: T_NAME  ':' literal_attribute_list 
-|T_NAME  
+external_literal_item: literal_name ':' literal_attribute_list 
+|literal_name  
 ;
 
 bind_data_declaration: K_BIND bind_data_item_list ';'  { $$ = 0; }
@@ -3581,11 +3664,114 @@ bind_data_declaration: K_BIND bind_data_item_list ';'  { $$ = 0; }
 ;
 
 bind_data_item_list: bind_data_item_list ',' bind_data_item 
-| bind_data_item 
+| declspecs_ts setspecs bind_data_item 
 ;
 
-bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list 
-|T_NAME '=' expression 
+bind_data_item_0: T_NAME '=' expression 
+;
+
+bind_data_name:
+T_NAME
+;
+
+data_name_value:
+expression
+;
+
+bind_data_item:
+bind_data_name '=' data_name_value maybe_bind_data_attribute_list
+{
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+
+  tree attr = current_declspecs;
+#if 0
+  tree type = $2;
+  tree myattr = $2;
+#else
+  tree type = integer_type_node;
+  tree myattr = integer_type_node;
+#endif
+  
+#ifndef NEW_POINTER
+  cell_=get_identifier(add_underscore($1,1));
+#else
+  cell_=$1;
+#endif
+  if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    tree size, decl, astruct, cell__;
+
+    current_declspecs = 0;
+
+    cell__ = get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0, 0,0,0,0); 
+    size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
+    decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+#ifdef NEW_POINTER
+	 tree byte=build_int_2(8,0);
+	 TREE_TYPE (byte) = widest_integer_literal_type_node;
+	 byte = convert (integer_type_node, byte);
+	 tree newsize = parser_build_binary_op (MULT_EXPR, byte, fold(size));
+	 tree newint=copy_node(integer_type_node);
+	 newsize=fold(newsize);
+	 if (TREE_CODE(newsize)==NON_LVALUE_EXPR)
+		newsize=TREE_OPERAND(newsize, 0);
+	 TYPE_SIZE(newint)=newsize;
+	 TYPE_SIZE_UNIT(newint)=integer_type_node;
+	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
+	 //	 TREE_TYPE(cell_)=newint;
+	 current_declspecs=tree_cons(0, newint, 0);
+	 decl=0; //newint;
+#else
+    //type = char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto own_end;
+#endif
+    cell=cell_;
+  } else {
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
+  }
+
+
+  cell_decl_p = start_decl (cell, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+  //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+  //printf("xxx %x\n",d);
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+  finish_decl (cell_decl_p, $3, NULL_TREE);
+  TREE_LANG_FLAG_0($1)=1;
+
+#ifndef NEW_POINTER
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+
+  //TREE_STATIC(cell_decl)=1;
+  start_init(cell_decl,NULL,global_bindings_p());
+  finish_init();
+
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (cell_decl, init, NULL_TREE);
+#endif
+ bind_end:
+  current_declspecs=attr;
+}
+{
+/*
+ bind_data_item_0 ':' bind_data_attribute_list 
+| bind_data_item_0 %prec '='
+*/
+}
+;
+
+maybe_bind_data_attribute_list: { $$ = 0; }
+| ':' bind_data_attribute_list { $$ = $2; }
 ;
 
 bind_data_attribute_list:
@@ -3610,8 +3796,32 @@ bind_routine_item_list: bind_routine_item_list ',' bind_routine_item
 | bind_routine_item 
 ;
 
-bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list 
-|T_NAME '=' expression 
+bind_routine_name:
+T_NAME
+;
+
+expression_test:
+expression
+;
+
+routine_name_value:
+expression_test
+;
+
+maybe_bind_routine_attribute_list: { $$ = 0; }
+| ':' bind_routine_attribute_list { $$ = $2; }
+;
+
+bind_routine_item_rest:
+routine_name_value maybe_bind_routine_attribute_list 
+;
+
+bind_routine_item: bind_routine_name '@' bind_routine_item_rest
+{
+  /*
+|
+bind_routine_name '=' routine_name_value */
+  }
 ;
 
 bind_routine_attribute_list:
@@ -4707,4 +4917,29 @@ predef_literal(name, value)
   tree d3 = build_int_2(value,0);
   build_enumerator(d1, d3);
   TREE_LANG_FLAG_0(d1)=1;
+}
+
+tree
+find_tree_code(t,c)
+	  tree t;
+	  int c;
+{
+  for(;t;t=TREE_CHAIN(t))
+	 if (TREE_CODE(t)==c)
+		return t;
+  return 0;
+}
+
+tree
+find_init_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, INIT_ATTR);
+}
+
+tree
+is_label(t)
+	  tree t;
+{
+  return IDENTIFIER_LABEL_VALUE(t);
 }
