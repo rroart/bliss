@@ -1,10 +1,10 @@
 COMPILE/INSTALL/RUN:
-unpack a gcc 3.3.2 distribution
+unpack a gcc 3.4.2 distribution
 
 put the bliss and bliss.cp directories in gcc (alongside cp ada etc)
 (bliss is based on C routines, while bliss.cp is based on the C++ cp/ stuff)
 
-make a separate build and build2 directory in the same directory as gcc-3.3.2.
+make a separate build and build2 directory in the same directory as gcc-3.4.2.
 
 in each, do a ../configure --enable-languages=bliss or bliss.cp (not both).
 do a make bootstrap in each
