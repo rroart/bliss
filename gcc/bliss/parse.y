@@ -42,6 +42,7 @@ int yydebug=0;
 #include "c-common.h"
 
 #include "bliss-tree.h"
+
 #include "c-tree.h"
 
  static int compstmt_count;
@@ -61,7 +62,8 @@ extern tree  build_modify_expr (tree, enum tree_code, tree);
   tree  creatvalue (int);
   tree  ForExpand(char *, int, int, tree);
 //  int      yyerror (char *);
-  int lineno=1;
+  //  int lineno=1;
+  extern int lineno;
 
 void 
 bli_error2 PARAMS ((char * msg));
@@ -90,6 +92,29 @@ int yyparse() {
   return yyparse_2();
 }
 
+ extern tree current_function_decl; 
+ extern struct function *cfun; 
+ struct function *acfun = 0;
+ tree afun = 0;
+
+ static int bitstackno = 0;
+ static char bitstack[20]="oooooooooooooooooooo"; // f=fetch a=assign o=other
+
+ static int setbitcontext(char c) {
+   bitstack[bitstackno]=c;
+ }
+
+ static char getbitcontext() {
+   return bitstack[bitstackno];
+ }
+
+ static void pushbitstack() {
+   bitstackno++;
+ }
+
+ static void popbitstack() {
+   bitstackno--;
+ }
 
 #define yyparse yyparse_2
 %}
@@ -108,33 +133,24 @@ int yyparse() {
 
 /* test */
 
-%token_table
+/*%token_table yacc*/
 %token <type_node_p> T_DIGITS
 %token <type_node_p> T_NAME T_STRING T_IDIGITS
 
-%token equal '='
-%token plus '+'
-%token minus '-'
-%token colon ':'
-%token semicolon ';'
-/*%ttype <type_str> equal plus minus colon semicolon*/
-%token uplus '+'
-%token uminus '-'
-%token bplus '+'
-%token bminus '-'
 /*%light uplus uminus*/
-%right '='
-%left K_EQV K_XOR
-%left K_OR
-%left K_AND
-%right K_NOT
-%left K_EQL  K_EQLA  K_EQLU  K_NEQ  K_NEQA  K_NEQU K_LSS  K_LSSA  K_LSSU  K_LEQ  K_LEQA  K_LEQU K_GTR  K_GTRA  K_GTRU  K_GEQ  K_GEQA  K_GEQU
-%left  '+' '-'
-%left K_MOD '*' '/'
-%left '^'
-%left UMINUS UPLUS
-%right '.'
-%token apo '''
+%right <type_node_code> '='
+%left <type_node_code> K_EQV K_XOR
+%left <type_node_code> K_OR
+%left <type_node_code> K_AND
+%right <type_node_code> K_NOT
+%left <type_node_code> K_EQL  K_EQLA  K_EQLU  K_NEQ  K_NEQA  K_NEQU K_LSS  K_LSSA  K_LSSU  K_LEQ  K_LEQA  K_LEQU K_GTR  K_GTRA  K_GTRU  K_GEQ  K_GEQA  K_GEQU
+%left  <type_node_code> '+' '-'
+%left <type_node_code> K_MOD '*' '/'
+%left <type_node_code> '^'
+%left <type_node_code> UMINUS UPLUS
+%right <type_node_code> '.'
+%right <type_node_code> UNARY
+/*%token apo ''' yacc*/
 /* You won't see these tokens
 * %token EOF NIL ECOMM TCOMM
 * %token ASSIGN COLON COMMA DIGITS DIV DOT LANG LBRACK LPAREN
@@ -263,11 +279,9 @@ int yyparse() {
 %type <type_node_p>  field_attribute cond_handling_function_name
 %type <type_node_p>  initial_attribute executable_function_named
 %type <type_node_p> alignment_attribute preset_attribute 
-%type <type_int> K_AND K_OR K_NOT K_EQV K_XOR op7
-%type <type_int> K_EQL K_EQLA K_EQLU K_NEQ K_NEQA K_NEQU K_LSS K_LSSA K_LSSU
-%type <type_int> K_LEQ K_LEQA K_LEQU K_GTR K_GTRA K_GTRU K_GEQ K_GEQA K_GEQU
-%type <type_int>
-%type <type_int>
+%type <type_node_code> K_AND K_OR K_NOT K_EQV K_XOR op7
+%type <type_node_code> K_EQL K_EQLA K_EQLU K_NEQ K_NEQA K_NEQU K_LSS K_LSSA K_LSSU
+%type <type_node_code> K_LEQ K_LEQA K_LEQU K_GTR K_GTRA K_GTRU K_GEQ K_GEQA K_GEQU
 %type <type_node_p> linkage_attribute tname_list tname_list2 char_par_list char_par
 %type <type_node_p> range_attribute novalue_attribute /*pot_expression*/
 %type <type_node_p> /*opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
@@ -382,7 +396,6 @@ int yyparse() {
 %type <type_int> K_PSECT K_VOLATILE K_NOVALUE K_LINKAGE 
 %type <type_int> K_ADDRESSING_MODE K_WEAK K_PRESET
 %type <type_int> P_B P_O P_DECIMAL P_X
-%type <type_int> 
 %type <type_node_p> bind_data_attribute positional_macro_declaration
 %type <type_node_p> keyword_macro_declaration
 %type <type_node_p> bind_data_attribute_list bind_data_declaration
@@ -489,7 +502,7 @@ opt_mhargs
 }
 ;
 
-opt_mhargs	: /* empty */ { $$=0; }
+opt_mhargs	: /* empty 1 */ { $$=0; }
 | '(' ms_list ')' { $$ = $2; }
 /*| '(' ms_list ')' { fprintf(stderr,"err %x \n",$2); fflush(stderr); }*/
   		;
@@ -498,7 +511,7 @@ ms_list		: { undefmode=1; } module_switch { undefmode=0; $$ = $2; }
 | ms_list ',' { undefmode=1; } module_switch { undefmode=0;  }
 ;
 
-module_body: /* empty */ { $$=0; }
+module_body: /* empty 2 */ { $$=0; }
 | K_BEGIN decl_list K_END { $$ = $2; }
 
 | '(' decl_list ')' { $$ = $2; }
@@ -748,7 +761,7 @@ tname_list2: tname_list2  T_NAME
   $$->id=(char *) $1;
   }
   }
-  |*/ /* empty */
+  |*/ /* empty 3 */
 /*			{
 			$$ = NULL;
 			}
@@ -769,6 +782,7 @@ primary
 
 p_stuff:
 P_REMAINING  { $$ = 0; }
+;
 
 primary: 
 numeric_literal  
@@ -779,9 +793,11 @@ numeric_literal
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
 }
-| block  
+| block { $$ = $1; }
 | structure_reference 
-| routine_call  { /* $$ = c_expand_expr_stmt ($1);*/ }
+| routine_call  { 
+// $$ = c_expand_expr_stmt ($1);
+ }
 | field_reference 
 | codecomment 
 ;
@@ -909,8 +925,8 @@ K_PLIT  { $$ = 0; }
 |K_UPLIT  { $$ = 0; }
 ;
 
-plit3: { $$=0; }
-| allocation_unit 
+plit3: /* empty 4 */ /*{ $$=0; }
+|*/ allocation_unit 
 | psect_allocation
 | psect_allocation allocation_unit
 ;
@@ -926,6 +942,7 @@ psect_allocation: K_PSECT '(' T_NAME ')' { $$ = 0; }
 ;
 
 psect_name: T_NAME 
+;
 
 plit_item: 
 plit_group  
@@ -954,8 +971,8 @@ plit_string: string_literal
 ;
 
 block: 
-labeled_block 
-| unlabeled_block
+labeled_block  { $$ = $1; }
+| unlabeled_block { $$ = $1; }
 ;
 
 labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
@@ -994,6 +1011,7 @@ $$=poplevel (kept_level_p (), 1, 0);
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
+ $$=$3;
 #else
  $$=0;
 #endif
@@ -1009,27 +1027,25 @@ $$=poplevel (kept_level_p (), 1, 0);
  RECHAIN_STMTS ($1, COMPOUND_BODY ($1)); 
  last_expr_type = NULL_TREE;
  $$=$1;
+ $$=$3;
 #else 
  $$=0;
 #endif
 }
 ;
 
-start_block: K_BEGIN { 
-}
-block_body K_END
-{ 
-}
+start_block: K_BEGIN 
+block_body K_END 
+{ $$=$2;} 
 | '(' block_body ')' { $$=$2;} 
 ;
 
 
 block_body: 
 maybe_declaration_list 
-{ /* $$ = bli_begin_compound_stmt (); */ }
+/* { $$ = bli_begin_compound_stmt (); } */
 maybe_block_action_list 
-maybe_block_value /*  $$->middle=$2;  */
-/* */
+maybe_block_value 
 {
   $$=$3;
 }
@@ -1039,7 +1055,7 @@ maybe_declaration_list: { $$=0; }
 | declaration_list 
 ;
 */
-maybe_declaration_list: { $$=NULL_TREE; }
+maybe_declaration_list:  { $$=NULL_TREE; }
 | maybe_declaration_list declaration {
   /*  */
   $$ = chainon($1, $2);
@@ -1052,13 +1068,15 @@ declaration_list: declaration_list declaration {
  }
 |declaration 
 ;
+
 /*
   maybe_block_action_list: { $$=0; }
   |block_action_list  
   ;
 */
-maybe_block_action_list: { $$=0; }
-|maybe_block_action_list block_action { 
+
+maybe_block_action_list:   { $$=0; } |  
+maybe_block_action_list block_action { 
   $$=chainon($1, $2); 
 }
 ;
@@ -1075,7 +1093,7 @@ block_action: expression ';' {
 ;
 
 maybe_block_value: { $$=0; }
-|block_value 
+|block_value { $$ = $1; }
 ;
 
 block_value: expression 
@@ -1089,12 +1107,25 @@ structure_reference:
 
 ordinary_structure_reference:
 T_NAME '[' access_actual_list ']' {
-  tree t=build_external_ref ($1, 0);
-  tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
-  decl->exp.operands[2]=t;
-  tree type=integer_type_node;
-  $$ = set_array_declarator_type (decl, type, 1);
-  $$ = $3;
+  char * s=malloc($1->identifier.id.len+3);
+  strcpy(s,$1->identifier.id.str);
+  s[$1->identifier.id.len]='_';
+  s[$1->identifier.id.len+1]='_';
+  s[$1->identifier.id.len+2]=0;
+  tree c=get_identifier(s);
+  //tree t=build_external_ref ($1, 0);
+  tree er=build_external_ref ($1, 0);
+  tree params = chainon(copy_node(er), $3);
+  tree t=xref_tag(STRUCTURE_ATTR,c);
+  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+  tree access=my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t))));
+  my_substitute(body,access,params);
+  $$=body;
+  //tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
+  //decl->exp.operands[2]=t;
+  //tree type=integer_type_node;
+  //$$ = set_array_declarator_type (decl, type, 1);
+  //$$ = $3;
 }
 ;
 
@@ -1201,8 +1232,54 @@ field_reference:
 /*|address field_selector  */
 /*|*/address '<' position_exp ',' size_exp '>'
 {
-  $$=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), $1, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
-  $$=stabilize_reference($$);
+  tree op0=0, op1=0, op2=0; 
+  char context=getbitcontext();
+  /* if (context=='o') */ {
+    // 32 hardcoded
+    tree f = build_int_2(5,0); // (32==2^5)
+    TREE_TYPE (f) = widest_integer_literal_type_node;
+    f = convert (integer_type_node, f);
+    tree t = parser_build_binary_op(RSHIFT_EXPR, $3, f);
+    op0 = parser_build_binary_op (PLUS_EXPR, $1, t);
+  }
+  /*if (context=='f') */ {
+    tree i;
+    if (TREE_CODE(TREE_TYPE($1))==POINTER_TYPE) {
+      i = build_indirect_ref ($1, "unary *");
+    } else {
+      fprintf(stderr, "\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",lineno);
+      //i = build_indirect_ref (convert(build_pointer_type (integer_type_node), $1), "unary *");
+      //i = build_indirect_ref ($1, "unary *");
+      //goto fetch_end;
+      i=$1;
+    }
+    //tree t=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), i, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
+    tree t=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), i, $5, $3);
+    TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
+    t=stabilize_reference(t);
+    op1 = t; 
+  fetch_end:
+  }
+  /* if (context=='o') */ {
+    tree d=$1;
+    if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
+      d = build_indirect_ref (d, "unary *");
+    } else {
+      fprintf(stderr , "\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", lineno);
+      //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
+      //d = build_indirect_ref (d, "unary *");
+    }
+    //tree t=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), d, size_int ($5->int_cst.int_cst.low), bitsize_int ($3->int_cst.int_cst.low));
+    tree t=build (BIT_FIELD_REF, type_for_mode(TYPE_MODE (integer_type_node),1), d, $5, $3);
+    TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
+    t=stabilize_reference(t);
+   op2 = t;
+  }
+  if (context=='a') {
+    fprintf(stderr, "not implemented yet");
+  }
+  $$ = build_nt (BIT_FIELD_REFS, op0, op1, op2);
+  if (op0) TREE_TYPE($$)=TREE_TYPE(op0);
 }
 ;
 
@@ -1246,37 +1323,113 @@ operator_expression_not:
 op_exp12 
 ;
 
+myassign: opexp9 '=' opexp9 {$<type_node_p>$=0};
+
+opexp99:
+{
+  fprintf (stderr, "here I am 2\n");
+
+} 
+opexp9
+{
+  $<type_node_p>$=$2;
+}
+;
+
 operator_expression:
-'.' opexp9  { /* $$=$2; */ $$ = build_indirect_ref ($2, "unary *"); }
-/*| '+' opexp9 %prec UMINUS {  $$->id="+"; }
+{ pushbitstack();
+ setbitcontext('f');
+} 
+'.' opexp9 %prec UNARY  { 
+  if (TREE_CODE($3)==BIT_FIELD_REFS) {
+    $$ = TREE_OPERAND ($3, 1);
+    if (TREE_OPERAND($$, 1)) TREE_OPERAND($$, 1)=fold(TREE_OPERAND($$, 1));
+    if (TREE_OPERAND($$, 2)) TREE_OPERAND($$, 2)=fold(TREE_OPERAND($$, 2));
+  } else {
+    $$ = build_indirect_ref ($3, "unary *"); 
+  }
+  setbitcontext('o');
+  popbitstack();
+}
+/*
+| '+' opexp9 %prec UMINUS {  $$->id="+"; }
 | '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
 | opexp9 '^' opexp9 
 | opexp9 K_MOD opexp9 
 | opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
-| opexp9 '/' opexp9 
+| opexp9
+{
+  fprintf (stderr, "here I am 22\n");
+}
+  '/' opexp9 
+{
+  fprintf (stderr, "here I am 21\n");
+}
 | opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
 | opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
-| opexp9 infix_operator opexp9 {/* $$ = parser_build_binary_op ($2, $1, $3);*/ }
+| opexp9 infix_operator opexp9 {
+// $$ = parser_build_binary_op ($2, $1, $3);
+ }
 | K_NOT opexp9 { $$ = 0; }
 | opexp9 K_AND opexp9 
 |  opexp9 K_OR opexp9 
 | opexp9 K_EQV opexp9 
 | opexp9 K_XOR  opexp9 
-| opexp9 '=' opexp9 { 
+|
+opexp9 '=' opexp9 { 
   tree t=$1;
-  if (TREE_CODE(t) == INTEGER_CST) {
+  tree b=TREE_OPERAND (t, 2);
+  if (TREE_CODE(t) == BIT_FIELD_REFS && b && TREE_CODE(b) == BIT_FIELD_REF) {
+    tree op0=TREE_OPERAND(b, 0);
+    if (TREE_OPERAND(b, 1)) TREE_OPERAND(b, 1)=fold(TREE_OPERAND(b, 1));
+    if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
+    tree newop0;
+    if (TREE_CODE(op0)==INDIRECT_REF) {
+      newop0=op0;
+      op0=TREE_OPERAND(op0, 0);
+#if 0
+      if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
+	fprintf(stderr, "\n\nxyz %x\n\n",lineno);
+	TREE_TYPE(op0)==integer_type_node;
+      }
+#endif
+    } else {
+      tree tt=make_pointer_declarator(0,op0);
+      TREE_TYPE(tt)=build_pointer_type(integer_type_node);
+      TREE_TYPE(tt)=integer_type_node;
+      //tree i = build_unary_op (ADDR_EXPR, op0, 1);
+      //newop0=build_indirect_ref (convert(build_pointer_type (integer_type_node),op0), "unary *");
+      //newop0=build_indirect_ref (i, "unary *");
+      TREE_OPERAND(b, 0)=newop0;
+      TREE_OPERAND(b, 0)=tt;
+    }
+    $$=build_modify_expr(b, NOP_EXPR, $3);
+    goto bitend;
+  }
+  if (TREE_CODE(t) == INTEGER_CST || (TREE_CODE(t)==NON_LVALUE_EXPR && TREE_CODE(TREE_OPERAND(t, 0))==INTEGER_CST )) {
     t=make_pointer_declarator(0,$1);
     TREE_TYPE(t)=build_pointer_type(integer_type_node);
     $$=build_modify_expr(t, NOP_EXPR, $3);
   } else {
     $$=build_modify_expr(build_indirect_ref (t, "unary *"), NOP_EXPR, $3);
   }
+ bitend:
+#if 0
+ setbitcontext('o');
+ popbitstack();
+{ pushbitstack();
+ setbitcontext('a');
+ $$=0;
+} 
+#endif
 }
 ;
 
 opexp9:
-primary  
-| operator_expression  { /*$$=c_expand_expr_stmt($1); abort(); */}
+primary { $$ = $1; }  
+| operator_expression  { 
+  //$$=c_expand_expr_stmt($1); abort(); 
+}
 |executable_function 
 ;
 infix_expression: op_exp infix_operator op_exp { abort(); }
@@ -1378,7 +1531,7 @@ op_exp11:  op_exp11 K_EQV op_exp10
 | op_exp11 K_XOR op_exp10  
 | op_exp10  
 ;
-op_exp12:  op_exp11 '=' op_exp12  
+op_exp12:  op_exp11 /*'='*/ '@' op_exp12  
 | op_exp11  
 ;
 /*
@@ -1393,6 +1546,7 @@ executable_function_name '('  actual_parameter_list  ')' {
 ;
 
 executable_function_named:
+standard_function_name
 /* standard_function_name  
 | linkage_function_name 
 | character_handling_function_name 
@@ -1540,7 +1694,7 @@ indexed_loop_type
 K_FROM exp   K_TO exp   K_BY exp  K_DO exp 
 ;
 indexed_loop_type:
-K_INCR | K_INCRA | K_INCRU  | K_DECR | K_DECRA | K_DECRU 
+ K_INCR | K_INCRA | K_INCRU  | K_DECR | K_DECRA | K_DECRU 
 ;
 tested_loop_expression:
 pre_tested_loop  
@@ -1633,12 +1787,28 @@ structure_attribute:
 |  K_REF T_NAME  { $$ = 0; }
 |   T_NAME '[' alloc_actual_list ']' { 
   //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
-  tree t=find_struct(mystructs,$1);
-  tree decl=build_array_declarator (t->exp.operands[3], NULL_TREE, 0, 0) ;
-  decl->exp.operands[2]=t;
-  tree type=integer_type_node;
-  $$ = set_array_declarator_type (decl, type, 1);
-  TREE_TYPE(decl)=STRUCTURE_DECL;
+  //tree t=find_struct(mystructs,$1);
+  tree t=xref_tag(STRUCTURE_TYPE,$1);
+  tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
+  tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
+  my_substitute(size,alloc,$3);
+  my_substitute(body,alloc,$3);
+  //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
+  ////decl->exp.operands[2]=t;
+  tree type=char_type_node;
+  //$$ = set_array_declarator_type (decl, type, 0);
+  //TREE_TYPE(decl)=STRUCTURE_DECL;
+  tree access=TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t)));
+  //$$ = tree;
+
+  tree body_t=tree_cons(0,body,0);
+  tree size_t=tree_cons(0,size,body_t);
+  tree access_t=tree_cons(0,access,size_t);
+  tree comp2=tree_cons(0,0,access_t);
+
+  $$ = build_nt (STRUCTURE_STUFF, comp2, comp2);
+
 }
 |   T_NAME  
 ;
@@ -1812,11 +1982,15 @@ own_item_list: own_item_list ',' own_item
 ;
 
 own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
-  tree c, p , d, i, t;
+  tree c, cc, p , d, i, t;
   char * s;
   int e,f;
 
+  tree attr = current_declspecs;
   tree type = $2;
+  tree myattr = $2;
+  
+  //current_declspecs=0;
 
   if ($2==0) type = integer_type_node;
 
@@ -1828,20 +2002,49 @@ own_item: T_NAME maybe_own_attribute_list setspecs { //maybe... is a declspecs
   s[$1->identifier.id.len]='_';
   s[$1->identifier.id.len+1]=0;
   c=get_identifier(s);
-  TREE_TYPE(c)=integer_type_node;
+  if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    current_declspecs=0;
 
-  d = start_decl (c, current_declspecs, 0,
+    char * ss=malloc($1->identifier.id.len+3);
+    strcpy(ss,$1->identifier.id.str);
+    ss[$1->identifier.id.len]='_';
+    ss[$1->identifier.id.len+1]='_';
+    ss[$1->identifier.id.len+2]=0;
+    cc=get_identifier(ss);
+
+    tree dd = start_structure (STRUCTURE_ATTR, cc, 0);
+    myattr = finish_structure (dd, TREE_OPERAND(myattr, 0) , 0); 
+
+    tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
+    tree decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+    tree type=char_array_type_node;
+    type = set_array_declarator_type (decl, c, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto own_end;
+    cc=decl;
+  } else {
+    TREE_TYPE(c)=integer_type_node;
+    cc=c;
+  }
+
+  d = start_decl (cc, current_declspecs, 0,
                        chainon (NULL_TREE, all_prefix_attributes));
+  //printf("xxx %x\n",d);
   finish_decl (d, 0, NULL_TREE);
   p = make_pointer_declarator(0,$1);
-  d = start_decl (p, current_declspecs, 1,
+  tree d2 = start_decl (p, current_declspecs, 1,
                        chainon (NULL_TREE, all_prefix_attributes));
 
-  start_init(d,NULL,global_bindings_p());
+  start_init(d2,NULL,global_bindings_p());
   finish_init();
-  i = build_unary_op (ADDR_EXPR, build_external_ref (c, 0), 0);
 
-  finish_decl (d, i, NULL_TREE);
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  i = build_unary_op (ADDR_EXPR, d/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (d2, i, NULL_TREE);
+ own_end:
+  current_declspecs=attr;
 }
 ;
 
@@ -1967,11 +2170,41 @@ structure_definition:
   declspecs_ts setspecs T_NAME '['
 {
   //$5
-  $$ = start_struct(RECORD_TYPE, $3);
+//$$ = start_struct(RECORD_TYPE, $3);
+
+#if 1
+  tree e=tree_cons(0,integer_type_node,0);
+  tree f=tree_cons(e,$3,0); 
+  $$ = tree_cons (f,0,0);
+  push_parm_decl($$); 
+#if 0
+  tree x = get_parm_info (1);
+  TREE_ADDRESSABLE (TREE_PURPOSE(x)) = 1;
+#endif
+#endif
 }
   access_formal_list  ';' 
 {
   //$8
+  tree accessfn;
+  tree accessid;
+  char *accessfnname=malloc($3->identifier.id.len+2);
+  strcpy(accessfnname,$3->identifier.id.str);
+  accessfnname[$3->identifier.id.len]='_';
+  accessfnname[$3->identifier.id.len+1]='_';
+  accessfnname[$3->identifier.id.len+2]=0;
+  accessid=get_identifier(accessfnname);
+
+  //PUSH_DECLSPEC_STACK;
+  //mydeclares($6);
+  tree v = $6;
+  accessfn = build_nt (CALL_EXPR, accessid, v, NULL_TREE);
+  start_function (current_declspecs, accessfn, all_prefix_attributes);
+  store_parm_decls ();
+  afun=current_function_decl;
+  //begin_stmt_tree(&$<type_node_p>$);
+  //$<type_node_p>8=accessfn;
+  $$=accessfn;
 }
 allocation_formal_list ']' '='
 {
@@ -1987,55 +2220,93 @@ allocation_formal_list ']' '='
   //mydeclares($9);
   v = $9;
   allocfn = build_nt (CALL_EXPR, allocid, v, NULL_TREE);
+  acfun=cfun;
   start_function (current_declspecs, allocfn, all_prefix_attributes);
   store_parm_decls ();
   //begin_stmt_tree(&$<type_node_p>$);
-  $<type_node_p>12=allocfn;
+  //$<type_node_p>12=allocfn;
+  $$=allocfn;
 }
 structure_size
 {
+  tree tr=0;
   //$14
   finish_function (0, 1); 
-  POP_DECLSPEC_STACK;
+  //POP_DECLSPEC_STACK;
 
-  tree accessfn;
-  tree accessid;
-  char *accessfnname=malloc($3->identifier.id.len+2);
-  strcpy(accessfnname,$3->identifier.id.str);
-  accessfnname[$3->identifier.id.len]='_';
-  accessfnname[$3->identifier.id.len+1]='_';
-  accessfnname[$3->identifier.id.len+2]=0;
-  accessid=get_identifier(accessfnname);
+  current_function_decl=afun;
+  cfun=acfun;
+  //begin_stmt_tree (&tr);
+  begin_stmt_tree (&DECL_SAVED_TREE (current_function_decl));
 
-  PUSH_DECLSPEC_STACK;
-  //mydeclares($6);
-  tree v = $9;
-  accessfn = build_nt (CALL_EXPR, accessid, v, NULL_TREE);
-  start_function (current_declspecs, accessfn, all_prefix_attributes);
-  store_parm_decls ();
-  //begin_stmt_tree(&$<type_node_p>$);
-  $<type_node_p>14=accessfn;
+  tree accessfn=$<type_node_p>8;
+  $$=accessfn;
 }
 structure_body
 {
   //$16
 
+  //DECL_SAVED_TREE (current_function_decl)=$15;
   finish_function (0, 1); 
-  POP_DECLSPEC_STACK;
+  //POP_DECLSPEC_STACK;
 
   tree comp;  
-  tree alloc;
-  tree access;
+  tree allocer;
+  tree accesser;
+  tree prev;
 
-  alloc = grokfield (input_filename, lineno, $<type_node_p>12, 0, 0);
-  access = grokfield (input_filename, lineno, $<type_node_p>14, 0, 0);
+  allocer = grokfield (input_filename, lineno, $<type_node_p>12, 0, 0);
+  accesser = grokfield (input_filename, lineno, $<type_node_p>14, 0, 0);
 
   //$$ = finish_structure ( $<type_node_p>5, 0, $6, $9 ,$13, $15, 0);
 
-  comp=alloc;
-  chainon(alloc,access);
+  comp=allocer;
+  chainon(allocer,accesser);
 
-  $$ = finish_struct ($<type_node_p>5, comp, NULL);
+  prev=accesser;
+
+
+
+  tree tmp;
+  if (!$9) goto none;
+  for(tmp=$9->list.purpose;tmp;tmp=TREE_CHAIN(tmp)) {
+    tree c = tree_cons (0, integer_type_node, 0);   
+    tree d = tree_cons (c, TREE_VALUE(tmp), 0);
+    tree dd = tree_cons (d, 0, 0);
+    tree grok;
+
+    //TREE_TYPE(c)=integer_type_node;
+
+    //c = TREE_VALUE(tmp);
+    c = DECL_NAME(tmp);
+
+    grok = grokfield (input_filename, lineno, c, 0, 0);
+
+
+    chainon(prev, grok);
+    prev=grok;
+  }
+
+
+  none:
+
+
+
+
+
+
+//  $$ = finish_struct ($<type_node_p>5, comp, NULL);
+
+  $$=0;
+
+  tree body=tree_cons(0,$15,0);
+  tree size=tree_cons(0,$13,body);
+  tree alloc=tree_cons(0,$9,size);
+  tree access=tree_cons(0,$6,alloc);
+  tree comp2=tree_cons(0,0,access);
+
+  $$ = start_structure (STRUCTURE_TYPE, $3, 0);
+  $$ = finish_structure ($$, comp2, 0); 
 
   //$$ = build_nt (STRUCTURE_DECL, $3, $6, $9, $13, $15);
   //add_struct(&mystructs,$$); 
@@ -2044,13 +2315,13 @@ structure_body
 
 allocation_formal_list: allocation_formal_list ',' allocation_formal 
 { 
-  //$$=chainon ($1, $3); 
 //$$ = tree_cons (NULL_TREE, $1, $3);
   $$ = get_parm_info (1);
+  //$$=chainon ($1, $3); 
 }
 |allocation_formal { 
-  //$$=$1; 
 $$ = get_parm_info (1);
+//$$=$1; 
  }
 ;
 
@@ -2073,10 +2344,15 @@ allocation_name {
 allocation_default: exp 
 ;
 
+structure_size: { $$ = 0; /* empty */ }
+|'[' expression ']' { $$=$2; }
+
+/*
 structure_size: { $$ = 0; }
 |
 {
-  $<type_node_p>1=c_begin_compound_stmt ();
+  //  $<type_node_p>1=c_begin_compound_stmt ();
+  $$=c_begin_compound_stmt ();
 }
 pushlevel '[' expression ']' poplevel { 
   //$$ = $2; 
@@ -2090,9 +2366,17 @@ $$=poplevel (kept_level_p (), 1, 0);
 
 }
 ;
+*/
 
+structure_body:
+  expression;
+
+/*
 structure_body: 
-{ $<type_node_p>1 = c_begin_compound_stmt; }
+{
+  // $<type_node_p>1 = c_begin_compound_stmt;
+ $$ = c_begin_compound_stmt();
+ }
 pushlevel expression poplevel
 {
 $$=poplevel (kept_level_p (), 1, 0);
@@ -2103,11 +2387,12 @@ $$=poplevel (kept_level_p (), 1, 0);
  last_expr_type = NULL_TREE;
  $$=$<type_node_p>1;
 } 
-
+;
+*/
 
 access_formal_list: access_formal_list ',' access_formal { 
-  //$$=chainon($1,$3); 
   $$ = get_parm_info (1);
+  //$$=chainon($1,$3); 
 }
 | access_formal 
 {
@@ -2172,6 +2457,7 @@ io_list
 }
 routine_attributes '=' save_filename save_lineno exp 
 { 
+  if ($11) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$11))); $$=0;
   finish_function (0, 1); 
   POP_DECLSPEC_STACK;
 }
@@ -2181,7 +2467,7 @@ routine_attributes: { $$=0; }
 | ':' routine_attribute_list { $$=$2; }
 ;
 
-setspecs: /* empty */
+setspecs: /* empty 5 */
 { pending_xref_error ();
  PUSH_DECLSPEC_STACK;
  split_specs_attrs ($<type_node_p>0,
@@ -2194,6 +2480,7 @@ declspecs_ts:
   $$ = tree_cons (NULL_TREE, NULL_TREE, NULL_TREE);
   TREE_STATIC ($$) = 1;
 }
+;
 
 io_list2: 
 io_list ':' routine_attribute_list 
@@ -2217,7 +2504,7 @@ io_list: { $$=0; }
 ;
 
 formal_item_list:
-/* empty */ { $$ = 0 ; } 
+/* empty 6 */ { $$ = 0 ; } 
 |formal_item_list ','  formal_item { $$ = get_parm_info (1); }
 |formal_item { $$ = get_parm_info (1);  }
 ;
@@ -2421,6 +2708,7 @@ bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list
 bind_data_attribute_list:
 bind_data_attribute_list bind_data_attribute 
 |bind_data_attribute 
+;
 
 bind_data_attribute:
 allocation_unit 
@@ -2446,6 +2734,7 @@ bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list
 bind_routine_attribute_list:
 bind_routine_attribute_list bind_routine_attribute 
 |bind_routine_attribute 
+;
 
 bind_routine_attribute:
 linkage_attribute 
@@ -2464,6 +2753,7 @@ positional_macro_definition:
 simple_macro_definition 
 |conditional_macro_definition 
 |iterative_macro_definition 
+;
 
 simple_macro_definition: 
 T_NAME '(' tname_list ')'  '=' macro_body '%' 
@@ -2604,14 +2894,14 @@ linkage_function: T_NAME
 linkage_function_name: T_NAME 
 ;
 
-pushlevel:  /* empty */
+pushlevel:  /* empty 7 */
 { pushlevel (0);
  clear_last_expr ();
  add_scope_stmt (/*begin_p=*/1, /*partial_p=*/0);
 }
 ;
 
-poplevel:  /* empty */
+poplevel:  /* empty 8 */
 { 
   $$ = add_scope_stmt (/*begin_p=*/0, /*partial_p=*/0);
  }
@@ -2978,7 +3268,7 @@ init_reswords ()
     }
 }
 
-tree
+static tree
 mydeclares (tree t) {
   tree tmp;
   if (!t) return 0;
@@ -2990,4 +3280,76 @@ mydeclares (tree t) {
     get_parm_info(1);
   }
   return 0;
+}
+
+tree
+my_copy  (tp, walk_subtrees, data) 
+     tree *tp;
+     int *walk_subtrees;
+     void *data;
+{
+#if 0
+  tree b=TREE_OPERAND (*tp, 1);
+  if (TREE_CODE(*tp) == NON_LVALUE_EXPR && b && TREE_CODE(b) == BIT_FIELD_REF) {
+    walk_tree (&TREE_OPERAND (*tp, 1), my_copy, 0, 0);
+  }
+#endif
+  copy_tree_r (tp, walk_subtrees, NULL);
+
+  /* Keep iterating.  */
+  return NULL_TREE;
+
+}
+
+tree
+my_copy_tree (node)
+     tree node;
+{
+  tree ret = node;
+  walk_tree (&ret, my_copy, 0, 0);
+  //  ret = copy_node(node);
+  //  if (TREE_CHAIN(node))
+  //    TREE_CHAIN(ret)=my_copy_tree(TREE_CHAIN(node));
+  return ret;
+}
+
+tree
+my_substitute_fn  (tp, walk_subtrees, data) 
+     tree *tp;
+     int *walk_subtrees;
+     void *data;
+{
+  long *l=data;
+  tree old=l[0];
+  tree new=l[1];
+  //  copy_tree_r (tp, walk_subtrees, NULL);
+  int i;
+  if (DECL_P(*tp)) {
+    for(old=TREE_PURPOSE(old);old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
+      if (DECL_NAME(*tp)==DECL_NAME(old)) {
+	*tp=new;
+	goto subst_out;
+      }
+    }
+  }
+ subst_out:
+  /* Keep iterating.  */
+  return NULL_TREE;
+
+}
+
+void
+my_substitute (mytree, old, new)
+  tree mytree, old, new;
+{
+  long l[2]={old, new};
+  walk_tree (&mytree, my_substitute_fn, l, 0);
+}
+
+tree
+my_do_parm(t)
+     tree t;
+{
+  if (t==0) return 0;
+  return tree_cons(0, build_decl (STRUCTURE_DECL, t, 0)  , my_do_parm(TREE_CHAIN(t)));
 }
