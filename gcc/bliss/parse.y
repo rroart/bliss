@@ -789,7 +789,7 @@ lowlevel: T_DIGITS
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
 primary  
-| operator_expression { $$ = $1; }
+| operator_expression
 | executable_function  
 | control_expression   
 | p_stuff ;
@@ -807,7 +807,7 @@ numeric_literal
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
 }
-| block { $$ = $1; }
+| block
 | structure_reference 
 | routine_call  { 
 // $$ = c_expand_expr_stmt ($1);
@@ -816,7 +816,7 @@ numeric_literal
 | codecomment 
 ;
 numeric_literal: 
-decimal_literal  { $$=$1; /* TREE_TYPE($1)=integer_type_node;*/ }
+decimal_literal  { /* TREE_TYPE($1)=integer_type_node;*/ }
 | integer_literal 
 | character_code_literal 
 | float_literal  
@@ -985,8 +985,8 @@ plit_string: string_literal
 ;
 
 block: 
-labeled_block  { $$ = $1; }
-| unlabeled_block { $$ = $1; }
+labeled_block
+| unlabeled_block
 ;
 
 labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
@@ -1107,7 +1107,7 @@ block_action: expression ';' {
 ;
 
 maybe_block_value: { $$=0; }
-|block_value { $$ = $1; }
+|block_value
 ;
 
 block_value: expression 
@@ -1448,7 +1448,7 @@ opexp9 '=' opexp9 {
 ;
 
 opexp9:
-primary { $$ = $1; }  
+primary
 | operator_expression  { 
   //$$=c_expand_expr_stmt($1); abort(); 
 }
@@ -1870,10 +1870,10 @@ ctce: compile_time_constant_expression
 
 ltce: linkage_time_constant_expression 
 ;
-linkage_time_constant_expression:expression { $$=$1; /*nonfin*/ }
+linkage_time_constant_expression:expression { /*nonfin*/ }
 ;
 
-compile_time_constant_expression: expression { $$=$1; /*nonfin*/ }
+compile_time_constant_expression: expression { /*nonfin*/ }
 ;
 
 addressing_mode_attribute: 
@@ -1976,9 +1976,7 @@ psect_allocation: K_PSECT '(' T_NAME ')' { $$ = 0; }
   ;
 */
 
-data_declaration:  own_declaration {
-  $$ = $1;
-}
+data_declaration:  own_declaration
 | global_declaration 
 | external_declaration  
 | forward_declaration 
@@ -2452,9 +2450,7 @@ access_formal: T_NAME {
 }
 ;
 
-allocation_name: T_NAME {
-  $$ = $1;
-}
+allocation_name: T_NAME
 ;
 
 field_declaration: K_FIELD { $$ = 0; }
@@ -2821,7 +2817,7 @@ macro_body: { $$=0; }
 /*| '<' { anymode=1; } lexeme_list { anymode=0; } '>' { $$=$3; }*/
 
 
-lexeme_list: expression { $$=$1; /*nonfin*/ }
+lexeme_list: expression { /*nonfin*/ }
 ;
 /*
   lexeme_list:  tname_list2 { $$=$1; *nonfin* }
