@@ -132,7 +132,7 @@ bliss/parse.h: bliss/parse.c
 bliss/parse.c: $(blisrc)/parse.y
 	@echo "Expect 33 shift/reduce conflicts and 58 reduce/reduce conflicts."
 	cd bliss && \
-	if $(BISON) $(BISONFLAGS) -d -o p$$$$.c ../$(srcdir)/bliss/parse.y; then \
+	if $(BISON) -v $(BISONFLAGS) -d -o p$$$$.c ../$(srcdir)/bliss/parse.y; then \
 	  grep '^#define[       ]*YYEMPTY' p$$$$.c >> p$$$$.h ; \
 	  test -f p$$$$.output && mv -f p$$$$.output parse.output ; \
 	  mv -f p$$$$.c parse.c ; mv -f p$$$$.h parse.h ; \
