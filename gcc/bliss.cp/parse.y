@@ -6,33 +6,30 @@
 	* 7-MAY-2000
 	*
 */
-  int yy2debug=0;
-  int yydebug=0;
+
+int yy2debug=0;
+int yydebug=0;
+
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
-  //  #undef YYDEBUG
-  //#define YYLEX z1zlex
-//#define YYSTYPE struct cmp_token_struct
 
-//#include "blir_temp_config.h"
-//#include "ignorance.h"
-//#include "symbtab.h"
+#include "ignorance.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-  extern int undefmode;
-  extern int tnamemode;
-  extern int linenumb;
+ extern int undefmode;
+ extern int tnamemode;
+ extern int linenumb;
 
-int have_extern_spec;
-int used_extern_spec;
+ int have_extern_spec;
+ int used_extern_spec;
 
-extern int in_system_header;
+ extern int in_system_header;
 
 #define malloc xmalloc
 
-//#include "gansidecl.h"
 #include "config.h"
 
 #undef IN_GCC
@@ -43,20 +40,13 @@ extern int in_system_header;
 
 #include "tree.h"
 
-//#include "blidebug.h"
-//#include "bliumem.h"
-//#include "bliumsg.h"
+#include "blilex.h"
 
-#include "bliclex.h"
-//#include "blicc1.h"
 #include "blicsyt.h"
-//#include "blicpru.h"
 
 #include "c-common.h"
 
 #include "cp-tree.h"
-
-//#define YYSTYPE struct cmp_token_struct
 
 static struct bli_token_struct * current_token=NULL;
 static struct bli_token_struct * first_available_token=NULL;
@@ -463,14 +453,6 @@ save_lineno:
 
 mystart: module
 { 
-  //struct bli_tree_struct_program_top* pgm;
-  //pgm = $1;
-  //BLI_ALLOC_TREE (parse_tree_top, BLI_PROD_TYPE_PARSE_TREE_TOP, 
-   //              bli_tree_struct_parse_tree_top);
-  //parse_tree_top->branch.child = (bli_item*) pgm;
-  //$$ = pgm;
-  //igroot=parse_tree_top;
-  igroot=$1;
 };
 /*module_body*/
 module		: K_MODULE module_head '=' 
@@ -1055,13 +1037,6 @@ maybe_block_action_list
 maybe_block_value /*  $$->middle=$2;  */
 /* */
 {
-  //tree decl;
-  //DECL_NAME(decl)=
-  //$$=decl;
-  void * v = $1;
-  void * w = $3;
-  fprintf(stderr,"vw %x %x\n",v,w);
-  //  $$ = chainon(0, $3);
   $$=$3;
 }
 ;
@@ -1219,7 +1194,7 @@ io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { cha
 ;
 
 io_actual_parameter: { $$=0 }
-|expression 
+|expression { $$ = build_unary_op(ADDR_EXPR, $1, 0); }
 ;
 
 general_routine_call:
@@ -1505,7 +1480,7 @@ K_IF
 }
 exp
 {
-  finish_if_stmt_cond(truthvalue_conversion ($3),$<type_node_p>2);
+  finish_if_stmt_cond($3,$<type_node_p>2);
   //  c_expand_start_cond (truthvalue_conversion ($3), 
   //	       compstmt_count,$<type_node_p>2);
 }
@@ -1514,6 +1489,7 @@ K_THEN exp
   //c_finish_then ();
   //c_expand_end_cond ();
   finish_then_clause ($<type_node_p>2);
+  finish_if_stmt();
   $$=0;
 }
 /*K_IF exp K_THEN exp  K_ELSE exp 
@@ -1867,7 +1843,6 @@ own_item_list: own_item_list ',' own_item
 ;
 
 own_item: T_NAME maybe_own_attribute_list { //maybe... is a declspecs
-  //$$ = build_decl (VAR_DECL, $1, integer_type_node);
   tree a, c, p , d, i, t;
   char * s;
   int e,f;
@@ -1902,13 +1877,6 @@ own_item: T_NAME maybe_own_attribute_list { //maybe... is a declspecs
 
   //f = start_init(d,NULL,global_bindings_p());
   //e = finish_init();
-  current_declspecs=tree_cons(NULL_TREE, build_nt (INDIRECT_REF, t), NULL_TREE); //integer_type_node; //ptr_type_node; //global_trees[28]; //ptr_type_node;
-  current_declspecs=tree_cons(NULL_TREE, build_nt (INDIRECT_REF, integer_type_node), NULL_TREE);
-  current_declspecs=tree_cons(NULL_TREE, make_pointer_declarator(0,$1), NULL_TREE);
-  current_declspecs=tree_cons(NULL_TREE, build_nt (INDIRECT_REF, $1), NULL_TREE);
-  current_declspecs=tree_cons(NULL_TREE, build_nt (INDIRECT_REF, make_node (INTEGER_CST)), NULL_TREE);
-  current_declspecs=tree_cons(NULL_TREE, make_node (INTEGER_CST), NULL_TREE);
-  current_declspecs=tree_cons(NULL_TREE, build_nt (POINTER_TYPE, make_node (INTEGER_CST)), NULL_TREE);
   current_declspecs=t;
   a = parse_decl (p, all_prefix_attributes, 1);
   i = build_x_unary_op (ADDR_EXPR, d);
@@ -2328,6 +2296,18 @@ formal_item: /*T_NAME ':' formal_attribute_list
   g = tree_cons(i/*f*/,p /*$1*/,0); // p instead of $1 last time
   $$ = tree_cons(0,g,0);
 
+
+  tree type = integer_type_node;
+  tree t = tree_cons (NULL_TREE, type, NULL_TREE);
+  /*tree*/ p = make_pointer_declarator (0, $1);
+
+  tree e = tree_cons (t, p, 0);
+
+  $$ = tree_cons (0, e, chainon (NULL, all_prefix_attributes)); // opposite here
+
+
+
+
   //  $$=tree_cons(NULL_TREE, $$, NULL_TREE);
   //$$ = build_tree_list (build_tree_list (current_declspecs,p) ,chainon (NULL, all_prefix_attributes));
 
@@ -2728,86 +2708,6 @@ poplevel:  /* empty */
 %%
 
 #define NOYTABH
-//#include "lex.yy.c"
-
-/*
-support
-functions
-here
-*/
-
-
-void
-yyerror42 PARAMS ((const char *s))
-{
-  if (s)fprintf( stderr,"\n\n%s\n",s); 
-  fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
-}
-
-int numbFors=0;
-
-/*#define fprinto(x) fprintf(stdout,x)
-#define fprinte(x) fprintf(stderr,x)
-#define fprinte(x,y) fprintf(stderr,x,y)*/
-
-extern int p;
-extern int c;
-
-/*
-void fprinte(int p,...) {
-va_list argptr ;
-va_start(argptr,
-if (p) fprintf(stderr,argptr);
-va_end(argptr);
-}
-void fprinto(int c,...) {
-va_list argptr ;
-if (c) fprintf(stdout,argptr);
-}
-*/
-
-FILE * myout=stderr;
-
-//#define uplevel prevtop=cur_top_table;newscosym();prev=cur_sym_table;
-//#define downlevel cur_sym_table=prev;cur_top_table=prevtop;end_cur();next_sym_table=&(cur_sym_table->next);
-
-//symrec *cur_sym_table;
-
-int bli_lex(void) {
-  //  return z1zlex();
-  return yylex();
-}
-
-int bli_lex_not_now(void) 
-{
-  struct bli_token_struct* prev;
-  prev=current_token;
-  
-  if (current_token==NULL) 
-    {
-      current_token=first_available_token;
-    } 
-  else 
-    {
-      current_token=current_token->bli_token_next;
-    }
-  
-  if (!current_token) 
-    {
-//      bli_lval=NULL;
-      return 0;
-    }
-  
-  current_token->bli_token_prev=prev;
-  
-  //  bli_lval.type_node_p=current_token;
-  return current_token->pfx.type.tok_type;
-}
-
-int bli_debug=1;
-
-const char *filename;
-
 extern FILE *z1zin;
 extern FILE *yyin;
 void 
@@ -2852,205 +2752,6 @@ parse_init(0,0);
   ggc_add_tree_root (&current_enum_type, 1);
   ggc_add_tree_root (&saved_scopes, 1);
 }
-
-#if 0
-symrec *sym_table = (symrec *)0;
-symrec *cur_sym_table = (symrec *)0;
-symrec *cur_top_table= (symrec*) 0;
-symrec **next_sym_table;
-#endif
-
-void
-dump_token (FILE * f , const unsigned char *prefix, struct bli_token_struct *t)
-{
-//fprintf(stderr, "%x\n", yylval);
-  unsigned int char_ix;
-  //BLI_ASSERT (t);
-  //BLI_ASSERT (max_token_nbr >= t->pfx.type.tok_type);
-#if 0
-  fprintf (f,"%stoken type = %d lit=%s len = %d line = %d char = %d file nbr = %d chars = ", 
-          prefix,
-          t->pfx.type.tok_type,
-          token_lit_ptrs[t->pfx.type.tok_type],
-          t->string_details->length,
-          t->bli_token_lineno,
-          t->bli_token_charno,
-          t->bli_token_fileno);
-#endif
-  for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-    {
-      fprintf (f,"%c",t->string_details->string[char_ix]);
-    }
-  for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-    {
-      fprintf (f," %2.2x",t->string_details->string[char_ix]);
-    }
-  if (t->string_details->string_upper->string)
-    {
-      fprintf (f," uc = ");
-      for (char_ix = 0; char_ix < t->string_details->length; char_ix++) 
-        {
-          fprintf (f, "%c",t->string_details->string_upper->string[char_ix]);
-        }
-    }
-}
-
-void
-gen_aux_info_record (fndecl, is_definition, is_implicit, is_prototyped)
-     tree fndecl;
-     int is_definition;
-     int is_implicit;
-     int is_prototyped;
-{
-#if 0
-  if (flag_gen_aux_info)
-    {
-      static int compiled_from_record = 0;
-
-      /* Each output .X file must have a header line.  Write one now if we
-         have not yet done so.  */
-
-      if (! compiled_from_record++)
-        {
-          /* The first line tells which directory file names are relative to.
-             Currently, -aux-info works only for files in the working
-             directory, so just use a `.' as a placeholder for now.  */
-          fprintf (aux_info_file, "/* compiled from: . */\n");
-        }
-
-      /* Write the actual line of auxiliary info.  */
-
-      fprintf (aux_info_file, "/* %s:%d:%c%c */ %s;",
-               DECL_SOURCE_FILE (fndecl),
-               DECL_SOURCE_LINE (fndecl),
-               (is_implicit) ? 'I' : (is_prototyped) ? 'N' : 'O',
-               (is_definition) ? 'F' : 'C',
-               gen_decl (fndecl, is_definition, ansi));
-
-      /* If this is an explicit function declaration, we need to also write
-         out an old-style (i.e. K&R) function header, just in case the user
-         wants to run unprotoize.  */
-
-      if (is_definition)
-        {
-          fprintf (aux_info_file, " /*%s %s*/",
-                   gen_formal_list_for_func_def (fndecl, k_and_r_names),
-                   gen_formal_list_for_func_def (fndecl, k_and_r_decls));
-        }
-
-      fprintf (aux_info_file, "\n");
-    }
-#endif
-}
-
-void
-cpp_finish_options2 (pfile)
-     cpp_reader *pfile;
-{
-}
-
-cpp_reader *
-cpp_create_reader2 (lang)
-     enum c_lang lang;
-{
-}
-
-void
-cpp_post_options2 (pfile)
-     cpp_reader *pfile;
-{
-}
-
-void
-cpp_error2 VPARAMS ((cpp_reader * pfile, const char *msgid, ...))
-{
-}
-
-unsigned int
-cpp_errors2 (pfile)
-     cpp_reader *pfile;
-{
-  //return pfile->errors;
-}
-
-tree
-handle_format_attribute2 (node, name, args, flags, no_add_attrs)
-     tree *node;
-     tree name ATTRIBUTE_UNUSED;
-     tree args;
-     int flags;
-     bool *no_add_attrs;
-{
-}
-
-tree
-handle_format_arg_attribute2 (node, name, args, flags, no_add_attrs)
-     tree *node;
-     tree name ATTRIBUTE_UNUSED;
-     tree args;
-     int flags;
-     bool *no_add_attrs;
-{
-}
-
-const char *
-init_c_lex2 (filename)
-     const char *filename;
-{
-}
-
-void
-init_pragma2 ()
-{
-}
-
-void
-cpp_finish2 (pfile)
-     cpp_reader *pfile;
-{
-}
-
-/* This is actually the bliss default */
-
-tree
-make_pointer_declarator2 (type_quals_attrs, target)
-     tree type_quals_attrs, target;
-{
-  tree quals, attrs;
-  tree itarget = target;
-  split_specs_attrs (type_quals_attrs, &quals, &attrs);
-  if (attrs != NULL_TREE)
-    itarget = tree_cons (attrs, target, NULL_TREE);
-  return build1 (INDIRECT_REF, quals, itarget);
-}
-
-/* borrowed from cp */
-
-#if 0
-tree
-make_reference_declarator (cv_qualifiers, target)
-     tree cv_qualifiers, target;
-{
-  if (target)
-    {
-      if (TREE_CODE (target) == ADDR_EXPR)
-        {
-          error ("cannot declare references to references");
-          return target;
-        }
-      if (TREE_CODE (target) == INDIRECT_REF)
-        {
-          error ("cannot declare pointers to references");
-          return target;
-        }
-      if (TREE_CODE (target) == IDENTIFIER_NODE && ANON_AGGRNAME_P (target))
-	error ("type name expected before `&'");
-    }
-  target = build_nt (ADDR_EXPR, target);
-  TREE_TYPE (target) = cv_qualifiers;
-  return target;
-}
-#endif
 
 void
 add_struct(struct structure ** s,tree elem) {
