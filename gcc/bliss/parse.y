@@ -380,7 +380,6 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> indexed_loop_expression tested_loop_expression
 %type <type_node_p> leave_expression exitloop_expression case_label
 %type <type_node_p> ltce
-%type <type_node_p> field_declaration
 %type <type_node_p>  pre_tested_loop post_tested_loop
 %type <type_int> K_TO K_INRANGE K_OUTRANGE indexed_loop_type
 %type <type_int> K_INCR K_INCRA K_INCRU K_DECR K_DECRA K_DECRU
@@ -397,7 +396,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_int> K_FORWARD K_STACKLOCAL  K_REGISTER
 %type <type_int> K_ROUTINE
 %type <type_node_p> setspecs declspecs_ts
-%type <type_node_p> allocation_default allocation_name allocation_formal
+%type <type_node_p> allocation_default allocation_formal
 %type <type_node_p> routine_definition_list io_list2 formal_item_list
 %type <type_node_p> routine_attribute_list
 %type <type_node_p> formal_item routine_definition io_list
@@ -405,10 +404,10 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> map_declaration_attribute routine_attribute
 %type <type_node_p> forward_routine_attribute
 %type <type_node_p> global_routine_attribute  ext_routine_attribute
-%type <type_node_p> global_routine_declaration global_routine_definition_list
+%type <type_node_p> global_routine_definition_list
 %type <type_node_p> global_routine_definition global_routine_attribute_list
-%type <type_node_p> forward_routine_item_list forward_routine_attribute_list
-%type <type_node_p> forward_routine_declaration external_routine_item_list
+%type <type_node_p> forward_routine_item_list
+%type <type_node_p> external_routine_item_list
 %type <type_node_p> ext_routine_attribute_list forward_routine_item
 %type <type_node_p> map_declaration_attribute_list
 %type <type_node_p> external_routine_item
