@@ -200,7 +200,7 @@ opened related to line LINE_NBR and column native_char_NBR. TEXT overrides
 the default message text for that message_id if not NULL. Error if no
 default text and no supplied text.  */
 
-void
+static void
 record_msg (message_id_nbr, file_nbr, line_nbr, char_nbr, text, reading_text)
      uint32 message_id_nbr; 
      uint32 file_nbr;
@@ -289,7 +289,7 @@ record_msg (message_id_nbr, file_nbr, line_nbr, char_nbr, text, reading_text)
    later output.  The preprocessor and the main compiler have a
    different idea of what a token is; thus the void* token.  */
 
-void
+static void
 record_msg_token (message_nbr, token, text)
 
      uint32 message_nbr;

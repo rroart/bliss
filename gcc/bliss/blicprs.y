@@ -262,12 +262,13 @@ bli_parse PARAMS((void));
 %type <type_node_p> range_attribute novalue_attribute /*pot_expression*/
 %type <type_node_p> /*opexp1 opexp2 opexp3 opexp4 opexp5 opexp6 opexp7 opexp8*/
 %type <type_node_p> opexp9 lexical_function lexical_function_name 
-%type <type_node_p> addressing_mode_attribute weak_attribute own_attribute
+%type <type_node_p> weak_attribute own_attribute
 %type <type_node_p> address lexical_actual_parameter own_attribute_list
 %type <type_node_p> initial_item initial_group initial_expression
 %type <type_node_p>  preset_item ctce_access_actual io_actual_parameter_list io_actual_parameter
-%type <type_node_p> preset_value psect_item_list psect_item storage_class
-%type <type_node_p> volatile_attribute psect_attribute_list psect_attribute
+%type <type_node_p> preset_value psect_item_list psect_item
+%type <type_int> storage_class addressing_mode_attribute 
+%type <type_node_p> volatile_attribute psect_attribute_list
 %type <type_node_p> own_declaration global_declaration
 %type <type_node_p> external_declaration forward_declaration
 %type <type_node_p> local_declaration stackglocal_declaration
@@ -305,7 +306,8 @@ bli_parse PARAMS((void));
 %type <type_node_p> operator_expression fetch_expression /*prefix_expression*/
 %type <type_node_p> infix_expression assign_expression op_exp op_exp1
 %type <type_node_p> op_exp2 op_exp3 op_exp4 op_exp5 op_exp6 op_exp7 op_exp8
-%type <type_node_p> op_exp9 op_exp10 op_exp11 op_exp12 b32_psect_attribute
+%type <type_node_p> op_exp9 op_exp10 op_exp11 op_exp12
+%type <type_node_p> b32_psect_attribute psect_attribute
 %type <type_int> U_READ U_NOREAD U_SHARE U_NOSHARE U_PIC U_NOPIC K_LOCAL 
 %type <type_node_p> actual_parameter standard_function_name executable_function
 %type <type_int> K_SETUNWIND  K_SIGNAL K_STOP U_OVERLAY  U_CONCATENATE U_VECTOR
@@ -493,7 +495,7 @@ opt_mhargs
 ;
 
 opt_mhargs	: /* empty */ { $$=0; }
-| '(' ms_list ')' {  }
+| '(' ms_list ')' { $$ = $2; }
 /*| '(' ms_list ')' { fprintf(stderr,"err %x \n",$2); fflush(stderr); }*/
   		;
 
@@ -502,23 +504,24 @@ ms_list		: { undefmode=1; } module_switch { undefmode=0; $$ = $2; }
 ;
 
 module_body: /* empty */ { $$=0; }
-| K_BEGIN decl_list K_END
-{ }
-| '(' decl_list ')'
-{ }
+| K_BEGIN decl_list K_END { $$ = $2; }
+
+| '(' decl_list ')' { $$ = $2; }
+
 ;
 
-decl_list	: declaration { $$=$1; }
-| decl_list declaration {  }
+decl_list	: declaration 
+| decl_list declaration 
 ;
 
 /* 1.1 Module Switches */
 
-module_switch	: on_off_switch { $$= $1; }
-| special_switch { $$= $1; }
+module_switch	: on_off_switch 
+| special_switch 
 ;
 
-on_off_switch: onoffmodes { };
+on_off_switch: onoffmodes { $$ = 0; }
+;
 
 onoffmodes:
 CODE		/* default */
@@ -538,50 +541,50 @@ CODE		/* default */
 ;
 
 special_switch:
-common_switch { $$=$1; }
-/*|bliss_16_switch { $$=$1; }*/
-|bliss_32_switch { $$=$1; }
-/*|bliss_36_switch { $$=$1; }*/
+common_switch 
+/*|bliss_16_switch */
+|bliss_32_switch 
+/*|bliss_36_switch */
 ;
 
 bliss_16_switch:
-K_ADDRESSING_MODE '(' mode_16 ')' {  }
-/*|U_ENVIRONMENT '(' environ_16_option ')'  {  }*/
+K_ADDRESSING_MODE '(' mode_16 ')'  { $$ = 0; }
+/*|U_ENVIRONMENT '(' environ_16_option ')'  */
 ;
 
 environ_16_option:
-U_EIS { }
-| U_NOEIS { }
-| U_LSI11 { }
-| U_T11 { }
-|	 U_PIC { }
-| U_ODT { }
+U_EIS  { $$ = 0; }
+| U_NOEIS  { $$ = 0; }
+| U_LSI11  { $$ = 0; }
+| U_T11  { $$ = 0; }
+|	 U_PIC  { $$ = 0; }
+| U_ODT  { $$ = 0; }
 ;
 
 bliss_32_switch:
-K_ADDRESSING_MODE '(' mode_spec_list ')' {  }
+K_ADDRESSING_MODE '(' mode_spec_list ')'  { $$ = 0; }
 ;
 
-mode_spec_list: mode_spec_list ',' mode_spec {  }
-| mode_spec { $$=$1; }
+mode_spec_list: mode_spec_list ',' mode_spec 
+| mode_spec 
 ;
 
 mode_spec:
-K_EXTERNAL '='  mode_32 {  }
-| U_NONEXTERNAL '='  mode_32 {  }
+K_EXTERNAL '='  mode_32  { $$ = 0; }
+| U_NONEXTERNAL '='  mode_32  { $$ = 0; }
 ;
 
 bliss_36_switch: /*nonfin*/ P_ASCIZ { $$=0; }
 ;
 
-common_switch	:  U_IDENT '=' T_STRING { }
-| U_LANGUAGE '(' language_list ')' {  }
-| U_LINKAGE '(' T_NAME ')' { }
-| U_LIST '(' list_option_list ')' {  }
-| K_STRUCTURE '(' structure_attribute ')' {  }
-| U_MAIN '=' T_NAME { }
-| U_OPTLEVEL '=' T_DIGITS { }
-| U_VERSION '=' T_STRING { }
+common_switch	:  U_IDENT '=' T_STRING  { $$ = 0; }
+| U_LANGUAGE '(' language_list ')'  { $$ = 0; }
+| U_LINKAGE '(' T_NAME ')'  { $$ = 0; }
+| U_LIST '(' list_option_list ')'  { $$ = 0; }
+| K_STRUCTURE '(' structure_attribute ')'  { $$ = 0; }
+| U_MAIN '=' T_NAME  { $$ = 0; }
+| U_OPTLEVEL '=' T_DIGITS  { $$ = 0; }
+| U_VERSION '=' T_STRING  { $$ = 0; }
 
 /*| P_TITLE T_STRING {  $$->id=$2; nonfin}*/
 /*
@@ -683,47 +686,47 @@ common_switch	:  U_IDENT '=' T_STRING { }
 		;
 
 language_list: { $$=0; }
-|"common" { }
-| language_name_list { $$=$1;}
+|"common" { $$ = 0; }
+| language_name_list 
 ;
-language_name_list: language_name_list ',' language_name {  }
-|language_name { $$=$1; }
+language_name_list: language_name_list ',' language_name 
+|language_name 
 ;
-language_name:  U_BLISS16 { }
-| U_BLISS32  { }
-| U_BLISS36  { }
+language_name:  U_BLISS16  { $$ = 0; }
+| U_BLISS32   { $$ = 0; }
+| U_BLISS36   { $$ = 0; }
 ;
-list_option_list: list_option_list list_option {  }
-|list_option { $$=$1; }
+list_option_list: list_option_list list_option 
+|list_option 
 ;
-list_option:  U_SOURCE   { }
-| U_NOSOURCE    { }
-| U_REQUIRE    { }
-| U_NOREQUIRE   { }
-| U_EXPAND    { }
-| U_NOEXPAND   { }
-| U_TRACE   { }
-| U_NOTRACE   { }
-| U_LIBRARY   { }
-| U_NOLIBRARY   { }
-| U_OBJECT   { }
-| U_NOOBJECT   { }
-| U_ASSEMBLY   { }
-| U_NOASSEMBLY   { }
-| U_SYMBOLIC   { }
-| U_NOSYMBOLIC   { }
-| U_BINARY   { }
-| U_NOBINARY   { }
-| U_COMMENTARY   { }
-| U_NOCOMMENTARY    { }
-;
-
-tname_list: tname_list ',' T_NAME {  }
-|T_NAME {  }
+list_option:  U_SOURCE    { $$ = 0; }
+| U_NOSOURCE     { $$ = 0; }
+| U_REQUIRE     { $$ = 0; }
+| U_NOREQUIRE    { $$ = 0; }
+| U_EXPAND     { $$ = 0; }
+| U_NOEXPAND    { $$ = 0; }
+| U_TRACE    { $$ = 0; }
+| U_NOTRACE    { $$ = 0; }
+| U_LIBRARY    { $$ = 0; }
+| U_NOLIBRARY    { $$ = 0; }
+| U_OBJECT    { $$ = 0; }
+| U_NOOBJECT    { $$ = 0; }
+| U_ASSEMBLY    { $$ = 0; }
+| U_NOASSEMBLY    { $$ = 0; }
+| U_SYMBOLIC    { $$ = 0; }
+| U_NOSYMBOLIC    { $$ = 0; }
+| U_BINARY    { $$ = 0; }
+| U_NOBINARY    { $$ = 0; }
+| U_COMMENTARY    { $$ = 0; }
+| U_NOCOMMENTARY     { $$ = 0; }
 ;
 
-tname_list2: tname_list2  T_NAME {  }
-|T_NAME {  }
+tname_list: tname_list ',' T_NAME 
+|T_NAME 
+;
+
+tname_list2: tname_list2  T_NAME 
+|T_NAME 
 ;
 /*
   name_list	: T_NAME
@@ -757,41 +760,41 @@ tname_list2: tname_list2  T_NAME {  }
 			;
 		*/
 
-lowlevel: T_DIGITS {  }
-| T_NAME {  }
+lowlevel: T_DIGITS 
+| T_NAME 
 ;
 
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
-primary  { $$=$1; }
+primary  
 | operator_expression  { /* $$=c_expand_expr_stmt($1); */ }
-| executable_function  { $$=$1; }
-| control_expression   { $$=$1; }
-| p_stuff { $$=$1; };
+| executable_function  
+| control_expression   
+| p_stuff ;
 
 p_stuff:
-P_REMAINING {  }
+P_REMAINING  { $$ = 0; }
 
 primary: 
-numeric_literal  { $$=$1; }
-| string_literal  { $$=$1; }
-| plit { $$=$1; }
+numeric_literal  
+| string_literal  
+| plit 
 | T_NAME { 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
 }
-| block  { $$=$1; }
-| structure_reference { $$=$1; }
+| block  
+| structure_reference 
 | routine_call  { /* $$ = c_expand_expr_stmt ($1);*/ }
-| field_reference { $$=$1; }
-| codecomment { $$=$1; }
+| field_reference 
+| codecomment 
 ;
 numeric_literal: 
 decimal_literal  { $$=$1; /* TREE_TYPE($1)=integer_type_node;*/ }
-| integer_literal { $$=$1; }
-| character_code_literal { $$=$1; }
-| float_literal  { $$=$1; }
+| integer_literal 
+| character_code_literal 
+| float_literal  
 ;
 
 decimal_literal: 
@@ -805,154 +808,154 @@ T_DIGITS {
 ;
 
 opt_sign: { $$=0; }
-|'+' {  }
-|'-' {  }
+|'+' { $$ = 0; }
+|'-' { $$ = 0; }
 ;
 
 integer_literal: 
-P_B T_STRING { }
-| P_O T_STRING { }
-| P_DECIMAL T_STRING { }
-| P_X T_STRING { }
+P_B T_STRING  { $$ = 0; }
+| P_O T_STRING  { $$ = 0; }
+| P_DECIMAL T_STRING  { $$ = 0; }
+| P_X T_STRING  { $$ = 0; }
 ;                  
 /*
-  P_B apo opt_sign T_NAME apo {  }
-  | P_O apo opt_sign T_NAME apo {  }
-  | P_DECIMAL apo opt_sign T_NAME apo {  }
-  | P_X apo opt_sign T_NAME apo {  }
+  P_B apo opt_sign T_NAME apo 
+  | P_O apo opt_sign T_NAME apo 
+  | P_DECIMAL apo opt_sign T_NAME apo 
+  | P_X apo opt_sign T_NAME apo 
   */
 						
 integer_digit_list:  
-integer_digit_list integer_digit {  }
-|integer_digit { $$ = $1; }
+integer_digit_list integer_digit 
+|integer_digit 
 ;
 
-integer_digit:   digits  { $$=$1; }
-| T_NAME  {  }
+integer_digit:   digits  
+| T_NAME  
 ;
 
-character_code_literal: P_C T_STRING { }
+character_code_literal: P_C T_STRING { $$ = 0; }
 ;
 
 /*The quoted_character is defined in the LEXICAL DEFINITION part of this
 text. Here, only one quoted_character must appear.*/
 
 float_literal: 
-single_precision_float_literal { $$=$1; }
-| double_precision_float_literal { $$=$1; }
-| extended_exponent_double_precision_float_literal { $$=$1; }
-| extended_exponent_extended_precision_float_literal { $$=$1; }
+single_precision_float_literal 
+| double_precision_float_literal 
+| extended_exponent_double_precision_float_literal 
+| extended_exponent_extended_precision_float_literal 
 ;
 
 single_precision_float_literal:
-P_E " mantissa {E exponent | nothing } " {  }
+P_E " mantissa {E exponent | nothing } " { $$ = 0; }
 ;
 
 double_precision_float_literal:
-P_D " mantissa { D exponent | nothing } " {  }
+P_D " mantissa { D exponent | nothing } " { $$ = 0; }
 ;
 
 extended_exponent_double_precision_float_literal:
-P_G " mantissa { { G | Q } exponent | nothing } " {  }
+P_G " mantissa { { G | Q } exponent | nothing } " { $$ = 0; }
 ;
 
 extended_exponent_extended_precision_float_literal:
-P_H " mantissa { Q exponent | nothing } " {  }
+P_H " mantissa { Q exponent | nothing } " { $$ = 0; }
 ;
 
 mantissa: opt_sign
 digits | digits '.' | '.' digits { $$=$2; } | digits '.' digits 
 ;
 
-digits: digits T_DIGITS { }
+digits: digits T_DIGITS 
 | T_DIGITS {}
 ;
 
-string_literal:  string_type T_STRING2 {  }
-| T_STRING2 {  }
+string_literal:  string_type T_STRING2 
+| T_STRING2 
 ;
 
 /*T_STRING2 is a new extension nonfin*/
 T_STRING2:
-T_STRING {  }
-|P_STRING '(' string_par_list ')' {  }
-|P_CHAR '(' char_par_list ')' {  }
-|P_CHESC {  }
+T_STRING 
+|P_STRING '(' string_par_list ')' { $$ = 0; }
+|P_CHAR '(' char_par_list ')' { $$ = 0; }
+|P_CHESC { $$ = 0; }
 ;
 
-string_par_list:string_par_list ',' string_par {  }
-|string_par { $$=$1; }
+string_par_list:string_par_list ',' string_par 
+|string_par 
 ;
 
 string_par:
-numeric_literal { $$=$1 ; }
-|string_literal { $$=$1; }
+numeric_literal 
+|string_literal 
 ;
 
-char_par_list:char_par_list ',' char_par {  }
-|char_par { $$=$1; }
+char_par_list:char_par_list ',' char_par 
+|char_par 
 ;
 
-char_par: ctce { $$=$1; }
+char_par: ctce 
 ;
 
-string_type:  P_ASCII { }
-| P_ASCIZ  { }
-| P_ASCIC  { }
-| P_ASCID  { }
-| P_RAD50_11 { }
-| P_RAD50_10  { }
-| P_SIXBIT  { }
-| P_P  { }
+string_type:  P_ASCII  { $$ = 0; }
+| P_ASCIZ   { $$ = 0; }
+| P_ASCIC   { $$ = 0; }
+| P_ASCID   { $$ = 0; }
+| P_RAD50_11  { $$ = 0; }
+| P_RAD50_10   { $$ = 0; }
+| P_SIXBIT   { $$ = 0; }
+| P_P   { $$ = 0; }
 ;
 
 plit2:
-K_PLIT { }
-|K_UPLIT { }
+K_PLIT  { $$ = 0; }
+|K_UPLIT  { $$ = 0; }
 ;
 
 plit3: { $$=0; }
-| allocation_unit {  }
-| psect_allocation{  }
-| psect_allocation allocation_unit{  }
+| allocation_unit 
+| psect_allocation
+| psect_allocation allocation_unit
 ;
 
-plit: plit2 plit3 '(' plit_item_list ')' { }
+plit: plit2 plit3 '(' plit_item_list ')' 
 ;
 
-plit_item_list: plit_item_list ',' plit_item {  }
-|plit_item { $$=$1; }
+plit_item_list: plit_item_list ',' plit_item 
+|plit_item 
 ;
 
-psect_allocation: K_PSECT '(' T_NAME ')' { }
+psect_allocation: K_PSECT '(' T_NAME ')' { $$ = 0; }
 ;
 
-psect_name: T_NAME {  }
+psect_name: T_NAME 
 
 plit_item: 
-plit_group  { $$=$1; }
-| plit_expression { $$=$1; }
-| plit_string { $$=$1; }
+plit_group  
+| plit_expression 
+| plit_string 
 ;
 
 plit_group: 
-allocation_unit {  }
-| K_REP replicator K_OF {  }
-| K_REP replicator K_OF allocation_unit {  }
+allocation_unit 
+| K_REP replicator K_OF  { $$ = 0; }
+| K_REP replicator K_OF allocation_unit  { $$ = 0; }
 ;
 
-allocation_unit:  K_LONG  { }
-| K_WORD  { }
-| K_BYTE { }
+allocation_unit:  K_LONG   { $$ = 0; }
+| K_WORD   { $$ = 0; }
+| K_BYTE  { $$ = 0; }
 ;
 
-replicator: ctce { $$=$1; }
+replicator: ctce 
 ;
 
-plit_expression: ltce { $$=$1; }
+plit_expression: ltce 
 ;
 
-plit_string: string_literal { $$=$1; }
+plit_string: string_literal 
 ;
 
 block: 
@@ -963,12 +966,12 @@ labeled_block
 labeled_block: attached_label_list unlabeled_block { $$=chainon($1,$2); }
 ;
 
-attached_label_list: attached_label_list attached_label {  }
-| attached_label { $$=$1; }
+attached_label_list: attached_label_list attached_label 
+| attached_label 
 ;
 
 attached_label: 
-T_NAME ':' {  }
+T_NAME ':' 
 ;
 
 unlabeled_block_start: K_BEGIN { 
@@ -1007,7 +1010,7 @@ maybe_declaration_list
 { /* $$ = bli_begin_compound_stmt (); */ }
 maybe_block_action_list 
 maybe_block_value /*  $$->middle=$2;  */
-/* {  }*/
+/* */
 {
   //tree decl;
   //DECL_NAME(decl)=
@@ -1021,7 +1024,7 @@ maybe_block_value /*  $$->middle=$2;  */
 ;
 /*
 maybe_declaration_list: { $$=0; }
-| declaration_list { $$=$1; }
+| declaration_list 
 ;
 */
 maybe_declaration_list: { $$=NULL_TREE; }
@@ -1035,11 +1038,11 @@ declaration_list: declaration_list declaration {
   /*   */
   $$=chainon($1,$2);
  }
-|declaration { $$=$1; }
+|declaration 
 ;
 /*
   maybe_block_action_list: { $$=0; }
-  |block_action_list  { $$=$1; }
+  |block_action_list  
   ;
 */
 maybe_block_action_list: { $$=0; }
@@ -1049,7 +1052,7 @@ maybe_block_action_list: { $$=0; }
 ;
 
 block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
-|block_action { $$=$1; }
+|block_action 
 ;
 /*The block_body must not be null.*/
 
@@ -1060,70 +1063,70 @@ block_action: expression ';' {
 ;
 
 maybe_block_value: { $$=0; }
-|block_value { $$=$1; }
+|block_value 
 ;
 
-block_value: expression { $$=$1; }
+block_value: expression 
 ;
 
 structure_reference:
-  ordinary_structure_reference { $$=$1; }
-| default_structure_reference { $$=$1; }
-| general_structure_reference { $$=$1; }
+  ordinary_structure_reference 
+| default_structure_reference 
+| general_structure_reference 
 ;
 
 ordinary_structure_reference:
 T_NAME '[' access_actual_list ']' { $$=$3; }
 ;
 
-access_actual_list: access_actual_list ',' access_actual {  }
-|access_actual { $$=$1; }
+access_actual_list: access_actual_list ',' access_actual 
+|access_actual 
 ;
 
-segment_name: T_NAME {  }
+segment_name: T_NAME 
 ;
 
 access_actual: { $$=0; }
-|expression  { $$=$1; }
-| field_name  { $$=$1; }
+|expression  
+| field_name  
 ;
 
 access_part:  
-segment_expression ',' access_actual_list {  }
-|segment_expression  {  }
+segment_expression ',' access_actual_list 
+|segment_expression  
 ;
 
-segment_expression: exp { $$=$1; }
+segment_expression: exp 
 ;
 
 /*field_name      Note: See field_attribute, Section 4.1*/
 
-field_name: T_NAME {  }
+field_name: T_NAME 
 ;
 
-field_set_name: T_NAME {  }
+field_set_name: T_NAME 
 ;
 
 dsr1:
-primary  { $$=$1; }
-| executable_function { $$=$1; }
+primary  
+| executable_function 
 ;
 
 default_structure_reference: dsr1
-'[' access_actual_list ']' {  }
+'[' access_actual_list ']' 
 ;
 
 general_structure_reference:
-T_NAME '[' access_part ';' alloc_actual_list ']' { }
-|T_NAME '[' access_part ']' { }
+T_NAME '[' access_part ';' alloc_actual_list ']' 
+|T_NAME '[' access_part ']' 
 ;
 
-alloc_actual_list: alloc_actual_list ',' alloc_actual {  }
-|alloc_actual { $$=$1; }
+alloc_actual_list: alloc_actual_list ',' alloc_actual 
+|alloc_actual 
 ;
 
-routine_call: ordinary_routine_call  { $$=$1; }
-| general_routine_call { $$=$1; }
+routine_call: ordinary_routine_call  
+| general_routine_call 
 ;
 
 ordinary_routine_call:
@@ -1138,18 +1141,18 @@ T_NAME '(' io_list3 ')' {
 ;
 
 routine_designator:
-primary  { $$=$1; }
-/*| executable_function { $$=$1; }*/
+primary  
+/*| executable_function */
 ;
 
 io_list3: { $$=0; }
-| io_actual_parameter_list  {  }
-| io_actual_parameter_list ';' io_actual_parameter_list  {  }
-| ';' io_actual_parameter_list  {  }
+| io_actual_parameter_list  
+| io_actual_parameter_list ';' io_actual_parameter_list  
+| ';' io_actual_parameter_list  { $$ = 0; }
+;
 
-
-actual_parameter_list: actual_parameter_list ',' actual_parameter {  }
-|actual_parameter { $$=$1; }
+actual_parameter_list: actual_parameter_list ',' actual_parameter 
+|actual_parameter 
 ;
 
 io_actual_parameter_list: io_actual_parameter_list ',' io_actual_parameter { chainon ($1, build_tree_list (NULL_TREE, $3)); }
@@ -1161,83 +1164,83 @@ io_actual_parameter: { $$=0 }
 ;
 
 general_routine_call:
-T_NAME '(' routine_address ',' io_list3 ')'{ }
-|T_NAME '(' routine_address ')'{ }
+T_NAME '(' routine_address ',' io_list3 ')'
+|T_NAME '(' routine_address ')'
 ;
 
-linkage_name: T_NAME {  }
+linkage_name: T_NAME 
 ;
 
 
-routine_address: expression { $$=$1; }
+routine_address: expression 
 ;
 
-field_reference: address '{' field_selector '}' { $$=$1; }
+field_reference: address '{' field_selector '}' 
 ;
 
 address: 
-primary  { $$=$1; }
-| executable_function { $$=$1; }
+primary  
+| executable_function 
 ;
 
 field_selector: position_exp ',' size_exp '{' ',' sign_ext_flag '}'
-{ $$=$1; }
+
 ;
 
 sign_ext_flag: ctce
 ;
 
-codecomment: K_CODECOMMENT quoted_string_list ':' block
-{  }
+codecomment: K_CODECOMMENT quoted_string_list ':' block{ $$ = 0; }
+
 ;
 
-quoted_string_list: quoted_string_list T_STRING {  }
-|T_STRING {  }
+quoted_string_list: quoted_string_list T_STRING 
+|T_STRING 
 ;
 /*
   operator_expression:
-  fetch_expression  { $$=$1; }
-  | prefix_expression { $$=$1; }
-  | infix_expression  { $$=$1; }
+  fetch_expression  
+  | prefix_expression 
+  | infix_expression  
   ;
 */
 op_exp:
-primary  { $$=$1; }
-| operator_expression  { $$=$1; }
-|executable_function { $$=$1; }
+primary  
+| operator_expression  
+|executable_function 
 ;
 
 fetch_expression:
-'.' op_exp12 {  }
+'.' op_exp12 { $$ = 0; }
 ;
 
 operator_expression_not: 
-op_exp12 { $$=$1; }
+op_exp12 
 ;
 
 operator_expression:
 '.' opexp9  { $$ = build_indirect_ref ($2, "unary *"); }
 /*| '+' opexp9 %prec UMINUS {  $$->id="+"; }
 | '-' opexp9 %prec UPLUS {  $$->id="-"; } nonfin*/
-| opexp9 '^' opexp9 { }
-| opexp9 K_MOD opexp9 { }
-| opexp9 '*' opexp9 { }
-| opexp9 '/' opexp9 { }
+| opexp9 '^' opexp9 
+| opexp9 K_MOD opexp9 
+| opexp9 '*' opexp9 
+| opexp9 '/' opexp9 
 | opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
 | opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
 | opexp9 infix_operator opexp9 { $$ = parser_build_binary_op ($2, $1, $3); }
-| K_NOT opexp9 {  }
-| opexp9 K_AND opexp9 { }
-|  opexp9 K_OR opexp9 { }
-| opexp9 K_EQV opexp9 { }
-| opexp9 K_XOR  opexp9 { }
+| K_NOT opexp9 { $$ = 0; }
+| opexp9 K_AND opexp9 
+|  opexp9 K_OR opexp9 
+| opexp9 K_EQV opexp9 
+| opexp9 K_XOR  opexp9 
 | opexp9 '=' opexp9 { $$=build_modify_expr(build_indirect_ref ($1, "unary *"), NOP_EXPR, $3);  }
 ;
 
 opexp9:
-primary  { $$=$1; }
+primary  
 | operator_expression  { /*$$=c_expand_expr_stmt($1); abort(); */}
-|executable_function { $$=$1; }
+|executable_function 
 ;
 infix_expression: op_exp infix_operator op_exp { abort(); }
 ;
@@ -1250,28 +1253,28 @@ infix_expression: op_exp infix_operator op_exp { abort(); }
  | '^' { $$="^";} 
  |*/
 infix_operator:  
-K_EQL  { $$=$1; }
-| K_EQLA  { $$=$1; }
-| K_EQLU { $$=$1; }
-| K_NEQ  { $$=$1; }
-| K_NEQA  { $$=$1; }
-| K_NEQU  { $$=$1; }
-| K_LSS  { $$=$1; }
-| K_LSSA  { $$=$1; }
-| K_LSSU  { $$=$1; }
-| K_LEQ { $$=$1; }
-| K_LEQA  { $$=$1; }
-| K_LEQU  { $$=$1; }
-| K_GTR  { $$=$1; }
-| K_GTRA  { $$=$1; }
-| K_GTRU  { $$=$1; }
-| K_GEQ  { $$=$1; }
-| K_GEQA { $$=$1; }
-| K_GEQU  { $$=$1; }
-/* | K_AND  { $$=$1; }
- | K_OR  { $$=$1; }
- | K_EQV  { $$=$1; }
- | K_XOR  { $$=$1; }*/
+K_EQL   { $$ = 0; }
+| K_EQLA   { $$ = 0; }
+| K_EQLU  { $$ = 0; }
+| K_NEQ   { $$ = 0; }
+| K_NEQA   { $$ = 0; }
+| K_NEQU   { $$ = 0; }
+| K_LSS   { $$ = 0; }
+| K_LSSA   { $$ = 0; }
+| K_LSSU   { $$ = 0; }
+| K_LEQ  { $$ = 0; }
+| K_LEQA   { $$ = 0; }
+| K_LEQU   { $$ = 0; }
+| K_GTR   { $$ = 0; }
+| K_GTRA   { $$ = 0; }
+| K_GTRU   { $$ = 0; }
+| K_GEQ   { $$ = 0; }
+| K_GEQA  { $$ = 0; }
+| K_GEQU   { $$ = 0; }
+/* | K_AND  
+ | K_OR  
+ | K_EQV  
+ | K_XOR  */
 ;
 
 
@@ -1283,98 +1286,98 @@ assign_expression: K_IF K_RETURN K_IF
 ;
 
 
-op_exp1: op_exp { $$=$1; }
+op_exp1: op_exp 
 ;
 op_exp2:  '.' op_exp2 { $$=$2; }
-| op_exp { $$=$1; } 
+| op_exp  
 ;
 op_exp3:/*  '+' op_exp3 { $$=$2; }
 				| '-' op_exp3 { $$=$2; }
-				|*/ op_exp2 { $$=$1; } 
+				|*/ op_exp2  
 ;
-op_exp4:  op_exp4 '^' op_exp3  { $$=$1; }
-| op_exp3  { $$=$1; }
+op_exp4:  op_exp4 '^' op_exp3  
+| op_exp3  
 ;
-op_exp5:  op_exp5 K_MOD op_exp4  { $$=$1; }
-| op_exp5 '/' op_exp4 { $$=$1; }
-| op_exp5 '*' op_exp4  { $$=$1; }
-| op_exp4  { $$=$1; }
+op_exp5:  op_exp5 K_MOD op_exp4  
+| op_exp5 '/' op_exp4 
+| op_exp5 '*' op_exp4  
+| op_exp4  
 ;
-op_exp6:  op_exp6 '+' op_exp5  { $$=$1; }
-| op_exp6 '-' op_exp5   {  }
-| op_exp5  { $$=$1; }
+op_exp6:  op_exp6 '+' op_exp5  
+| op_exp6 '-' op_exp5   
+| op_exp5  
 ;
-op_exp7:  op_exp7 op7 op_exp6  { $$=$1; }
-| op_exp6  { $$=$1; }
+op_exp7:  op_exp7 op7 op_exp6  
+| op_exp6  
 ;
-op7:  K_EQL { $$=$1; }
-| K_EQLA { $$=$1; }
-| K_EQLU { $$=$1; }
-| K_NEQ { $$=$1; }
-| K_NEQA { $$=$1; }
-| K_NEQU { $$=$1; }
-| K_LSS { $$=$1; }
-| K_LSSA { $$=$1; }
-| K_LSSU { $$=$1; }
-| K_LEQ { $$=$1; }
-| K_LEQA { $$=$1; }
-| K_LEQU { $$=$1; }
-| K_GTR { $$=$1; }
-| K_GTRA { $$=$1; }
-| K_GTRU { $$=$1; }
-| K_GEQ { $$=$1; }
-| K_GEQA { $$=$1; }
-| K_GEQU  { $$=$1; }
+op7:  K_EQL  
+| K_EQLA  
+| K_EQLU  
+| K_NEQ 
+| K_NEQA 
+| K_NEQU 
+| K_LSS 
+| K_LSSA 
+| K_LSSU 
+| K_LEQ 
+| K_LEQA 
+| K_LEQU 
+| K_GTR 
+| K_GTRA 
+| K_GTRU 
+| K_GEQ 
+| K_GEQA 
+| K_GEQU  
 ;
 op_exp8:  K_NOT op_exp8 { $$=$2; }
-| op_exp7  { $$=$1; }
+| op_exp7  
 ;
-op_exp9:  op_exp9 K_AND op_exp8  { $$=$1; }
-| op_exp8  { $$=$1; }
+op_exp9:  op_exp9 K_AND op_exp8  
+| op_exp8  
 ;
-op_exp10:  op_exp10 K_OR op_exp9  { $$=$1; }
-| op_exp9  { $$=$1; }
+op_exp10:  op_exp10 K_OR op_exp9  
+| op_exp9  
 ;
-op_exp11:  op_exp11 K_EQV op_exp10 { $$=$1; }
-| op_exp11 K_XOR op_exp10  { $$=$1; }
-| op_exp10  { $$=$1; }
+op_exp11:  op_exp11 K_EQV op_exp10 
+| op_exp11 K_XOR op_exp10  
+| op_exp10  
 ;
-op_exp12:  op_exp11 '=' op_exp12  { $$=$1; }
-| op_exp11  { $$=$1; }
+op_exp12:  op_exp11 '=' op_exp12  
+| op_exp11  
 ;
 /*
-  operator_expression: op_exp12 { $$=$1; }
+  operator_expression: op_exp12 
   ;
 */
 executable_function:
 executable_function_name '('  actual_parameter_list  ')' {
   /* */
  }
-|executable_function_name '(' ')' {  }
+|executable_function_name '(' ')' 
 ;
 
 executable_function_named:
-/* standard_function_name  { $$=$1; }
-| linkage_function_name { $$=$1; }
-| character_handling_function_name { $$=$1; }
-| machine_specific_function_name { $$=$1; }
-|*/ cond_handling_function_name { $$=$1; }
+/* standard_function_name  
+| linkage_function_name 
+| character_handling_function_name 
+| machine_specific_function_name 
+|*/ cond_handling_function_name 
 ;
 
 
 executable_function_name:
-T_NAME {  } 
-| '%' T_NAME {  }
-|executable_function_named { $$=$1; }
+T_NAME  
+| '%' T_NAME { $$ = 0; }
+|executable_function_named 
 ;
 
 lexical_function: 
-lexical_function_name '(' lexical_actual_parameter ')' {  }
-| lexical_function_name expression {  }
-| lexical_function_name  {  }
+lexical_function_name '(' lexical_actual_parameter ')' 
+| lexical_function_name expression 
+| lexical_function_name  
 ;
 
-lexical_actual_parameter: lexeme_list { $$=$1 ; }
+lexical_actual_parameter: lexeme_list 
 ;
 
 lexical_function_name:
@@ -1382,36 +1385,36 @@ P_REMAINING { $$=0; }
 /* really %name nonfin*/
 ;
 
-actual_parameter: expression { $$=$1; }
+actual_parameter: expression 
 ;
-standard_function_name: T_NAME {  }
+standard_function_name: T_NAME 
 ;
-character_handling_function_name: T_NAME {  }
+character_handling_function_name: T_NAME 
 ;
-machine_specific_function_name: T_NAME {  }
+machine_specific_function_name: T_NAME 
 ;
 cond_handling_function_name:
-K_SIGNAL { }
-| K_STOP { }
-| K_SETUNWIND  { }
+K_SIGNAL { $$ = 0; }
+| K_STOP { $$ = 0; }
+| K_SETUNWIND  { $$ = 0; }
 ;
 
-size_exp: exp { $$=$1; }
+size_exp: exp 
 ;
 
-position_exp: exp { $$=$1; }
+position_exp: exp 
 ;
 
-control_expression:  conditional_expression  { $$=$1; }
-| case_expression { $$=$1; }
-| select_expression { $$=$1; }
-| loop_expression { $$=$1; }
-| exit_expression { $$=$1; }
-| return_expression  { $$=$1; }
+control_expression:  conditional_expression  
+| case_expression 
+| select_expression 
+| loop_expression 
+| exit_expression 
+| return_expression  
 ;
 
 conditional_expression: 
-/* K_IF exp K_THEN exp  K_ELSE exp ';' { }
+/* K_IF exp K_THEN exp  K_ELSE exp ';' 
 | */
 K_IF
 {
@@ -1428,34 +1431,34 @@ K_THEN exp
   c_expand_end_cond ();
   $$=0;
 }
-/*K_IF exp K_THEN exp  K_ELSE exp {  }
-|K_IF exp K_THEN exp  {  }*/
+/*K_IF exp K_THEN exp  K_ELSE exp 
+|K_IF exp K_THEN exp  */
 ;
 
-exp: expression { $$=$1; }
+exp: expression 
 ;
 
 case_expression: K_CASE exp K_FROM ctce K_TO ctce K_OF { $$=$2; }
 K_SET case_line_list K_TES { $$=$2; }
 ;
 
-case_line_list: case_line_list case_line {  }
-|case_line { $$=$1; }
+case_line_list: case_line_list case_line 
+|case_line 
 ;
 
 case_line: '[' case_label_list ']' ':' case_action ';' { $$=$2; }
 ;
 
-case_label_list: case_label_list ','  case_label {  }
-|case_label { $$=$1; }
+case_label_list: case_label_list ','  case_label 
+|case_label 
 ;
 
 case_label: { $$=0; }
-| ctce K_TO ctce { }
+| ctce K_TO ctce 
 | K_INRANGE { $$=0; }
 | K_OUTRANGE { $$=0; }
 ;
-case_action: expression { $$=$1; }
+case_action: expression 
 ;
 
 
@@ -1465,30 +1468,30 @@ select_expression: select_type select_index K_OF K_SET select_line_list K_TES
 select_type:  K_SELECT | K_SELECTA | K_SELECTU
 | K_SELECTONE | K_SELECTONEA | K_SELECTONEU 
 ;
-select_index: expression { $$=$1; }
+select_index: expression 
 ;
 
-select_line_list: select_line_list select_line {  }
-|select_line { $$=$1; }
+select_line_list: select_line_list select_line 
+|select_line 
 ;
 
 select_line: '[' select_label_list ']' ':' select_action ';' { $$=$2; }
 ;
-select_label_list: select_label_list select_label {  }
-|select_label { $$=$1; }
+select_label_list: select_label_list select_label 
+|select_label 
 ;
 
-select_label:  exp  { $$=$1; }
-| exp K_TO exp  { $$=$1; }
-| K_OTHERWISE {  }
-| K_ALWAYS {  }
+select_label:  exp  
+| exp K_TO exp  
+| K_OTHERWISE { $$ = 0; }
+| K_ALWAYS { $$ = 0; }
 ;
-select_action: expression { $$=$1; }
+select_action: expression 
 ;
 
 
-loop_expression:  indexed_loop_expression  {  }
-| tested_loop_expression  { $$=$1; }
+loop_expression:  indexed_loop_expression  
+| tested_loop_expression  
 ;
 indexed_loop_expression:
 indexed_loop_type
@@ -1498,14 +1501,14 @@ indexed_loop_type
   add_stmt ($<type_node_p>$);  
 }
  T_NAME
-K_FROM exp   K_TO exp   K_BY exp  K_DO exp { }
+K_FROM exp   K_TO exp   K_BY exp  K_DO exp 
 ;
 indexed_loop_type:
 K_INCR | K_INCRA | K_INCRU  | K_DECR | K_DECRA | K_DECRU 
 ;
 tested_loop_expression:
-pre_tested_loop  { $$=$1; }
-| post_tested_loop  { $$=$1; }
+pre_tested_loop  
+| post_tested_loop  
 ;
 pre_tested_loop:  
 K_WHILE 
@@ -1519,20 +1522,20 @@ exp
   RECHAIN_STMTS ($<type_node_p>4, WHILE_BODY ($<type_node_p>4));
   $$=0;
  } 
-| K_UNTIL  exp K_DO exp { }
+| K_UNTIL  exp K_DO exp { $$ = 0; }
 ;
 post_tested_loop:
-K_DO exp K_WHILE exp  { }
-| K_DO exp K_UNTIL  exp { }
+K_DO exp K_WHILE exp  { $$ = 0; }
+| K_DO exp K_UNTIL  exp { $$ = 0; }
 ;
 
 
-exit_expression:  leave_expression  { $$=$1; }
-| exitloop_expression  { $$=$1; }
+exit_expression:  leave_expression  
+| exitloop_expression  
 ;
 leave_expression: 
-K_LEAVE T_NAME K_WITH exp { } 
-|K_LEAVE T_NAME { } 
+K_LEAVE T_NAME K_WITH exp  { $$ = 0; }
+|K_LEAVE T_NAME  { $$ = 0; }
 ;
 exitloop_expression: 
 K_EXITLOOP  exp  { $$=$2; }
@@ -1545,41 +1548,41 @@ K_RETURN  exp { $$ = c_expand_return (build_compound_expr($2)); $$=0; }
 ;
 /**** 3.0 CONSTANT EXPRESSIONS **************************************/
 /**** 4.0 DECLARATIONS **********************************************/
-declaration: data_declaration { $$=$1; }
-| structure_declaration { $$=$1; }
-| field_declaration  { $$=$1; }
-| routine_declaration { $$=$1; }
-| linkage_declaration  { $$=$1; }
-| enable_declaration { $$=$1; }
-| bound_declaration  { $$=$1; }
-| compiletime_declaration { $$=$1; }
-| macro_declaration  { $$=$1; }
-| require_declaration { $$=$1; }
-| library_declaration  { $$=$1; }
-| psect_declaration { $$=$1; }
-| switches_declaration  { $$=$1; }
-| label_declaration { $$=$1; }
-| builtin_declaration  { $$=$1; }
-| undeclare_declaration { $$=$1; }
+declaration: data_declaration 
+| structure_declaration 
+| field_declaration  
+| routine_declaration 
+| linkage_declaration  
+| enable_declaration 
+| bound_declaration  
+| compiletime_declaration 
+| macro_declaration  
+| require_declaration 
+| library_declaration  
+| psect_declaration 
+| switches_declaration  
+| label_declaration 
+| builtin_declaration  
+| undeclare_declaration 
 ;
 
-attribute_list:attribute_list attribute {  }
-|attribute { $$=$1; }
+attribute_list:attribute_list attribute 
+|attribute 
 ;
-attribute:  allocation_unit { $$=$1; }
-| extension_attribute { $$=$1; }
-| structure_attribute { $$=$1; } 
-| field_attribute { $$=$1; }
-| alignment_attribute { $$=$1; } 
-| initial_attribute { $$=$1; }
-| preset_attribute { $$=$1; }
+attribute:  allocation_unit 
+| extension_attribute 
+| structure_attribute  
+| field_attribute 
+| alignment_attribute  
+| initial_attribute 
+| preset_attribute 
 | { undefmode=1; } psect_allocation{ undefmode=0; $$=$2; }
-| volatile_attribute { $$=$1; }
-| novalue_attribute { $$=$1; }
-| linkage_attribute { $$=$1; } 
-| range_attribute { $$=$1; }
+| volatile_attribute 
+| novalue_attribute 
+| linkage_attribute  
+| range_attribute 
 | { undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
-| weak_attribute { $$=$1; } 
+| weak_attribute  
 ;
 /*
   allocation_unit:  K_LONG | K_WORD | K_BYTE 
@@ -1588,45 +1591,45 @@ attribute:  allocation_unit { $$=$1; }
 /*extension_attribute:  K_SIGNED | K_UNSIGNED 
 ;*/
 structure_attribute:
-  K_REF T_NAME '[' alloc_actual_list ']' { }
-|  K_REF T_NAME  { }
-|   T_NAME '[' alloc_actual_list ']' { }
-|   T_NAME  { }
+  K_REF T_NAME '[' alloc_actual_list ']' { $$ = 0; }
+|  K_REF T_NAME  { $$ = 0; }
+|   T_NAME '[' alloc_actual_list ']' 
+|   T_NAME  
 ;
 
-extension_attribute: K_SIGNED { }
-|K_UNSIGNED { }
+extension_attribute: K_SIGNED { $$ = 0; }
+|K_UNSIGNED { $$ = 0; }
 ;
 /*
-  field_attribute: K_FIELD {  }
+  field_attribute: K_FIELD 
   ;
 */
-alignment_attribute: K_ALIGN  compile_time_constant_expression {  }
+alignment_attribute: K_ALIGN  compile_time_constant_expression { $$ = 0; }
 ;
 /*
-  preset_attribute: K_PRESET {  }
+  preset_attribute: K_PRESET 
   ;
 */
 /*
-psect_allocation: K_PSECT {  }
+psect_allocation: K_PSECT 
 ;
 */
 
-volatile_attribute: K_VOLATILE {  }
+volatile_attribute: K_VOLATILE { $$ = 0; }
 ;
 
-novalue_attribute: K_NOVALUE {  }
+novalue_attribute: K_NOVALUE { $$ = 0; }
 ;
-linkage_attribute: T_NAME { }
+linkage_attribute: T_NAME 
 ;
-range_attribute: K_SIGNED compile_time_constant_expression { }
-|K_UNSIGNED compile_time_constant_expression { }
-;
-
-ctce: compile_time_constant_expression { $$=$1; }
+range_attribute: K_SIGNED compile_time_constant_expression { $$ = 0; }
+|K_UNSIGNED compile_time_constant_expression { $$ = 0; }
 ;
 
-ltce: linkage_time_constant_expression { $$=$1; }
+ctce: compile_time_constant_expression 
+;
+
+ltce: linkage_time_constant_expression 
 ;
 linkage_time_constant_expression:expression { $$=$1; /*nonfin*/ }
 ;
@@ -1635,23 +1638,23 @@ compile_time_constant_expression: expression { $$=$1; /*nonfin*/ }
 ;
 
 addressing_mode_attribute: 
-/*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' {  }
+/*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' 
   |*/{ undefmode=1; fprintf(stderr, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' {  undefmode=0; }
 ;
 
 mode_16:
-  U_ABSOLUTE { }
-|U_RELATIVE { }
+  U_ABSOLUTE { $$ = 0; }
+|U_RELATIVE { $$ = 0; }
 ;
 
 mode_32:
-U_ABSOLUTE { }
-|U_GENERAL { }
-|U_LONG_RELATIVE { }
-|U_WORD_RELATIVE { }
+U_ABSOLUTE { $$ = 0; }
+|U_GENERAL { $$ = 0; }
+|U_LONG_RELATIVE { $$ = 0; }
+|U_WORD_RELATIVE { $$ = 0; }
 ;
 
-weak_attribute: K_WEAK {  }
+weak_attribute: K_WEAK { $$ = 0; }
 ;
 
 /*
@@ -1660,74 +1663,74 @@ alloc_actual_list: alloc_actual_list alloc_actual|alloc_actual;
 
 
 alloc_actual:  { $$=(int) 0; }
-| ctce { $$=$1; }
-|allocation_unit { $$=$1; }
-|extension_attribute { $$=$1; }
+| ctce 
+|allocation_unit 
+|extension_attribute 
 ;
 
-field_attribute: K_FIELD field_stuff_list {  }
+field_attribute: K_FIELD field_stuff_list { $$ = 0; }
 ;
 
-field_stuff_list: field_stuff_list ','  field_name {  }
-| field_stuff_list ','  field_set_name{  }
-| field_set_name { $$=$1; }
-| field_name { $$=$1; }
+field_stuff_list: field_stuff_list ','  field_name 
+| field_stuff_list ','  field_set_name
+| field_set_name 
+| field_name 
 ;
 
-initial_attribute: K_INITIAL '(' initial_item_list ')' {  }
+initial_attribute: K_INITIAL '(' initial_item_list ')' { $$ = 0; }
 ;
 
-initial_item_list: initial_item_list ',' initial_item {  }
-|initial_item { $$=$1; }
+initial_item_list: initial_item_list ',' initial_item 
+|initial_item 
 ;
 
 initial_item: 
-initial_group  { $$=$1; }
-| initial_expression { $$=$1; }
-| initial_string { $$=$1; }
+initial_group  
+| initial_expression 
+| initial_string 
 ;
 
 initial_group: 
-allocation_unit '(' initial_item_list ')' { }
-| K_REP replicator K_OF '(' initial_item_list ')'  {  }
-| K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { }
-/*| '(' initial_item_list ')' {  }*/
+allocation_unit '(' initial_item_list ')' 
+| K_REP replicator K_OF '(' initial_item_list ')'  { $$ = 0; }
+| K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { $$ = 0; }
+/*| '(' initial_item_list ')' */
 ;
 
 /*
-replicator: ctce { $$=$1; }
+replicator: ctce 
 ;
 */
 
-initial_expression: expression { $$=$1; }
+initial_expression: expression 
 ;
 
 /*
 An initial_expression must be an ltce for OWN and GLOBAL declarations.
 */
 
-initial_string: string_literal { $$=$1; }
+initial_string: string_literal 
 ;
 
 preset_item_list: preset_item_list ',' preset_item|preset_item;
 
-preset_attribute: K_PRESET '(' preset_item_list ')' {  }
+preset_attribute: K_PRESET '(' preset_item_list ')' { $$ = 0; }
 ;
 
-preset_item:  '[' ctce_access_actual_list ']' '=' preset_value {  }
+preset_item:  '[' ctce_access_actual_list ']' '=' preset_value { $$ = 0; }
 ;
 
 ctce_access_actual_list: ctce_access_actual_list ',' ctce_access_actual|ctce_access_actual;
 
 ctce_access_actual: 
-ctce { $$=$1; }
-| field_name { $$=$1; }
+ctce 
+| field_name 
 ;
 
-preset_value: expression { $$=$1; }
+preset_value: expression 
 ;
 
-psect_allocation: K_PSECT '(' T_NAME ')' { }
+psect_allocation: K_PSECT '(' T_NAME ')' { $$ = 0; }
 ;
 /*
   volatile_attribute: K_VOLATILE
@@ -1737,19 +1740,19 @@ psect_allocation: K_PSECT '(' T_NAME ')' { }
 data_declaration:  own_declaration {
   $$ = $1;
 }
-| global_declaration { $$=$1; }
-| external_declaration  { $$=$1; }
-| forward_declaration { $$=$1; }
-| local_declaration  { $$=$1; }
-| stackglocal_declaration { $$=$1; }
-| register_declaration { $$=$1; }
-| global_register_declaration { $$=$1; }
-| external_register_declaration { $$=$1; }
-| map_declaration  { $$=$1; }
+| global_declaration 
+| external_declaration  
+| forward_declaration 
+| local_declaration  
+| stackglocal_declaration 
+| register_declaration 
+| global_register_declaration 
+| external_register_declaration 
+| map_declaration  
 ;
 
 /*
-own_declaration_list: own_declaration_list own_declaration {  }
+own_declaration_list: own_declaration_list own_declaration 
 |own_declaration;
 */
 
@@ -1784,160 +1787,161 @@ own_item: T_NAME {
 }
 ;
 own_attribute_list:
-own_attribute_list own_attribute {  }
-|own_attribute { $$=$1; }
+own_attribute_list own_attribute 
+|own_attribute 
 ;
 
 own_attribute:
-allocation_unit { $$=$1; }
-|extension_attribute { $$=$1; }
-|structure_attribute { $$=$1; }
-|field_attribute { $$=$1; }
-|alignment_attribute { $$=$1; }
-|initial_attribute { $$=$1; }
-|preset_attribute { $$=$1; }
-|psect_allocation { $$=$1; }
-|volatile_attribute { $$=$1; }
+allocation_unit 
+|extension_attribute 
+|structure_attribute 
+|field_attribute 
+|alignment_attribute 
+|initial_attribute 
+|preset_attribute 
+|psect_allocation 
+|volatile_attribute 
 ;
 
-global_declaration: K_GLOBAL global_item_list  ';' {  }
+global_declaration: K_GLOBAL global_item_list  ';' { $$ = 0; }
 ;
 
-global_item_list:  global_item_list global_item {  }
-|global_item { $$=$1; }
+global_item_list:  global_item_list global_item 
+|global_item 
 ;
 
-global_item: T_NAME ':' attribute_list { }
+global_item: T_NAME ':' attribute_list 
 ;
 
-external_declaration: K_EXTERNAL external_item_list ';' {  }
+external_declaration: K_EXTERNAL external_item_list ';' { $$ = 0; }
 ;
 
-external_item_list: external_item_list external_item {  }
-|external_item { $$=$1; }
+external_item_list: external_item_list external_item 
+|external_item 
 ;
 
-external_item: T_NAME ':' attribute_list {  }
+external_item: T_NAME ':' attribute_list 
 ;
 
-forward_declaration: K_FORWARD forward_item_list ';'  { }
+forward_declaration: K_FORWARD forward_item_list ';'  { $$ = 0; }
 ;
 
-forward_item: T_NAME ':' attribute_list {  }
+forward_item: T_NAME ':' attribute_list 
 ;
 
-forward_item_list: forward_item_list forward_item {  }
-|forward_item { $$=$1; }
+forward_item_list: forward_item_list forward_item 
+|forward_item 
 ;
 
-local_declaration: K_LOCAL local_item_list ';' { } ;
+local_declaration: K_LOCAL local_item_list ';'  { $$ = 0; }
+;
 
-local_item_list: local_item_list ',' local_item {  }
-|local_item { $$=$1; }
+local_item_list: local_item_list ',' local_item 
+|local_item 
 ;
 
 local_item: 
-T_NAME ':' attribute_list { }
-|T_NAME { }
+T_NAME ':' attribute_list 
+|T_NAME 
 ;
 
-stackglocal_declaration: K_STACKLOCAL local_item_list ';' { }
+stackglocal_declaration: K_STACKLOCAL local_item_list ';' { $$ = 0; }
 ;
 
-register_declaration: K_REGISTER register_item_list ';' { }
+register_declaration: K_REGISTER register_item_list ';' { $$ = 0; }
 ;
 
-register_item_list: register_item_list register_item {  }
-|register_item { $$=$1; }
+register_item_list: register_item_list register_item 
+|register_item 
 ;
 
-register_item: T_NAME '=' ctce ':' attribute_list {  }
+register_item: T_NAME '=' ctce ':' attribute_list 
 ;
 
 global_register_declaration:
-K_GLOBAL K_REGISTER global_reg_item_list ';' {  }
+K_GLOBAL K_REGISTER global_reg_item_list ';' { $$ = 0; }
 ;
 
-global_reg_item_list: global_reg_item_list global_reg_item {  }
-|global_reg_item { $$=$1; }
+global_reg_item_list: global_reg_item_list global_reg_item 
+|global_reg_item 
 ;
 
-global_reg_item: T_NAME '=' ctce attribute_list {  }
+global_reg_item: T_NAME '=' ctce attribute_list 
 ;
 
 external_register_declaration:
-K_EXTERNAL K_REGISTER external_reg_item_list ';' {  }
+K_EXTERNAL K_REGISTER external_reg_item_list ';' { $$ = 0; }
 ;
 
-external_reg_item_list:external_reg_item_list external_reg_item {  }
-|external_reg_item { $$=$1; }
+external_reg_item_list:external_reg_item_list external_reg_item 
+|external_reg_item 
 ;
 
-external_reg_item: T_NAME '=' ctce ':' attribute_list {  }
+external_reg_item: T_NAME '=' ctce ':' attribute_list 
 ;
 
-map_declaration: K_MAP map_item_list ';' {  }
+map_declaration: K_MAP map_item_list ';' { $$ = 0; }
 ;
 
-map_item_list: map_item_list ',' map_item {  }
-|map_item { $$=$1; }
+map_item_list: map_item_list ',' map_item 
+|map_item 
 ;
 
-map_item: T_NAME ':' attribute_list { }
+map_item: T_NAME ':' attribute_list 
 ;
 
 structure_declaration:
-  K_STRUCTURE structure_definition_list ';' {  }
+  K_STRUCTURE structure_definition_list ';' { $$ = 0; }
 ;
 
-structure_definition_list: structure_definition_list structure_definition {  }
-|structure_definition { $$=$1; }
+structure_definition_list: structure_definition_list structure_definition 
+|structure_definition 
 ;
 
 structure_definition:
   T_NAME 
   access_formal_list  allocation_formal_list 
   structure_size  structure_body
-{ }
+
 /* nonfin */
 ;
 
-allocation_formal_list: allocation_formal_list allocation_formal {  }
-|allocation_formal  { $$=$1; }
+allocation_formal_list: allocation_formal_list allocation_formal 
+|allocation_formal  
 ;
 
 allocation_formal:
-allocation_name '{' '=' allocation_default '}' {  }
+allocation_name '{' '=' allocation_default '}' 
 ;
 
-allocation_default: exp { $$=$1; }
+allocation_default: exp 
 ;
 
-structure_size: expression { $$=$1; }
+structure_size: expression 
 ;
 
-structure_body: expression { $$=$1; }
+structure_body: expression 
 ;
 
-access_formal_list: access_formal_list access_formal {  }
-| access_formal_list  { $$=$1; }
+access_formal_list: access_formal_list access_formal 
+| access_formal_list  
 ;
 
-access_formal: T_NAME {  }
+access_formal: T_NAME 
 ;
 
-allocation_name: T_NAME {  }
+allocation_name: T_NAME 
 ;
 
-field_declaration: K_FIELD
-{  } 
+field_declaration: K_FIELD { $$ = 0; }
+ 
 ;
 
 routine_declaration:
-ordinary_routine_declaration { $$=$1; }
-|global_routine_declaration { $$=$1; }
-|forward_routine_declaration { $$=$1; }
-|external_routine_declaration { $$=$1; }
+ordinary_routine_declaration 
+|global_routine_declaration 
+|forward_routine_declaration 
+|external_routine_declaration 
 ;
 ordinary_routine_declaration: 
 K_ROUTINE routine_definition_list ';' { 
@@ -1946,8 +1950,8 @@ K_ROUTINE routine_definition_list ';' {
 }
 ;
 
-routine_definition_list: routine_definition_list ',' routine_definition {  }
-|routine_definition { $$=$1; }
+routine_definition_list: routine_definition_list ',' routine_definition 
+|routine_definition 
 ;
 
 routine_definition: declspecs_ts setspecs T_NAME 
@@ -1998,8 +2002,8 @@ declspecs_ts:
 }
 
 io_list2: 
-io_list ':' routine_attribute_list {  }
-|io_list {  }
+io_list ':' routine_attribute_list 
+|io_list 
 ;
 
 io_list: { $$=0; }
@@ -2014,8 +2018,8 @@ io_list: { $$=0; }
   poplevel (0, 0, 0);
   $$ = $3;
 }
-/*  |'(' formal_item_list ';' formal_item_list ')' { }
-    |'(' ';' formal_item_list ')' {  }*/
+/*  |'(' formal_item_list ';' formal_item_list ')' 
+    |'(' ';' formal_item_list ')' */
 ;
 
 formal_item_list:
@@ -2041,91 +2045,91 @@ formal_item: /*T_NAME ':' formal_attribute_list
 }
 ;
 routine_attribute_list:
-routine_attribute_list routine_attribute {  }
-|routine_attribute { $$=$1; }
+routine_attribute_list routine_attribute 
+|routine_attribute 
 ;
-formal_attribute_list:  map_declaration_attribute_list  { $$=$1; }
+formal_attribute_list:  map_declaration_attribute_list  
 ;
 /*
   ?? nonfin
   formal_attribute_list: '(' map_declaration_attribute_list ')' { $$=$2; }
   ;
 */
-map_declaration_attribute_list: map_declaration_attribute_list map_declaration_attribute {  }
-|map_declaration_attribute { $$=$1; }
+map_declaration_attribute_list: map_declaration_attribute_list map_declaration_attribute 
+|map_declaration_attribute 
 ;
 
 map_declaration_attribute:
-allocation_unit { $$=$1; }
-|extension_attribute { $$=$1; }
-|structure_attribute { $$=$1; }
-|field_attribute { $$=$1; }
-|volatile_attribute { $$=$1; }
+allocation_unit 
+|extension_attribute 
+|structure_attribute 
+|field_attribute 
+|volatile_attribute 
 ;
-routine_attribute: novalue_attribute { $$=$1; }
-|linkage_attribute { $$=$1; }
-|psect_allocation { $$=$1; }
-|addressing_mode_attribute { $$=$1; }
-|weak_attribute { $$=$1; }
+routine_attribute: novalue_attribute 
+|linkage_attribute 
+|psect_allocation 
+|addressing_mode_attribute { $$ = 0; }
+|weak_attribute 
 ;
 
 global_routine_declaration:
-K_GLOBAL K_ROUTINE global_routine_definition_list ';' {  }
+K_GLOBAL K_ROUTINE global_routine_definition_list ';' { $$ = 0; }
 ;
-global_routine_definition_list: global_routine_definition_list ',' global_routine_definition {  }
-|global_routine_definition { $$=$1; }
+global_routine_definition_list: global_routine_definition_list ',' global_routine_definition 
+|global_routine_definition 
 ;
-global_routine_definition: T_NAME io_list ':' global_routine_attribute_list '=' exp { }
-|T_NAME io_list '=' exp { }
+global_routine_definition: T_NAME io_list ':' global_routine_attribute_list '=' exp 
+|T_NAME io_list '=' exp 
 ;
 
 global_io_list2: 
-io_list ':'  global_routine_attribute_list {  }
-|io_list  {  }
+io_list ':'  global_routine_attribute_list 
+|io_list  
 ;
 
 global_routine_attribute_list: { $$=0; }
-|global_routine_attribute_list global_routine_attribute {  }
-|global_routine_attribute { $$=$1; }
+|global_routine_attribute_list global_routine_attribute 
+|global_routine_attribute 
 ;
-global_routine_attribute: novalue_attribute { $$=$1; }
-|linkage_attribute { $$=$1; }
-|psect_allocation { $$=$1; }
-|addressing_mode_attribute { $$=$1; }
-|weak_attribute { $$=$1; }
+global_routine_attribute: novalue_attribute 
+|linkage_attribute 
+|psect_allocation 
+|addressing_mode_attribute { $$ = 0; }
+|weak_attribute 
 ;
 
 forward_routine_declaration:
-K_FORWARD K_ROUTINE forward_routine_item_list ';' {  }
+K_FORWARD K_ROUTINE forward_routine_item_list ';' { $$ = 0; }
 ;
 
-forward_routine_item_list: forward_routine_item_list ',' forward_routine_item {  }
-|forward_routine_item  { $$=$1; }
+forward_routine_item_list: forward_routine_item_list ',' forward_routine_item 
+|forward_routine_item  
 ;
 forward_routine_item: 
-T_NAME maybe_forward_routine_attribute_list { }
-/*|T_NAME  {  }*/
+T_NAME maybe_forward_routine_attribute_list 
+/*|T_NAME  */
 ;
 maybe_forward_routine_attribute_list: { $$=0; }
 |':' forward_routine_attribute_list { $$=$2; }
 ;
 forward_routine_attribute_list:
-forward_routine_attribute_list forward_routine_attribute {  }
-|forward_routine_attribute { $$=$1; }
+forward_routine_attribute_list forward_routine_attribute 
+|forward_routine_attribute 
 ;
-forward_routine_attribute: novalue_attribute { $$=$1; }
-|linkage_attribute { $$=$1; }
-|psect_allocation { $$=$1; }
-|addressing_mode_attribute { $$=$1; }
+forward_routine_attribute: novalue_attribute 
+|linkage_attribute 
+|psect_allocation 
+|addressing_mode_attribute { $$ = 0; }
 ;
 external_routine_declaration:
-K_EXTERNAL K_ROUTINE external_routine_item_list ';' { }
+K_EXTERNAL K_ROUTINE external_routine_item_list ';' { $$ = 0; }
 ;
 
-external_routine_item_list: external_routine_item_list ',' external_routine_item { }
-|external_routine_item { $$=$1; }
+external_routine_item_list: external_routine_item_list ',' external_routine_item 
+|external_routine_item 
 ;
-external_routine_item: T_NAME ':' ext_routine_attribute_list { }
+external_routine_item: T_NAME ':' ext_routine_attribute_list 
 | T_NAME { 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
@@ -2133,152 +2137,152 @@ external_routine_item: T_NAME ':' ext_routine_attribute_list { }
 }
 ;
 ext_routine_attribute_list:
-ext_routine_attribute_list ext_routine_attribute {  }
-|ext_routine_attribute { $$=$1; }
+ext_routine_attribute_list ext_routine_attribute 
+|ext_routine_attribute 
 ;
-ext_routine_attribute: novalue_attribute { $$=$1; }
-|linkage_attribute { $$=$1; }
-|psect_allocation { $$=$1; }
-|addressing_mode_attribute { $$=$1; }
-|weak_attribute { $$=$1; }
+ext_routine_attribute: novalue_attribute 
+|linkage_attribute 
+|psect_allocation 
+|addressing_mode_attribute { $$ = 0; }
+|weak_attribute 
 ;
-linkage_declaration: K_LINKAGE linkage_definition_list ';' {  }
+linkage_declaration: K_LINKAGE linkage_definition_list ';' { $$ = 0; }
 ;
-enable_declaration: K_ENABLE T_NAME '(' tname_list ')' ';' { }
-|K_ENABLE T_NAME ';' { }
+enable_declaration: K_ENABLE T_NAME '(' tname_list ')' ';'  { $$ = 0; }
+|K_ENABLE T_NAME ';'  { $$ = 0; }
 ;
 bound_declaration: 
-literal_declaration { $$= $1; }
-|external_literal_declaration { $$= $1; }
-|bind_data_declaration { $$= $1; }
-|bind_routine_declaration { $$= $1; }
+literal_declaration 
+|external_literal_declaration 
+|bind_data_declaration 
+|bind_routine_declaration 
 ;
-compiletime_declaration: K_COMPILETIME
-{  } ;
+compiletime_declaration: K_COMPILETIME { $$ = 0; }
+ ;
 macro_declaration: 
-positional_macro_declaration { $$=$1; }
-|keyword_macro_declaration { $$=$1; }
+positional_macro_declaration 
+|keyword_macro_declaration 
 ;
-require_declaration: K_REQUIRE T_STRING ';'
-{ } ;
-library_declaration: K_LIBRARY T_STRING ';'
-{ } ;
-psect_declaration: K_PSECT psect_item_list ';'
-{  } ;
-switches_declaration: K_SWITCHES
-{  } ;
-label_declaration: K_LABEL
-{  } ;
-builtin_declaration: K_BUILTIN
-{  } ;
-undeclare_declaration: K_UNDECLARE tname_list ';'
-{  } ;
+require_declaration: K_REQUIRE T_STRING ';' { $$ = 0; }
+ ;
+library_declaration: K_LIBRARY T_STRING ';' { $$ = 0; }
+ ;
+psect_declaration: K_PSECT psect_item_list ';' { $$ = 0; }
+ ;
+switches_declaration: K_SWITCHES { $$ = 0; }
+ ;
+label_declaration: K_LABEL { $$ = 0; }
+ ;
+builtin_declaration: K_BUILTIN { $$ = 0; }
+ ;
+undeclare_declaration: K_UNDECLARE tname_list ';' { $$ = 0; }
+ ;
 
-literal_declaration: K_LITERAL literal_item_list ';' {  }
-| K_GLOBAL K_LITERAL literal_item_list{  }
-;
-
-literal_item_list: literal_item_list ',' literal_item {  }
-| literal_item { $$=$1; }
+literal_declaration: K_LITERAL literal_item_list ';' { $$ = 0; }
+| K_GLOBAL K_LITERAL literal_item_list { $$ = 0; }
 ;
 
-literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list { }
-|T_NAME '=' compile_time_constant_expression { }
+literal_item_list: literal_item_list ',' literal_item 
+| literal_item 
+;
+
+literal_item: T_NAME '=' compile_time_constant_expression ':' literal_attribute_list 
+|T_NAME '=' compile_time_constant_expression 
 ;
 
 literal_attribute_list:
-literal_attribute_list literal_attribute {  }
-|literal_attribute { $$=$1; }
+literal_attribute_list literal_attribute 
+|literal_attribute 
 ;
 
-literal_attribute: weak_attribute { $$=$1; }
-|range_attribute { $$=$1; }
+literal_attribute: weak_attribute 
+|range_attribute 
 ;
-external_literal_declaration: K_EXTERNAL K_LITERAL external_literal_item_list ';' {  }
-;
-
-external_literal_item_list: external_literal_item_list ',' external_literal_item {  }
-| external_literal_item { $$=$1; }
+external_literal_declaration: K_EXTERNAL K_LITERAL external_literal_item_list ';' { $$ = 0; }
 ;
 
-external_literal_item: T_NAME  ':' literal_attribute_list { }
-|T_NAME  { }
+external_literal_item_list: external_literal_item_list ',' external_literal_item 
+| external_literal_item 
 ;
 
-bind_data_declaration: K_BIND bind_data_item_list ';' {  }
-| K_GLOBAL K_BIND bind_data_item_list{  }
+external_literal_item: T_NAME  ':' literal_attribute_list 
+|T_NAME  
 ;
 
-bind_data_item_list: bind_data_item_list ',' bind_data_item {  }
-| bind_data_item { $$=$1; }
+bind_data_declaration: K_BIND bind_data_item_list ';'  { $$ = 0; }
+| K_GLOBAL K_BIND bind_data_item_list { $$ = 0; }
 ;
 
-bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list { }
-|T_NAME '=' expression { }
+bind_data_item_list: bind_data_item_list ',' bind_data_item 
+| bind_data_item 
+;
+
+bind_data_item: T_NAME '=' expression ':' bind_data_attribute_list 
+|T_NAME '=' expression 
 ;
 
 bind_data_attribute_list:
-bind_data_attribute_list bind_data_attribute {  }
-|bind_data_attribute { $$=$1; }
+bind_data_attribute_list bind_data_attribute 
+|bind_data_attribute 
 
 bind_data_attribute:
-allocation_unit { $$=$1; }
-|extension_attribute { $$=$1; }
-|structure_attribute { $$=$1; }
-|field_attribute { $$=$1; }
-|volatile_attribute { $$=$1; }
-|weak_attribute { $$=$1; }
+allocation_unit 
+|extension_attribute 
+|structure_attribute 
+|field_attribute 
+|volatile_attribute 
+|weak_attribute 
 ;
 
-bind_routine_declaration: K_BIND K_ROUTINE bind_routine_item_list ';' {  }
-| K_GLOBAL K_BIND K_ROUTINE bind_routine_item_list{  }
+bind_routine_declaration: K_BIND K_ROUTINE bind_routine_item_list ';'  { $$ = 0; }
+| K_GLOBAL K_BIND K_ROUTINE bind_routine_item_list { $$ = 0; }
 ;
 
-bind_routine_item_list: bind_routine_item_list ',' bind_routine_item {  }
-| bind_routine_item { $$=$1; }
+bind_routine_item_list: bind_routine_item_list ',' bind_routine_item 
+| bind_routine_item 
 ;
 
-bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list { }
-|T_NAME '=' expression { }
+bind_routine_item: T_NAME '=' expression ':' bind_routine_attribute_list 
+|T_NAME '=' expression 
 ;
 
 bind_routine_attribute_list:
-bind_routine_attribute_list bind_routine_attribute {  }
-|bind_routine_attribute { $$=$1; }
+bind_routine_attribute_list bind_routine_attribute 
+|bind_routine_attribute 
 
 bind_routine_attribute:
-linkage_attribute { $$=$1; }
-|novalue_attribute { $$=$1; }
-|weak_attribute { $$=$1; }
+linkage_attribute 
+|novalue_attribute 
+|weak_attribute 
 ;
 
-positional_macro_declaration: K_MACRO positional_macro_definition_list ';' {  }
+positional_macro_declaration: K_MACRO positional_macro_definition_list ';'  { $$ = 0; }
 ;
 
-positional_macro_definition_list: positional_macro_definition_list ',' positional_macro_definition {  }
-|positional_macro_definition { $$=$1; }
+positional_macro_definition_list: positional_macro_definition_list ',' positional_macro_definition 
+|positional_macro_definition 
 ;
 
 positional_macro_definition:
-simple_macro_definition { $$=$1; }
-|conditional_macro_definition { $$=$1; }
-|iterative_macro_definition { $$=$1; }
+simple_macro_definition 
+|conditional_macro_definition 
+|iterative_macro_definition 
 
 simple_macro_definition: 
-T_NAME '(' tname_list ')'  '=' macro_body '%' { }
-|T_NAME  '=' macro_body '%'{ }
+T_NAME '(' tname_list ')'  '=' macro_body '%' 
+|T_NAME  '=' macro_body '%'
 ;
 conditional_macro_definition:
-T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' { }
-|T_NAME '[' ']' '=' macro_body '%'{ }
+T_NAME '(' tname_list ')'  '[' ']' '=' macro_body '%' 
+|T_NAME '[' ']' '=' macro_body '%'
 ;
 iterative_macro_definition:
-T_NAME '(' tname_list ')' '[' tname_list ']' '=' macro_body '%' { }
-|T_NAME '[' tname_list ']' '=' macro_body '%'{ }
+T_NAME '(' tname_list ')' '[' tname_list ']' '=' macro_body '%' 
+|T_NAME '[' tname_list ']' '=' macro_body '%'
 ;
 
 default_actual: { $$=0; }
-| lexeme_list { $$=$1; }
+| lexeme_list 
 ;
 
 macro_body: { $$=0; }
@@ -2293,105 +2297,105 @@ lexeme_list: expression { $$=$1; /*nonfin*/ }
   lexeme_list:  tname_list2 { $$=$1; *nonfin* }
   ;
 */
-keyword_macro_declaration: K_KEYWORDMACRO keyword_macro_definition_list ';' {  }
+keyword_macro_declaration: K_KEYWORDMACRO keyword_macro_definition_list ';'  { $$ = 0; }
 ;
 
 keyword_macro_definition_list:
-keyword_macro_definition_list ',' keyword_macro_definition {  }
-|keyword_macro_definition { $$=$1; }
+keyword_macro_definition_list ',' keyword_macro_definition 
+|keyword_macro_definition 
 ;
 
 keyword_macro_definition:
-T_NAME '(' keyword_pair_list ')' '=' macro_body '%' { }
+T_NAME '(' keyword_pair_list ')' '=' macro_body '%' 
 ;
 
-keyword_pair_list: keyword_pair_list ',' keyword_pair {  }
-|keyword_pair { $$=$1; }
+keyword_pair_list: keyword_pair_list ',' keyword_pair 
+|keyword_pair 
 ;
 
 keyword_pair:
-T_NAME '=' default_actual { }
-|T_NAME { }
+T_NAME '=' default_actual 
+|T_NAME 
 ;
 
-linkage_definition_list: linkage_definition_list ',' linkage_definition {  }
-|linkage_definition { $$=$1; }
+linkage_definition_list: linkage_definition_list ',' linkage_definition 
+|linkage_definition 
 ;
-linkage_definition: T_NAME '=' linkage_type {  }
-;
-
-linkage_type: U_CALL {  }
-| T_NAME {  }
+linkage_definition: T_NAME '=' linkage_type 
 ;
 
-input_parameter_location_list:input_parameter_location_list ',' input_parameter_location {  }
-|input_parameter_location { $$=$1;}
-;
-output_parameter_location_list:output_parameter_location_list ',' output_parameter_location {  }
-|output_parameter_location { $$=$1;}
+linkage_type: U_CALL  { $$ = 0; }
+| T_NAME 
 ;
 
-input_parameter_location: U_STANDARD {  }
-|K_REGISTER '=' T_DIGITS { }
+input_parameter_location_list:input_parameter_location_list ',' input_parameter_location 
+|input_parameter_location 
+;
+output_parameter_location_list:output_parameter_location_list ',' output_parameter_location 
+|output_parameter_location 
+;
+
+input_parameter_location: U_STANDARD  { $$ = 0; }
+|K_REGISTER '=' T_DIGITS  { $$ = 0; }
 | { $$=0; }
 ;
 
 output_parameter_location:
-'(' K_REGISTER '=' T_DIGITS ')' { }
+'(' K_REGISTER '=' T_DIGITS ')' { $$ = 0; }
 ;
 
-psect_item_list: psect_item_list ',' psect_item {  }
-|psect_item { $$=$1; }
+psect_item_list: psect_item_list ',' psect_item 
+|psect_item 
 ;
 
-psect_attribute_list: psect_attribute_list ',' psect_attribute {  }
-|psect_attribute { $$=$1; }
+psect_attribute_list: psect_attribute_list ',' psect_attribute 
+|psect_attribute { $$ = 0; }
 ;
 
 psect_item:
-storage_class '=' T_NAME '(' psect_attribute_list ')' { }
-|storage_class '=' T_NAME { }
+storage_class '=' T_NAME '(' psect_attribute_list ')'  { $$ = $3; }
+|storage_class '=' T_NAME { $$ = $3; }
 ;
 
 storage_class:
-K_OWN { }
-|K_GLOBAL { }
-|K_PLIT { }
-|U_CODE { }
-|U_NODEFAULT { }
+K_OWN 
+|K_GLOBAL 
+|K_PLIT 
+|U_CODE 
+|U_NODEFAULT 
 ;
 
 psect_attribute:
-U_WRITE  { }
-| U_NOWRITE { }
-|U_EXECUTE { }
-| U_NOEXECUTE { }
-|U_OVERLAY { }
-| U_CONCATENATE { }
-|  b32_psect_attribute { $$=$1; }
+U_WRITE   { $$ = 0; }
+| U_NOWRITE  { $$ = 0; }
+|U_EXECUTE  { $$ = 0; }
+| U_NOEXECUTE  { $$ = 0; }
+|U_OVERLAY  { $$ = 0; }
+| U_CONCATENATE  { $$ = 0; }
+|  b32_psect_attribute 
 ;
 
 b32_psect_attribute:
-U_READ { }
-|U_NOREAD { }
-|U_SHARE { }
-|U_NOSHARE { }
-|U_PIC { }
-|U_NOPIC { }
-|K_LOCAL { }
-|K_GLOBAL { }
-|U_VECTOR { }
-|alignment_attribute { $$=$1; }
-|addressing_mode_attribute { $$=$1; }
+U_READ { $$ = 0; }
+|U_NOREAD  { $$ = 0; }
+|U_SHARE  { $$ = 0; }
+|U_NOSHARE  { $$ = 0; }
+|U_PIC  { $$ = 0; }
+|U_NOPIC  { $$ = 0; }
+|K_LOCAL  { $$ = 0; }
+|K_GLOBAL  { $$ = 0; }
+|U_VECTOR  { $$ = 0; }
+|alignment_attribute 
+|addressing_mode_attribute { $$ = 0; }
 ;
 
 
 /**** 5.0 LEXICAL PROCESSING FACILITIES *****************************/
 /**** 7.0 MACHINE SPECIFIC NAMES ************************************/
 
-builtin_name: T_NAME  {  }
-| machine_specific_function  {  }
-| linkage_function {  }
+builtin_name: T_NAME  
+| machine_specific_function  
+| linkage_function 
 ;
 
 machine_specific_function: T_NAME
@@ -2400,7 +2404,7 @@ machine_specific_function: T_NAME
 linkage_function: T_NAME
 ;
 
-linkage_function_name: T_NAME {  }
+linkage_function_name: T_NAME 
 ;
 /*
   test		: tok
@@ -2838,107 +2842,7 @@ yyerror (char *s)
   fprintf (stderr, "Nu b;lev det fel %d\n",linenumb);
 }
 
-tree  creatnode (nodeAttr_t  type, tree left,
-							 tree     new)
-{
-#if 0
-  tree  tmp_node = (tree) xmalloc (sizeof (ignode));
-
-  if (yydebug) fprintf(stderr, "creating %d\n",type);
-  tmp_node->type = type;
-  tmp_node->left = left;
-  tmp_node->middle = 0;
-  tmp_node->next = new;
-  tmp_node->id = 0;
-  tmp_node->value = 0;
-  return tmp_node;
-#endif
-}
-
-tree creatid (char *id) 
-{
-#if 0
-  tree  tmp_node = (tree) xmalloc (sizeof (ignode));
-
-  if (id) if (yydebug) fprintf(stderr, "creating %s\n",id);
-  tmp_node->type = tname;
-  tmp_node->left = 0;
-  tmp_node->middle = 0;
-  tmp_node->next = 0;
-  tmp_node->id = id;
-  tmp_node->value = 0;
-  return tmp_node;
-#endif
-}
-
-tree creatvalue (int value) 
-{
-#if 0
-  tree  tmp_node = (tree) xmalloc (sizeof (ignode));
-
-  if (yydebug) fprintf(stderr, "creating %d\n",value);
-  tmp_node->type = tvalue;
-  tmp_node->left = 0;
-  tmp_node->middle = 0;
-  tmp_node->next = 0;
-  tmp_node->id = 0;
-  tmp_node->value = value;
-  return tmp_node;
-#endif
-}
-
-/* Konstruer en l|vnode som kun inneholder en tallverdi. */
 int numbFors=0;
-
-tree search(tree ig, int type) {
-#if 0
-  tree fin;
-  void dosearch(tree ig, int type) {
-	 if (fin) return;
-	 if (!ig) { fin=1; return 0; }
-	 if (ig->type==type) { fin=ig; }
-	 if (ig->left) search(ig->left,type);
-	 if (ig->middle) search(ig->middle,type);
-	 if (ig->next) search(ig->next,type);
-  };
-  fin=0;
-  dosearch(ig,type);
-  if (fin==1) fin=0;
-  return fin;
-#endif
-}
-
-char * gettype(tree ig) {
-#if 0
-  tree sign, isvoid, def;
-  char *sign_s=0,*isvoid_s=0,*def_s=0,*tmp;
-  tmp=(char *)xmalloc( 80);
-  tmp[0]=32;
-  tmp[1]=0;
-  isvoid=search(ig,novalue_attribute);
-  if (isvoid) { strcat(tmp,"void "); goto endgettype; }
-  sign=search(ig,extension_attribute);
-  def=search(ig,allocation_unit);
-  if (sign && sign->value==K_SIGNED)  ; else strcat(tmp, "unsigned "); 
-  if (def) 
-	 switch (def->value) {
-	 case K_LONG:
-		strcat(tmp,"long ");
-		break;
-	 case K_WORD:
-		strcat(tmp,"short ");
-		break;
-	 case K_BYTE:
-		strcat(tmp,"short "); /*should be char nonfin*/
-		break;
-	 default:
-		strcat(tmp,"<<<1>>>");
-		break;
-	 } else strcat(tmp, " int "); 
-endgettype:
-  return xstrdup(tmp);
-#endif
-}
 
 /*#define fprinto(x) fprintf(stdout,x)
 #define fprinte(x) fprintf(stderr,x)
@@ -2961,1155 +2865,9 @@ if (c) fprintf(stdout,argptr);
 */
 
 FILE * myout=stderr;
-#if 0
-extern FILE * f;
-extern FILE * myout;
-
-void  generatecode (tree np) {
-  if (np) {
-	 switch (np->type) {
-	 case module:
-					
-		generatecode(np->left);
-		generatecode(np->next);
-					
-		break;
-	 case module_head:
-				 
-		generatecode(np->next);
-		break;
-	 case opt_mhargs:
-				 
-		generatecode(np->next);
-				 
-		break;
-	 case ms_list:
-		generatecode(np->next);
-				 
-		generatecode(np->left);
-		break;
-	 case module_body:
-		generatecode(np->next);
-		break;
-
-	 case block_body:
-		generatecode(np->left);
-		generatecode(np->middle);
-		if (np->next) fprintf(f, "return ");
-		generatecode(np->next);
-		break;
-	 case return_expression:
-		fprintf(f, "return "); 
-		generatecode(np->next);
-		break;
-	 case unlabeled_block:
-		fprintf(f, "{\n");
-		generatecode(np->next);
-		fprintf(f, "\n}\n");
-		break;
-	 case on_off_switch:
-				 
-		break;
-	 case special_switch:
-					
-		generatecode(np->left);
-		break;
-	 case own_declaration:
-					
-		generatecode(np->next);
-					
-		break;
-
-	 case access_formal_list:
-	 case allocation_formal_list:
-	 case attached_label_list:
-	 case attribute_list:
-	 case block_action_list:
-	 case case_line_list:
-	 case decl_list:
-	 case declaration_list:
-	 case external_item_list:
-	 case external_reg_item_list:
-	 case external_routine_item_list:
-	 case forward_item_list:
-	 case forward_routine_attribute_list:
-	 case global_item_list:
-	 case global_reg_item_list:
-	 case list_option_list:
-	 case map_declaration_attribute_list:
-	 case own_attribute_list:
-	 case own_declaration_list:
-	 case own_item_list:
-	 case quoted_string_list:
-	 case register_item_list:
-	 case routine_attribute_list:
-	 case select_label_list:
-	 case select_line_list:
-	 case structure_definition_list:
-		generatecode(np->next);
-		fprintf(f, " ");
-		generatecode(np->left);
-		break;
-	 case access_actual_list:
-	 case actual_parameter_list:
-	 case alloc_actual_list:
-	 case bind_data_item_list:
-	 case bind_routine_item_list:
-	 case case_label_list:
-	 case char_par_list:
-	 case external_literal_item_list:
-	 case field_stuff_list:
-	 case formal_item_list:
-	 case forward_routine_item_list:
-	 case global_routine_definition_list:
-	 case initial_item_list:
-	 case input_parameter_location_list:
-	 case io_actual_parameter_list:
-	 case keyword_pair_list:
-	 case language_name_list:
-	 case linkage_definition_list:
-	 case literal_item_list:
-	 case local_item_list:
-	 case map_item_list:
-	 case mode_spec_list:
-	 case output_parameter_location_list:
-	 case plit_item_list:
-	 case positional_macro_definition_list:
-	 case psect_item_list:
-	 case routine_definition_list:
-	 case string_par_list:
-	 case tname_list:
-		generatecode(np->next);
-		if(np->next) fprintf(f, " , ");
-		generatecode(np->left);
-		break;
-
-
-	 case require_declaration:
-		fprintf(f, "#include< %s.h >\n",np->id);
-		break;
-	 case library_declaration:
-		fprintf(f, "#include< %s.h >\n",np->id);
-		break;
-	 case local_item:
-					
-		if (np->next) {
-		  generatecode(np->next);
-					
-		} else {
-		  fprintf(f, "\nint ");
-		}
-		fprintf(f,"*%s ;\n",np->id);
-		break;
-	 case formal_item:
-	 case own_item:
-					
-		/*					if (np->next) {*/
-		{ char *tmp;
-		tmp=gettype(np->next);
-		fprintf(f, " %s ",tmp);
-		}
-	 /*					generatecode(np->next);
-					
-							} else {
-							fprintf(f, "\nstatic int ");
-							}*/
-	 /* default is 8 bytes on 64bit, 4bytes on 32bit
-		 for both VAX and AXP:
-		 long is 4 bytes
-		 word is 2 bytes
-		 byte is 2 bytes -> even/word alignment?
-		 */
-	 fprintf(f,"*%s ;\n",np->id);
-	 break;
-	 case ordinary_routine_declaration:
-		/*					if (ig_main) fprintf(f,"main(int argc, char **argv){");*/
-		generatecode(np->next);
-		/*					if (ig_main) fprintf(f,"}");*/
-					
-		break;
-	 case routine_definition:
-		{char *tmp; tmp=gettype(np->middle);
-		fprintf(f, " %s ",tmp);}
-	 fprintf(f,np->id); 
-	 /*					searchvalue(np->middle,)*/
-	 fprintf(f, " ( ");
-	 generatecode(np->left);
-	 fprintf(f, " ) ");
-	 generatecode(np->next);
-	 break;
-	 case io_list:
-		generatecode(np->left);
-		if (np->next) fprintf(f, " , ");
-		generatecode(np->next);
-		break;
-	 case executable_function:
-		fprintf(f, "\nef");
-		generatecode(np->left);
-		fprintf(f, " ( ");
-		generatecode(np->next);
-		fprintf(f, " ) ");
-		break;
-	 case ordinary_routine_call:
-		fprintf(f, "\n%s ( ",np->id);
-		generatecode(np->next);
-		fprintf(f, " ) ");
-		break;
-	 case general_routine_call:
-		break;
-	 case global_io_list2:
-	 case io_list3:
-	 case io_list2:
-		generatecode(np->next);
-		generatecode(np->left);
-		break;
-	 case block_body2:
-		generatecode(np->left);
-		generatecode(np->next);
-		break;
-	 case decimal_literal:
-		if (np->id) fprintf(f,"%c",np->id);
-		fprintf(f,"%d",np->value);
-		generatecode(np->left);
-		break;
-		break;
-
-	 case fetch_expression:
-		fprintf(f, " * ");
-		generatecode(np->next);
-		break;
-
-	 case assign_expression:
-		break;
-
-	 case infix_expression:
-		generatecode(np->left);
-		fprintf(f, " %s ",np->id);
-		generatecode(np->next);
-		break;
-
-
-	 case pot_expression:
-	 case opexp1:
-	 case opexp3:
-	 case opexp5:
-	 case opexp6:
-	 case opexp7:
-	 case opexp8:
-	 case opexp9:
-		generatecode(np->left);
-		fprintf(f, " %s ",np->id);
-		generatecode(np->next);
-		break;
-	 case opexp4:
-		fprintf(f, " ! ");
-		generatecode(np->next);
-		break;
-	 case opexp2:
-		generatecode(np->left);
-		switch (np->value) {
-		case K_OR:
-		  fprintf(f, " or "); 
-		  break;
-		case K_XOR:
-		  fprintf(f, " xor "); 
-		  break;
-		case K_AND:
-		  fprintf(f, " and "); 
-		  break;
-		case K_EQV:
-		  fprintf(f, " eqv "); 
-		  break;
-		case K_EQL:
-		  fprintf(f, " eql "); 
-		  break;
-		case K_EQLA:
-		  fprintf(f, " eqla "); 
-		  break;
-		case K_EQLU:
-		  fprintf(f, " eqlu "); 
-		  break;
-		case K_NEQ:
-		  fprintf(f, " neq "); 
-		  break;
-		case K_NEQA:
-		  fprintf(f, " neqa "); 
-		  break;
-		case K_NEQU:
-		  fprintf(f, " nequ "); 
-		  break;
-		case K_LSS:
-		  fprintf(f, " lss "); 
-		  break;
-		case K_LSSA:
-		  fprintf(f, " lssa "); 
-		  break;
-		case K_LSSU:
-		  fprintf(f, " lssu "); 
-		  break;
-		case K_LEQ:
-		  fprintf(f, " leq "); 
-		  break;
-		case K_LEQA:
-		  fprintf(f, " leqa "); 
-		  break;
-		case K_LEQU:
-		  fprintf(f, " lequ "); 
-		  break;
-		case K_GTR:
-		  fprintf(f, " gtr "); 
-		  break;
-		case K_GTRA:
-		  fprintf(f, " gtra "); 
-		  break;
-		case K_GTRU:
-		  fprintf(f, " gtru "); 
-		  break;
-		case K_GEQ:
-		  fprintf(f, " geq "); 
-		  break;
-		case K_GEQA:
-		  fprintf(f, " geqa "); 
-		  break;
-		case K_GEQU:
-		  fprintf(f, " gequ "); 
-		  break;
-		default:
-		  fprintf(f, "nonimp4 %d",np->value);
-		  break;
-		}
-		generatecode(np->next);
-		break;
-
-
-	 case block_action:
-		generatecode(np->next);
-		fprintf(f, ";\n");
-		break;
-					
-	 case tname:
-		fprintf(f, "%s", np->id); 
-		break;
-	 case tvalue:
-		fprintf(f, "%d", np->value); 
-					
-		break;
-	 default:
-					
-		generatecode(np->next);
-		generatecode(np->left);
-		break;
-	 }
-  }
-};
-#endif
 
 #define uplevel prevtop=cur_top_table;newscosym();prev=cur_sym_table;
 #define downlevel cur_sym_table=prev;cur_top_table=prevtop;end_cur();next_sym_table=&(cur_sym_table->next);
-
-#if 0
-void  parsetree (tree np) {
-  symrec *this,*prev,*scope,*prevtop; void * new;
-  if (np) {
-	 switch (np->type) {
-	 case module:
-		fprintf(myout,"\nmodule\n");
-		parsetree(np->left);
-		fprintf(myout," = ");
-		parsetree(np->next);
-		fprintf(myout,"\neludom\n");
-		break;
-	 case module_head:
-		fprintf(myout," %s ",np->id);
-		parsetree(np->next);
-		break;
-	 case opt_mhargs:
-		fprintf(myout," ( ");
-		parsetree(np->next);
-		fprintf(myout," ) ");
-		break;
-	 case ms_list:
-		parsetree(np->next);
-		fprintf(myout," , ");
-		parsetree(np->left);
-		break;
-	 case module_body:
-		fprintf(myout,"\nbegin \n");
-		parsetree(np->next);
-		fprintf(myout,"\nend \n");
-		break;
-	 case on_off_switch:
-		fprintf(myout," %s",np->id);
-		break;
-	 case special_switch:
-		fprintf(myout," %s = ",np->id);
-		parsetree(np->left);
-		break;
-	 case name_list:
-		parsetree(np->left);
-		fprintf(myout, " , ");
-		parsetree(np->next);
-		break;
-	 case require_declaration:
-		fprintf(myout, "\nrequire %s ;\n",np->id);
-		break;
-	 case library_declaration:
-		fprintf(myout, "\nlibrary %s ;\n",np->id);
-		break;
-	 case own_declaration:
-		fprintf(myout, "\nown ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-
-	 case access_formal_list:
-	 case allocation_formal_list:
-	 case attached_label_list:
-	 case attribute_list:
-	 case block_action_list:
-	 case case_line_list:
-	 case decl_list:
-	 case declaration_list:
-	 case external_item_list:
-	 case external_reg_item_list:
-	 case external_routine_item_list:
-	 case forward_item_list:
-	 case forward_routine_attribute_list:
-	 case global_item_list:
-	 case global_reg_item_list:
-	 case list_option_list:
-	 case map_declaration_attribute_list:
-	 case own_attribute_list:
-	 case own_declaration_list:
-	 case quoted_string_list:
-	 case register_item_list:
-	 case routine_attribute_list:
-	 case select_label_list:
-	 case select_line_list:
-	 case structure_definition_list:
-		parsetree(np->next);
-		fprintf(myout, " ");
-		parsetree(np->left);
-		break;
-	 case access_actual_list:
-	 case actual_parameter_list:
-	 case alloc_actual_list:
-	 case bind_data_item_list:
-	 case bind_routine_item_list:
-	 case case_label_list:
-	 case char_par_list:
-	 case external_literal_item_list:
-	 case field_stuff_list:
-	 case formal_item_list:
-	 case forward_routine_item_list:
-	 case global_routine_definition_list:
-	 case initial_item_list:
-	 case input_parameter_location_list:
-	 case io_actual_parameter_list:
-	 case keyword_pair_list:
-	 case language_name_list:
-	 case linkage_definition_list:
-	 case literal_item_list:
-	 case local_item_list:
-	 case map_item_list:
-	 case mode_spec_list:
-	 case output_parameter_location_list:
-	 case own_item_list:
-	 case plit_item_list:
-	 case positional_macro_definition_list:
-	 case psect_item_list:
-	 case routine_definition_list:
-	 case string_par_list:
-	 case tname_list:
-		parsetree(np->next);
-		if(np->next) fprintf(myout, " , ");
-		parsetree(np->left);
-		break;
-	 case bind_routine_item:
-	 case external_item:
-	 case external_literal_item:
-	 case external_reg_item:
-	 case external_routine_item:
-	 case formal_item:
-	 case forward_item:
-	 case forward_routine_item:
-	 case global_item:
-	 case global_reg_item:
-	 case initial_item:
-	 case map_item:
-	 case own_item:
-	 case plit_item:
-	 case preset_item:
-	 case register_item:
-		this=putsym(np->id,VAR);
-		fprintf(myout, "\n\t%s ", np->id);
-		if (np->next) fprintf(myout, " : "); 
-		parsetree(np->next);
-		break;
-	 case literal_item:
-		putsym(np->id,VAR);
-		fprintf(myout, "\n\t%s = ",np->id); 
-		parsetree(np->left);
-		if (np->next) fprintf(myout, " : "); 
-		parsetree(np->next);
-		break;
-			  
-	 case initial_group:
-		if (np->left) fprintf(myout, "\nrep "); 
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " of ");
-		parsetree(np->middle);
-		fprintf(myout, "("); 
-		parsetree(np->next);
-		fprintf(myout, ")"); 
-		break;
-	 case plit_group:
-		if (np->left) fprintf(myout, "\nrep "); 
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " of ");
-		parsetree(np->next);
-		break;
-	 case plit2:
-		if (np->value=K_PLIT) fprintf (myout, "\nplit "); 
-		else fprintf (myout, "\nuplit "); 
-		break;
-	 case plit3:
-		parsetree(np->left);
-		parsetree(np->next);
-		break;
-	 case plit:
-		parsetree(np->left);
-		parsetree(np->middle);
-		fprintf(myout, " ( ");
-		parsetree(np->next);
-		fprintf(myout, " ) ");
-		break;
-	 case forward_routine_declaration:
-		fprintf(myout, "\nforward routine ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case routine_declaration:
-	 case ordinary_routine_declaration:
-		fprintf(myout, "\nroutine ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case global_routine_declaration:
-		fprintf(myout, "\nglobal routine ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case external_routine_declaration:
-		fprintf(myout, "\nexternal routine ");
-		parsetree(np->next);
-		break;
-		/*			case ordinary_routine_definition:
-					break;*/
-	 case global_routine_definition:
-	 case routine_definition:
-		putsym(np->id,ROU);
-		fprintf(myout, " %s ",np->id);
-		uplevel;
-		parsetree(np->left);
-		if (np->middle) fprintf(myout, " : "); 
-		parsetree(np->middle);
-		fprintf(myout, " = ");
-		parsetree(np->next);
-		downlevel;
-		break;
-	 case io_list:
-		fprintf(myout, " ( ");
-		parsetree(np->left);
-		if (np->next) fprintf(myout, " : ");
-		parsetree(np->next);
-		fprintf(myout, " ) ");
-		break;
-	 case global_declaration:
-		fprintf(myout, "\nglobal ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case external_declaration:
-		fprintf(myout, "\nexternal ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case forward_declaration:
-		fprintf(myout, "\nforward ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case linkage_declaration:
-		fprintf(myout, "\nlinkage ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case local_declaration:
-		fprintf(myout, "\nlocal ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case stackglocal_declaration:
-		fprintf(myout, "\nstackglocal ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case register_declaration:
-		fprintf(myout, "\nregister ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case global_register_declaration:
-		fprintf(myout, "\nglobal register ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case external_register_declaration:
-		fprintf(myout, "\nexternal register");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case literal_declaration:
-		fprintf(myout, "\nliteral ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case external_literal_declaration:
-		fprintf(myout, "\nexternal literal ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case map_declaration:
-		fprintf(myout, "\nmap ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case structure_declaration:
-		fprintf(myout, "\nstructure ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case undeclare_declaration:
-		fprintf(myout, "\nundeclare ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case enable_declaration:
-		fprintf(myout, "\nenable %s",np->id);
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case bind_data_declaration:
-		fprintf(myout, "\nbind ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-	 case bind_data_item:
-		fprintf(myout, "%s =",np->id);
-		parsetree(np->left);
-		fprintf(myout, ":");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-					
-	 case positional_macro_declaration:
-		fprintf(myout, "\nmacro ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-					
-	 case keyword_macro_declaration:
-		fprintf(myout, "\nkeywordmacro ");
-		parsetree(np->next);
-		fprintf(myout, ";");
-		break;
-					
-	 case linkage_definition:
-		fprintf(myout, "\n\t%s = ",np->id);
-		parsetree(np->left);
-		break;
-			  
-	 case conditional_macro_definition:
-		fprintf(myout, "\n\t %s ",np->id);
-		if (np->left) fprintf(myout, " ( ");
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " [ ] = ");
-		parsetree(np->next);
-		fprintf(myout, " %%");
-		break;
-	 case iterative_macro_definition:
-		fprintf(myout, "\n\t %s ",np->id);
-		if (np->left) fprintf(myout, " ( ");
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " [ ");
-		parsetree(np->middle);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " ] = ");
-		parsetree(np->next);
-		fprintf(myout, " %%");
-		break;
-	 case iterative_macro_definition2:
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " ] = ");
-		parsetree(np->next);
-		break;
-	 case keyword_macro_definition:
-		fprintf(myout, "\n\t %s ",np->id);
-		if (np->left) fprintf(myout, " ( ");
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " = ");
-		parsetree(np->next);
-		fprintf(myout, " %%");
-		break;
-	 case positional_macro_definition:
-		break;
-	 case simple_macro_definition:
-		fprintf(myout, "\n\t %s ",np->id);
-		if (np->left) fprintf(myout, " ( ");
-		parsetree(np->left);
-		if (np->left) fprintf(myout, " ) ");
-		fprintf(myout, " = ");
-		parsetree(np->next);
-		fprintf(myout, " %%");
-		break;
-	 case keyword_pair:
-		fprintf(myout, "\n\t %s ",np->id);
-		if(np->next) fprintf(myout, " = ");
-		parsetree(np->next);
-		break;
-	 case structure_definition:
-		break;
-	 case ordinary_routine_call:
-		fprintf(myout, "\n%s ( ",np->id);
-		parsetree(np->next); 
-		fprintf(myout, " ) ");
-		break;
-	 case general_routine_call:
-		fprintf(myout, "\n%s ( ",np->id);
-		parsetree(np->left); 
-		fprintf(myout, " , ");
-		parsetree(np->next); 
-		fprintf(myout, " ) ");
-		break;
-	 case io_list3:
-	 case io_list2:
-		parsetree(np->left);
-		if (np->next) fprintf(myout, " : ");
-		parsetree(np->next);
-		break;
-	 case routine_attribute:
-					
-		break;
-	 case allocation_unit:
-		switch (np->value) {
-		case K_LONG:
-		  fprintf(myout, "long");
-		  break;
-		case K_BYTE:
-		  fprintf(myout, "byte");
-		  break;
-		case K_WORD:
-		  fprintf(myout, "word");
-		  break;
-		default:
-		  fprintf(myout, "nonimp6 %d",np->value);/*
-																 { tree p=(tree)np->value; fprintf(myout, " %d",p->value); }*/
-		  break;
-		}
-		break;
-	 case extension_attribute:
-		if (np->value=K_SIGNED) fprintf(myout, " signed "); 
-		else fprintf(myout, " unsigned ");
-		break;
-	 case structure_attribute:
-		if (np->value) fprintf(myout, " ref ");
-		fprintf(myout, "%s ",np->id);
-		if (np->next) fprintf(myout, " [ "); 
-		parsetree(np->next);
-		if (np->next) fprintf(myout, " ] "); 
-		break;
-	 case field_attribute:
-		fprintf(myout, "field ");
-		break;
-	 case addressing_mode_attribute:
-		fprintf(myout, "addressing_mode ( ");
-		parsetree(np->next);
-		fprintf(myout, " ) ");
-		break;
-	 case alignment_attribute:
-		fprintf(myout, "align ");
-		parsetree(np->next);
-		break;
-	 case initial_attribute:
-		fprintf(myout, " initial ( ");
-		parsetree(np->next);
-		fprintf(myout, " ) ");
-		break;
-	 case preset_attribute:
-		fprintf(myout, " preset");
-		break;
-	 case psect_attribute:
-		fprintf(myout, " psect");
-		break;
-	 case volatile_attribute:
-		fprintf(myout, " volatile");
-		break;
-	 case novalue_attribute:
-		fprintf(myout, " novalue");
-		break;
-	 case linkage_attribute:
-		fprintf(myout, "%s",np->id);
-		break;
-	 case range_attribute:
-		if (np->value=K_SIGNED) fprintf(myout, " signed ("); 
-		else fprintf(myout, " unsigned (");
-		parsetree(np->next);
-		fprintf(myout,")");
-		break;
-	 case addressing_mode:
-		fprintf(myout,"addressing_mode (");
-		parsetree(np->next);
-		fprintf(myout,")"); 
-		break;
-	 case pre_tested_loop:
-		if (np->value)
-		  fprintf(myout, "\nwhile ");
-		else fprintf(myout, "\nuntil ");
-		parsetree(np->left);
-		fprintf(myout, " do "); 
-		parsetree(np->next);
-		break;
-	 case post_tested_loop:
-		fprintf(myout, " do "); 
-		parsetree(np->left);
-		if (np->value)
-		  fprintf(myout, "\nwhile ");
-		else fprintf(myout, "\nuntil ");
-		parsetree(np->next);
-		break;
-	 case conditional_expression:
-		fprintf(myout, "\nif ");
-		parsetree(np->left);
-		fprintf(myout, " then ");
-		parsetree(np->middle);
-		if (np->next) fprintf(myout, " else ");
-		parsetree(np->next);
-		break;
-	 case conditional_expression2:
-		parsetree(np->left);
-		if (np->next) fprintf(myout, " else ");
-		parsetree(np->next);
-		break;
-	 case return_expression:
-		fprintf(myout, "return "); 
-		parsetree(np->next);
-		break;
-	 case unlabeled_block:
-		if (np->value)
-		  fprintf(myout, "\nbegin ");
-		else
-		  fprintf(myout, " ( ");
-		parsetree(np->next);
-		if (np->value)
-		  fprintf(myout, "\nend ");
-		else
-		  fprintf(myout, " ) ");
-		break;
-	 case block_body:
-		/*					prev=cur_sym_table;
-							prevtop=cur_top_table;
-							newscosym();
-							next_sym_table=&(cur_sym_table->level);
-							cur_sym_table=cur_sym_table->level;*/
-		uplevel;
-		parsetree(np->left);
-		parsetree(np->middle);
-		parsetree(np->next);
-		/*					cur_sym_table=prev;
-							cur_top_table=prevtop;
-							next_sym_table=&(cur_sym_table->level);*/
-		downlevel;
-		/*										end_cur();*/
-		break;
-	 case block_body2:
-		parsetree(np->left);
-		parsetree(np->middle);
-		parsetree(np->next);
-		break;
-	 case integer_literal:
-		fprintf ( myout, "%%%c",np->value);
-		goto skipit;
-		switch (np->value) {
-		case P_B: 
-		  fprintf(myout, "%c b",'%');
-		  break;
-		case P_O: 
-		  fprintf(myout, "%s o","%");
-		  break;
-		case P_DECIMAL: 
-		  fprintf(myout, "%cd",'%');
-		  break;
-		case P_X: 
-		  fprintf(myout, "%cx",'%');
-		  break;
-		default:
-		  fprintf(myout, "nonimp5 %d",np->value);
-		  break;
-		}
-	 skipit:
-		fprintf(myout, "%s",np->id);
-		break;
-
-	 case decimal_literal:
-		if (np->id) fprintf(myout,"%c",np->id);
-		fprintf(myout,"%d",np->value);
-		parsetree(np->left);
-		break;
-	 case fetch_expression:
-		fprintf(myout, ".");
-		parsetree(np->next);
-		break;
-	 case assign_expression:
-		parsetree(np->left);
-		fprintf(myout, " = ");
-		parsetree(np->next);
-		break;
-	 case infix_expression:
-		parsetree(np->left);
-		fprintf(myout, " %s ",np->id);
-		parsetree(np->next);
-		break;
-	 case block_action:
-		parsetree(np->next);
-		fprintf(myout, ";\n");
-		break;
-	 case executable_function:
-		parsetree(np->left);
-		fprintf(myout, "(");
-		parsetree(np->next);
-		fprintf(myout, ")");
-		break;
-	 case cond_handling_function_name:
-		switch (np->value) {
-		case K_SIGNAL:
-		  fprintf(myout, "signal");
-		  break;
-		case K_STOP:
-		  fprintf(myout, "stop");
-		  break;
-		case K_SETUNWIND:
-		  fprintf(myout, "setunwind");
-		  break;
-		default:
-		  fprintf(myout, "nonimp1 %d",np->value);
-		  break;
-		}
-		break;
-	 case pot_expression:
-	 case opexp1:
-	 case opexp3:
-	 case opexp5:
-	 case opexp6:
-	 case opexp7:
-	 case opexp8:
-	 case opexp9:
-		parsetree(np->left);
-		fprintf(myout, " %s ",np->id);
-		parsetree(np->next);
-		break;
-	 case opexp4:
-		fprintf(myout, " not ");
-		parsetree(np->next);
-		break;
-	 case opexp2:
-		parsetree(np->left);
-		switch (np->value) {
-		case K_OR:
-		  fprintf(myout, " or "); 
-		  break;
-		case K_XOR:
-		  fprintf(myout, " xor "); 
-		  break;
-		case K_AND:
-		  fprintf(myout, " and "); 
-		  break;
-		case K_EQV:
-		  fprintf(myout, " eqv "); 
-		  break;
-		case K_EQL:
-		  fprintf(myout, " eql "); 
-		  break;
-		case K_EQLA:
-		  fprintf(myout, " eqla "); 
-		  break;
-		case K_EQLU:
-		  fprintf(myout, " eqlu "); 
-		  break;
-		case K_NEQ:
-		  fprintf(myout, " neq "); 
-		  break;
-		case K_NEQA:
-		  fprintf(myout, " neqa "); 
-		  break;
-		case K_NEQU:
-		  fprintf(myout, " nequ "); 
-		  break;
-		case K_LSS:
-		  fprintf(myout, " lss "); 
-		  break;
-		case K_LSSA:
-		  fprintf(myout, " lssa "); 
-		  break;
-		case K_LSSU:
-		  fprintf(myout, " lssu "); 
-		  break;
-		case K_LEQ:
-		  fprintf(myout, " leq "); 
-		  break;
-		case K_LEQA:
-		  fprintf(myout, " leqa "); 
-		  break;
-		case K_LEQU:
-		  fprintf(myout, " lequ "); 
-		  break;
-		case K_GTR:
-		  fprintf(myout, " gtr "); 
-		  break;
-		case K_GTRA:
-		  fprintf(myout, " gtra "); 
-		  break;
-		case K_GTRU:
-		  fprintf(myout, " gtru "); 
-		  break;
-		case K_GEQ:
-		  fprintf(myout, " geq "); 
-		  break;
-		case K_GEQA:
-		  fprintf(myout, " geqa "); 
-		  break;
-		case K_GEQU:
-		  fprintf(myout, " gequ "); 
-		  break;
-		default:
-		  fprintf(myout, "nonimp4 %d",np->value);
-		  break;
-		}
-		parsetree(np->next);
-		break;
-	 case b_main:
-		fprintf(myout, "\nmain = %s",np->id);
-		break;
-	 case prversion:
-		fprintf(myout, "\nversion = %s",np->id);
-		break;
-	 case ident:
-		fprintf(myout, "\nident = %s",np->id);
-		break;
-	 case sw_addressing_mode:
-		fprintf(myout,"addressing_mode(");
-		parsetree(np->next);
-		fprintf(myout,")");
-		break;
-	 case addr_external:
-		fprintf(myout,"external = ");
-		parsetree(np->next);
-		break;
-	 case addr_non_external:
-		fprintf(myout,"nonexternal = ");
-		parsetree(np->next);
-		break;
-	 case mode_32:
-		switch (np->value) {
-		case U_ABSOLUTE:
-		  fprintf(myout, "absolute");
-		  break;
-		case U_GENERAL:
-		  fprintf(myout, "general");
-		  break;
-		case U_LONG_RELATIVE:
-		  fprintf(myout, "long_relative");
-		  break;
-		case U_WORD_RELATIVE:
-		  fprintf(myout, "word_relative");
-		  break;
-		default:
-		  fprintf(myout, "nonimp3 %d",np->value);
-		  break;
-		}
-		break;
-	 case string_type:
-		switch (np->value) {
-		case P_ASCII:
-		  fprintf(myout, "%%ascii");
-		  break;
-		case P_ASCIZ:
-		  fprintf(myout, "%%asciz");
-		  break;
-		case P_ASCIC:
-		  fprintf(myout, "%%ascic");
-		  break;
-		case P_ASCID:
-		  fprintf(myout, "%%ascid");
-		  break;
-		case P_RAD50_11:
-		  fprintf(myout, "%%rad50_11");
-		  break;
-		case P_RAD50_10:
-		  fprintf(myout, "%%rad50_10");
-		  break;
-		case P_SIXBIT:
-		  fprintf(myout, "%%sixbit");
-		  break;
-		case P_P:
-		  fprintf(myout, "%%p");
-		  break;
-		default:
-		  fprintf(myout, "nonimp2 %d",np->value);
-		  break;
-		}
-		break;
-	 case string_literal:
-		parsetree(np->left);
-		parsetree(np->next);
-		break;
-	 case p_chesc:
-		fprintf(myout, "%%chesc");
-		break;
-	 case p_char:
-		fprintf(myout, "%%char");
-		fprintf(myout, "(");
-		parsetree(np->next);
-		fprintf(myout, ")");
-		break;
-	 case p_string:
-		fprintf(myout, "%%string");
-		fprintf(myout, "(");
-		parsetree(np->next);
-		fprintf(myout, ")");
-		break;
-	 case tname:
-		fprintf(myout, " %s",np->id);
-		break;
-	 case tvalue:
-		fprintf(myout, " %d",np->value);
-		break;
-	 default:
-		fprintf(myout,"\nunknown %d\n\n",np->type);
-		parsetree(np->next);
-		parsetree(np->left);
-		break;
-	 }
-  }
-};
-#endif
-
-void end_cur(void) { }
-void newscosym(void) { }
 
 symrec *cur_sym_table;
 
@@ -4170,13 +2928,6 @@ with YYDEBUG set");
   ggc_add_tree_root (&prefix_attributes, 1);
   ggc_add_tree_root (&all_prefix_attributes, 1);
   
-}
-
-symrec *
-putsym (sym_name,sym_type)
-          char *sym_name;
-          int sym_type;
-{
 }
 
 symrec *sym_table = (symrec *)0;

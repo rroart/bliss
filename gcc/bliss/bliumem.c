@@ -75,7 +75,7 @@ outofmemory (void)
 /* Allocate a new dynarray with ENTRIES entries each of size
    ENTRY_SIZE.  */
 
-dynarray *
+static dynarray *
 bliumem_dynarray_init (size_t entries, size_t entry_size)
 {
   size_t extra_size;
@@ -102,7 +102,7 @@ bliumem_dynarray_init (size_t entries, size_t entry_size)
 /* Resize DYNARRAY, if required, to ensure it contains entry INDEX.
    Retirn address of replacement.  */
 
-void
+static void
 bliumem_dynarray_upsize (dynarray *dynarray1, uint32 entry)
 {
   uint32 new_entry_count;
@@ -129,7 +129,7 @@ bliumem_dynarray_upsize (dynarray *dynarray1, uint32 entry)
 
 /* Free DYNARRAY, allocated using dynarray routines.  */
 
-void
+static void
 bliumem_dynarray_free (dynarray *dynarray1)
 {
   dynarray_plus *d_plus;
@@ -143,7 +143,7 @@ bliumem_dynarray_free (dynarray *dynarray1)
 
 /* Allocate SIZE storage.  Return the address.  */
 
-void *
+static void *
 bliumem_alloc (size_t size)
 {
   void *address;
