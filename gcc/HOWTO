@@ -1,10 +1,10 @@
 COMPILE/INSTALL/RUN:
-unpack a gcc 3.2 distribution
+unpack a gcc 3.3.2 distribution
 
 put the bliss and bliss.cp directories in gcc (alongside cp ada etc)
 (bliss is based on C routines, while bliss.cp is based on the C++ cp/ stuff)
 
-make a separate build and build2 directory in the same directory as gcc-3.2.
+make a separate build and build2 directory in the same directory as gcc-3.3.2.
 
 in each, do a ../configure --enable-languages=bliss or bliss.cp (not both).
 do a make bootstrap in each
@@ -39,20 +39,42 @@ useful compiler paramters:
 
 TESTED ON:
 Sparc/Solaris
-FreeBSD (got some yet unexplained severe problems)
+FreeBSD
 
 FEATURES:
-blocks
-routines with input-parameters (not bliss.cp)
-routine calls with input-parameters
-own declarations and variables
-field references
-some operator expressions
-assignment
-if then
-while do
-byte word long attributes (not bliss.cp)
-structure
+primary exps:
+	blocks (unlabeled)
+	structure references (ordinary)
+	routine calls (ordinary)
+	field references (bit)
+	code comments (! ones)
+computational exps:
+	op exps
+conditional exps:
+	conditional (ifs)
+	tested loop (while)
+	return exp
+blocks and decls:
+	blocks (unlabeled)
+	decls:
+		routine (ordinary)
+		require
+		structure (ordinary)
+attrs:
+ 	allocation unit
+data decls:
+	own
+	local
+	external
+data structures:
+	field refs (bit)
+	structure (ordinary)
+routines
+	ordinary (with input only)
+	external	
+macros
+	simple (really simple, one level) 	
+	require
 
 LIMITATIONS/INCOMPATIBILITIES:
 (gcc limitations(?), will be like this for some time)
@@ -110,3 +132,13 @@ checks is there is a STRUCTURE, and makes a STRUCTURE_ATTR for the
 declaration, and an array for the contents (4x too big yet).
 (ordinary structure ref)
 a STRUCTURE_ATTR is found, and the final copies and substitutions are made.
+
+NEWS:
+0.003:
+mainly macros and require
+
+0.002:
+mainly structure
+
+before:
+misc basic stuff
