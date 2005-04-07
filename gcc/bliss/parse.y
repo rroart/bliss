@@ -2275,63 +2275,165 @@ if_then %prec K_IF
 }
 ;
 
-exp: expression 
+exp:
+expression 
 ;
 
-case_expression: K_CASE exp K_FROM ctce K_TO ctce K_OF { $$=$2; }
-K_SET case_line_list K_TES { $$=$2; }
+case_expression:
+K_CASE exp K_FROM
+{
+  $<type_node_p>$ = c_start_case ($2);
+  c_in_case_stmt++;
+}
+ctce K_TO ctce K_OF
+{
+  c_start_case_2 ($5, $7);
+}
+K_SET case_line_list K_TES
+{
+  c_finish_case ();
+  c_in_case_stmt--;
+  $$=0; 
+  //  $$=$<type_node_p>3;
+}
 ;
 
-case_line_list: case_line_list case_line 
-|case_line 
+case_line_list:
+case_line_list case_line 
+|
+case_line 
 ;
 
-case_line: '[' case_label_list ']' ':' case_action ';' { $$=$2; }
+case_line:
+'[' case_label_list ']' ':' case_action ';'
+{
+  //chainon ($2, build_stmt (EXPR_STMT, $5));
+  add_stmt (build_stmt (EXPR_STMT, $5));
+  add_stmt (build_break_stmt ()); // selectone always
+}
 ;
 
-case_label_list: case_label_list ','  case_label 
-|case_label 
+case_label_list:
+case_label_list ','  case_label 
+{
+  $$ = chainon($1, $3);
+}
+|
+case_label 
 ;
 
-case_label: { $$=0; }
-| ctce K_TO ctce 
-| K_INRANGE { $$=0; }
-| K_OUTRANGE { $$=0; }
-;
-case_action: expression 
+case_label:
+ctce
+{
+  $$ = do_case ($1, 0);
+}
+|
+ctce K_TO ctce 
+{
+  $$ = do_case ($1, $3);
+}
+|
+K_INRANGE
+{
+  $$ = build_inrange ();
+}
+|
+K_OUTRANGE
+{
+  $$ = build_outrange (); // check. this is working?
+}
 ;
 
-
-select_expression: select_type select_index K_OF K_SET select_line_list K_TES
-{ $$=$2; }
+case_action:
+expression 
 ;
+
+select_expression:
+select_type select_index
+{
+  $<type_node_p>$ = c_start_case ($2);
+  c_in_case_stmt++;
+}
+K_OF K_SET select_line_list K_TES
+{
+  c_finish_case ();
+  c_in_case_stmt--;
+  $$=0; 
+  //  $$=$<type_node_p>3;
+}
+;
+
 select_type:  K_SELECT | K_SELECTA | K_SELECTU
-| K_SELECTONE | K_SELECTONEA | K_SELECTONEU 
-;
-select_index: expression 
-;
-
-select_line_list: select_line_list select_line 
-|select_line 
+| K_SELECTONE | K_SELECTONEA | K_SELECTONEU
+{
+  // note always behaves as selectone
+} 
 ;
 
-select_line: '[' select_label_list ']' ':' select_action ';' { $$=$2; }
-;
-select_label_list: select_label_list select_label 
-|select_label 
+select_index:
+expression 
 ;
 
-select_label:  exp  
-| exp K_TO exp  
-| K_OTHERWISE { $$ = 0; }
-| K_ALWAYS { $$ = 0; }
-;
-select_action: expression 
+select_line_list:
+select_line_list select_line 
+{
+  // check. must connect in some other way, later
+  // do not. last in list got chained to itself
+  //$$ = chainon($1, $2);
+}
+|
+select_line 
 ;
 
+select_line:
+'[' select_label_list ']' ':' select_action ';'
+{
+  //chainon ($2, build_stmt (EXPR_STMT, $5));
+  add_stmt (build_stmt (EXPR_STMT, $5));
+  add_stmt (build_break_stmt ()); // selectone always
+}
+;
 
-loop_expression:  indexed_loop_expression  
-| tested_loop_expression  
+select_label_list:
+select_label_list ',' select_label 
+{
+  $$ = chainon($1, $3);
+}
+|
+select_label 
+;
+
+select_label:
+exp  
+{
+  $$ = do_case ($1, 0);
+}
+|
+exp K_TO exp
+{
+  $$ = do_case ($1, $3);
+}  
+|
+K_OTHERWISE
+{
+  $$ = do_case (0, 0);
+}
+|
+K_ALWAYS
+{
+  // not yet
+  $$ = 0;
+}
+;
+
+select_action:
+expression 
+;
+
+loop_expression:
+indexed_loop_expression  
+|
+tested_loop_expression  
 ;
 
 by_exp: { $$ = 0; }
@@ -2535,11 +2637,15 @@ declaration: data_declaration
 | undeclare_declaration 
 ;
 
-attribute_list:attribute_list attribute { 
-$$ = tree_cons (NULL_TREE, $1, $2); 
+attribute_list:
+attribute_list attribute
+{ 
+  $$ = tree_cons (NULL_TREE, $1, $2); 
 }
-|attribute 
+|
+attribute 
 ;
+
 attribute:  allocation_unit 
 | extension_attribute 
 | structure_attribute  
@@ -2885,7 +2991,8 @@ maybe_own_attribute_list: { $$ = 0; }
 ;
 
 own_attribute_list:
-own_attribute_list own_attribute { 
+own_attribute_list own_attribute
+{ 
   $$= tree_cons (NULL_TREE, $2, $1);
 }
 |own_attribute 
@@ -2956,10 +3063,12 @@ maybe_local_attribute_list: { $$ = 0; }
 ;
 
 local_attribute_list:
-local_attribute_list local_attribute { 
+local_attribute_list local_attribute
+{ 
   $$= tree_cons (NULL_TREE, $2, $1);
 }
-|local_attribute 
+|
+local_attribute 
 ;
 
 local_attribute: own_attribute /* temporary */
@@ -3279,7 +3388,8 @@ structure_body
 }
 ;
 
-allocation_formal_list: allocation_formal_list ',' allocation_formal 
+allocation_formal_list:
+allocation_formal_list ',' allocation_formal 
 { 
 //$$ = tree_cons (NULL_TREE, $1, $3);
   $$ = get_parm_info (1);
