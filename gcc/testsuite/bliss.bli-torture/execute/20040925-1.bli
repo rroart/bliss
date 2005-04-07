@@ -1,10 +1,6 @@
 module m=
 begin
 
-structure vector[i; n, unit, ext] =
-[n*unit]
-(vector+i*unit)<0,8*unit>;
-
 routine main=
 begin
 own d:vector[2, 4];
