@@ -523,7 +523,14 @@ hexdigit [0-9a-f]
   case P_EXPAND: { /* quote_mode_next = 1; */ yyless(yyleng); }
 	 break;
 
-  case P_REMAINING: { /* quote_mode_next = 1; */ yyless(yyleng); key=-1; push_macro(print_remain(remaining)); }
+  case P_REMAINING: { 
+	 /* quote_mode_next = 1; */
+	 yyless(key_len);
+	 if (do_skip)
+		goto do_break;
+	 key=-1;
+	 push_macro(print_remain(remaining));
+  }
 	 break;
 
   case P_ALLOCATION: {
