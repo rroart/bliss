@@ -2420,7 +2420,7 @@ my_strcasestr (phaystack, pneedle)
   haystack = (const unsigned char *) phaystack;
   needle = (const unsigned char *) pneedle;
 
-  b = _tolower (*needle);
+  b = tolower (*needle);
   if (b != '\0')
     {
       haystack--;                               /* possible ANSI violation */
@@ -2430,9 +2430,9 @@ my_strcasestr (phaystack, pneedle)
           if (c == '\0')
             goto ret0;
         }
-      while (_tolower (c) != (int) b);
+      while (tolower (c) != (int) b);
 
-      c = _tolower (*++needle);
+      c = tolower (*++needle);
       if (c == '\0')
         goto foundneedle;
       ++needle;
@@ -2448,7 +2448,7 @@ my_strcasestr (phaystack, pneedle)
               a = *++haystack;
               if (a == '\0')
                 goto ret0;
-              if (_tolower (a) == (int) b)
+              if (tolower (a) == (int) b)
                 break;
               a = *++haystack;
               if (a == '\0')
@@ -2456,34 +2456,34 @@ my_strcasestr (phaystack, pneedle)
 				shloop:
               ;
             }
-          while (_tolower (a) != (int) b);
+          while (tolower (a) != (int) b);
 
 		  jin:      a = *++haystack;
           if (a == '\0')
             goto ret0;
 
-          if (_tolower (a) != (int) c)
+          if (tolower (a) != (int) c)
             goto shloop;
 
           rhaystack = haystack-- + 1;
           rneedle = needle;
-          a = _tolower (*rneedle);
+          a = tolower (*rneedle);
 
-          if (_tolower (*rhaystack) == (int) a)
+          if (tolower (*rhaystack) == (int) a)
             do
               {
                 if (a == '\0')
                   goto foundneedle;
                 ++rhaystack;
-                a = _tolower (*++needle);
-                if (_tolower (*rhaystack) != (int) a)
+                a = tolower (*++needle);
+                if (tolower (*rhaystack) != (int) a)
                   break;
                 if (a == '\0')
                   goto foundneedle;
                 ++rhaystack;
-                a = _tolower (*++needle);
+                a = tolower (*++needle);
               }
-				while (_tolower (*rhaystack) == (int) a);
+				while (tolower (*rhaystack) == (int) a);
 
           needle = rneedle;             /* took the register-poor approach */
 
