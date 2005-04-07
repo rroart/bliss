@@ -6463,6 +6463,7 @@ struct c_switch {
   splay_tree cases;
   /* The next node on the stack.  */
   struct c_switch *next;
+  tree start, end;
 };
 
 /* A stack of the currently active switch statements.  The innermost
@@ -7292,4 +7293,29 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
       return convert (final_type, folded);
     return folded;
   }
+}
+
+tree
+c_start_case_2 (tree start, tree end)
+{
+  struct c_switch *cs = switch_stack;
+  cs->start = start;
+  cs->end = end;
+}
+
+tree
+build_inrange ()
+{
+  struct c_switch *cs = switch_stack;
+  return do_case (cs->start, cs->end);
+}
+
+tree
+build_outrange ()
+{
+  struct c_switch *cs = switch_stack;
+  tree mystart=fold(parser_build_binary_op(MINUS_EXPR,cs->start,build_int_2(1,0)));
+  tree myend=fold(parser_build_binary_op(PLUS_EXPR,cs->end,build_int_2(1,0)));
+  do_case (build_int_2(-0x7fffffff,0), mystart);
+  return do_case (myend, build_int_2(0x7fffffff,0));
 }
