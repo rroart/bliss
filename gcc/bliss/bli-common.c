@@ -3971,6 +3971,7 @@ c_add_case_label (splay_tree cases, tree cond, tree low_value,
 		   <= 0))
 	node = high_bound;
     }
+  node = 0; // so duplicate check is skipped
   /* If there was an overlap, issue an error.  */
   if (node)
     {
