@@ -520,7 +520,7 @@ hexdigit [0-9a-f]
   case P_QUOTE: { /* quote_mode_next = 1; */ yyless(6/*yyleng*/); key=-1; }
 	 break;
 
-  case P_EXPAND: { /* quote_mode_next = 1; */ yyless(yyleng); }
+  case P_EXPAND: { /* quote_mode_next = 1; */ yyless(7/*yyleng*/); key=-1; }
 	 break;
 
   case P_REMAINING: { 
@@ -536,6 +536,7 @@ hexdigit [0-9a-f]
   case P_ALLOCATION: {
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, ')');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int my_yyleng=1+my_end-my_yytext;
 	 char myline[255];
 	 printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
@@ -577,6 +578,7 @@ hexdigit [0-9a-f]
   case P_ASSIGN: {
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int len=my_end-yytext+1;
 	 yyless(len);
   
@@ -600,11 +602,13 @@ hexdigit [0-9a-f]
 	 memcpy(myline,ct,ct_end-ct);
 
 	 char * second = ct_end + 1;
+	 while (my_isblank(*second) || *second==',')
+		second++;
 	 char what[255];
 	 memset(what, 0, 255);
 	 memcpy(what, second, my_end - second);
 
-	 printf("setcti %s %s\n",myline,what);
+	 printf("setcti %s %s %d\n",myline,what,input_location.line);
 
 	 expr_parse++;
 	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
@@ -620,6 +624,7 @@ hexdigit [0-9a-f]
   case P_BLISS: {
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, ')');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int my_yyleng=1+my_end-my_yytext;
 	 *my_end=0;
 	 int is32v=my_strcasestr(my_yytext,"32v");
@@ -667,6 +672,7 @@ hexdigit [0-9a-f]
   case P_CHAR: {
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, ')');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int len=my_end-yytext+1;
 	 yyless(len);
   
@@ -717,6 +723,7 @@ hexdigit [0-9a-f]
   case P_CHARCOUNT: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -769,6 +776,7 @@ hexdigit [0-9a-f]
   case P_CTCE: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -825,6 +833,7 @@ hexdigit [0-9a-f]
   case P_EXPLODE: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -1048,6 +1057,7 @@ hexdigit [0-9a-f]
   case P_EXACTSTRING: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -1183,6 +1193,7 @@ hexdigit [0-9a-f]
   case P_REMOVE: { 
 	 my_yytext=strchr(my_yytext,'(');
 	 char * my_end=strchr(my_yytext, '\n');
+	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
 		my_end--;
@@ -1274,6 +1285,7 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
 		my_end=my_strstrend(my_yytext,0);
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1396,6 +1408,7 @@ hexdigit [0-9a-f]
 	 {
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1451,6 +1464,7 @@ hexdigit [0-9a-f]
 	 {
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1509,6 +1523,7 @@ hexdigit [0-9a-f]
 	 {
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1607,6 +1622,7 @@ hexdigit [0-9a-f]
 	 {
 		my_yytext=strchr(my_yytext,'(');
 		char * my_end=strchr(my_yytext, '\n');
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1670,8 +1686,19 @@ hexdigit [0-9a-f]
 	 }
 	 break;
 
-  case P_EXITITERATION:
   case P_EXITMACRO:
+	 {
+		yyless(key_len);
+
+		if (do_skip)
+		  goto do_break;
+
+		goto eof;
+		break;
+	 }
+	 break;
+
+  case P_EXITITERATION:
   case P_LTCE:
   case P_VARIANT:
   case P_UNQUOTE:
@@ -1766,6 +1793,7 @@ hexdigit [0-9a-f]
 }
 
 <<EOF>> { 
+ eof:
   if ( --include_stack_ptr < 0 )
     {
       if (yy2debug) inform("\nempty include stack\n");
@@ -1796,8 +1824,12 @@ hexdigit [0-9a-f]
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
 	 push_macro_stack(macroact,*yytext);
 	 if (macro_stack_ptr>1) {
-		tree t = tree_last(macroact);
-		add_tree_string(t, yytext, 1);
+	   if (macroact==0) {
+	     macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+	     goto out;
+	   }
+	   tree t = tree_last(macroact);
+	   add_tree_string(t, yytext, 1);
 	 }
 	 goto out;
   }
@@ -1845,7 +1877,15 @@ hexdigit [0-9a-f]
 		  add_tree_string(t, yytext, strlen(yytext));
 		} else {
 		  if (*yytext==',')
-			 macroact=chainon(macroact,build_string(0,""));
+		    macroact=chainon(macroact,build_string(0,""));
+		  else {
+		    if (macroact==0) {
+		      macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+		      goto out;
+		    }
+		    tree t = tree_last(macroact);
+		    add_tree_string(t, yytext, strlen(yytext));
+		  }
 		}
     }
     goto out;
@@ -1886,6 +1926,10 @@ hexdigit [0-9a-f]
 
 <macro>{name}|{string}|{digit}+				{
   downcase (yytext);
+  if (macrostart==0) {
+    yyless(0);
+    goto ifall;
+  }
   struct mymacro * m=(void*)find_macro(0,yytext);
   if (m) {
 #if 0
@@ -2285,7 +2329,7 @@ static struct dict ukeywords[] = {
 };
 
 #define NKEYW 180
-#define NUKEYW 110
+#define NUKEYW 111
 
 static int keyword (cp)
      char *cp;				/* It better be lower case */
