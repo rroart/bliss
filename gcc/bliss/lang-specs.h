@@ -26,6 +26,7 @@ Boston, MA 02111-1307, USA.  */
 #define BLISS_CPP_SPEC 0
 #endif
 
+  {".b32",  "@bliss", 0},
   {".bli",  "@bliss", 0},
   {".BLI",  "@bliss", 0},
   {"@bliss",
