@@ -591,6 +591,9 @@ maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
 T_NAME END_EXPR 
 {
   last_expr = $1;
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
+    last_expr=TREE_TYPE($1);
+  }
   YYACCEPT; 
 }
 ;
@@ -631,7 +634,8 @@ module_switch	: on_off_switch
 | special_switch 
 ;
 
-on_off_switch: onoffmodes { $$ = 0; }
+on_off_switch:
+onoffmodes { $$ = 0; }
 ;
 
 onoffmodes:
@@ -641,13 +645,13 @@ CODE		/* default */
 | NODEBUG		/* default */
 | ERRS			/* default */
 | NOERRS
-| OPTIMIZE		/* default */
+| U_OPTIMIZE		/* default */
 | NOOPTIMIZE
 | UNAMES
 | NOUNAMES		/* default */
 | SAFE			/* default */
 | NOSAFE
-| ZIP
+| U_ZIP
 | NOZIP			/* default */
 ;
 
@@ -896,6 +900,15 @@ numeric_literal
 | string_literal
 | plit 
 | T_NAME { 
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
+#if 0
+    fprintf(stderr,"\n\n\n\nCOMP %x %x\n\n\n\n",$1,TREE_TYPE($1),TREE_CODE(TREE_TYPE($1)));
+    fflush(stderr);
+    sleep(5);
+#endif
+    $$=TREE_TYPE($1);
+    goto myout;
+  }
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
@@ -1606,10 +1619,10 @@ segment_expression: exp
 
 /*field_name      Note: See field_attribute, Section 4.1*/
 
-field_name: T_NAME 
+field_set_name: T_NAME 
 ;
 
-field_set_name: T_NAME 
+field_name: T_NAME 
 ;
 
 dsr1:
@@ -3504,10 +3517,22 @@ allocation_name: T_NAME
 ;
 
 field_declaration: K_FIELD 
-field_set_definition { $$ = 0; }
-|
-K_FIELD field_definition { $$ = 0; }
+field_something_definition_list ';'
+{
+  $$ = 0; 
+}
 ;
+
+field_something_definition_list:
+field_something_definition_list ',' field_something_definition
+|
+field_something_definition
+;
+
+field_something_definition:
+field_set_definition
+|
+field_definition
 
 field_set_definition:
 field_set_name '=' K_SET field_definition_list K_TES
@@ -4394,6 +4419,7 @@ compile_time_item_list: compile_time_item_list ',' compile_time_item
 compile_time_item:
 compile_time_name '=' compile_time_value
 {
+  printf("k_com %s %d %x\n",IDENTIFIER_POINTER($1),input_location.line,$3);
   $$ = set_cti($1, $3);
 }
 ;
@@ -5285,7 +5311,14 @@ c_parse_file (void)
 }
 
 set_cti(tree id, tree val) {
-  tree newid=add_percent(id,1);
+  tree newid=id;//add_percent(id,1);
+#if 0
+  if (TREE_CODE(val)!=INTEGER_CST) {
+    error("int\n");
+  }
+#endif
+  if (TREE_CODE(val)==NON_LVALUE_EXPR)
+    val=TREE_OPERAND(val, 0);
   TREE_TYPE(newid)=val; // bad hack?
   return newid;
 }
