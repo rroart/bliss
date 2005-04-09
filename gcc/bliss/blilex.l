@@ -1210,8 +1210,10 @@ hexdigit [0-9a-f]
 	 if (do_skip)
 		goto do_break;
   
+#if 1
 	 *my_yytext=' ';
 	 *my_end=' ';
+#endif
 
 	 my_yytext++;
 	 my_end--;
@@ -1257,7 +1259,7 @@ hexdigit [0-9a-f]
 	 memcpy(myline,my_yytext,my_end-my_yytext);
 	 char * s = strdup(myline);
 #endif
-	 printf("myrem %s\n",yytext);
+	 printf("myrem %s\n",my_yytext);
 #if 0
 	 yylval.type_node_p=copy_node(get_identifier(s));
 	 retval = T_DIGITS;
@@ -1431,9 +1433,8 @@ hexdigit [0-9a-f]
 		while (my_isblank(*p2))
 		  p2++;
 
-		char * p2_end = p2;
-		while (*p2_end!=',')
-		  p2_end++;
+		char * p2_end = my_strstrendbal(p2, my_end, 0, 1);
+		p2_end++; // bad workaround?
 
 		char myline1[255];
 		char myline2[255];
@@ -1444,6 +1445,12 @@ hexdigit [0-9a-f]
 
 		char myline[255];
 
+		fprintf(stderr,"IDENT %s %s\n",myline1,myline2);
+#if 0
+		tree t1=parse_this(myline1);
+		tree t2=parse_this(myline2);
+		fprintf(stderr,"IDENT %x %x\n",t1,t2);
+#endif
 		if (0==strcmp(myline1,myline2))
 		  myline[0]='1';
 		else
@@ -1634,7 +1641,7 @@ hexdigit [0-9a-f]
 		  goto do_break;
   
 		my_yytext++;
-		my_end++;
+		my_end--;
 
 		tree t = parse_this_range(my_yytext,my_end);
 		t=fold(t);
