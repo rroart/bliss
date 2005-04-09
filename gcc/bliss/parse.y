@@ -594,6 +594,9 @@ T_NAME END_EXPR
   if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
     last_expr=TREE_TYPE($1);
   }
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
+    last_expr=get_identifier(TREE_TYPE($1));
+  }
   YYACCEPT; 
 }
 ;
@@ -907,6 +910,10 @@ numeric_literal
     sleep(5);
 #endif
     $$=TREE_TYPE($1);
+    goto myout;
+  }
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
+    $$=get_identifier(TREE_TYPE($1));
     goto myout;
   }
   if (yychar == YYEMPTY)
@@ -5224,7 +5231,33 @@ make_macro_string(m,r)
   fprintf(stderr, "ITER %s\n",s);
   return s;
  cond_macro:
-  return 0;
+  for(t=b;t;t=TREE_CHAIN(t)) {
+    tree old,new;
+    char * l = TREE_STRING_POINTER(t);
+	 if (TREE_CODE(t)==IDENTIFIER_NODE)
+		l=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
+	 // check. not quite sure about doing quoting here
+	 if (is_quote) {
+		is_quote=0;
+		goto subst_out3;
+	 }
+	 is_quote=(0==strcasecmp(l,"%quote"));
+	 if (is_quote)
+		continue;
+    for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
+      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+		  l=TREE_STRING_POINTER(new);
+		  goto subst_out3;
+      }
+    }
+	 goto subst_out3;
+  subst_out3:
+	 s = my_strcat_gen(s,l,1);
+  }
+  
+  if (yydebug) inform ("\n%%BLS-I-NOTHING %x cond line macro expanded to %s\n",input_location.line,s);
+
+  return s;
 }
 
 char *
@@ -5317,6 +5350,14 @@ set_cti(tree id, tree val) {
     error("int\n");
   }
 #endif
+  if (TREE_CODE(val)==IDENTIFIER_NODE) {
+    // workaround to catch predefined literals
+    fprintf(stderr, "SETCTI %s\n",IDENTIFIER_POINTER(val));
+    char myline[255];
+    memset (myline, 0, 255);
+    sprintf(myline, "(1 * %s)",IDENTIFIER_POINTER(val));
+    val=parse_this(myline);
+  }
   if (TREE_CODE(val)==NON_LVALUE_EXPR)
     val=TREE_OPERAND(val, 0);
   TREE_TYPE(newid)=val; // bad hack?
