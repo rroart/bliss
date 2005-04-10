@@ -408,6 +408,7 @@ hexdigit [0-9a-f]
 }
 
 "%"{name}			{
+ p_name:
   /* store that string w/o '' */
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
 
@@ -1434,7 +1435,8 @@ hexdigit [0-9a-f]
 		  p2++;
 
 		char * p2_end = my_strstrendbal(p2, my_end, 0, 1);
-		p2_end++; // bad workaround?
+		if (*p2_end!=')')
+		  p2_end++; // bad workaround?
 
 		char myline1[255];
 		char myline2[255];
@@ -1648,6 +1650,10 @@ hexdigit [0-9a-f]
 		int v=0;
 
 		if (TREE_CODE(t)==IDENTIFIER_NODE) {
+		  if (TREE_TYPE(t)) {
+		    t=TREE_TYPE(t);
+		    goto number_int;
+		  }
 		  char * s = IDENTIFIER_POINTER(t);
 		  int len=strlen(s);
 		  if (s[0]==39 && s[len-1]==39) {
@@ -1658,6 +1664,7 @@ hexdigit [0-9a-f]
 			 printf("not yet implemnted number\n");
 		  }
 		} else {
+		number_int:
 		  v=TREE_INT_CST_LOW(t);
 		}
   
@@ -1687,12 +1694,15 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
+		cond_iter_macro_count=0; // reset it here because cannot in cond itself?
 		retval=T_DIGITS;
 		goto out_data;
 		break;
 	 }
 	 break;
 
+  case P_EXITITERATION:
+    // might suffice for a while? (until I get code that use it, at least)
   case P_EXITMACRO:
 	 {
 		yyless(key_len);
@@ -1705,7 +1715,6 @@ hexdigit [0-9a-f]
 	 }
 	 break;
 
-  case P_EXITITERATION:
   case P_LTCE:
   case P_VARIANT:
   case P_UNQUOTE:
@@ -1821,6 +1830,18 @@ hexdigit [0-9a-f]
   }
 } 
 
+<macro>"%x"|"%X"|"%o"|"%O"|"%b"|"%B"|"%bpval"|"%BPVAL"|"%bpunit"|"%BPUNIT"|"%bpaddr"|%"BPADDR"|"%upval"|"%UPVAL" {
+  goto m_name;
+}
+
+<macro>"%"{name} {
+  if (macrostart==0) {
+    yyless(0);
+    goto ifall;
+  }
+  goto p_name;
+}
+
 <macro>{delim}|"%"				{
   int newmacrocomma;
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
@@ -1932,6 +1953,7 @@ hexdigit [0-9a-f]
 }
 
 <macro>{name}|{string}|{digit}+				{
+ m_name:
   downcase (yytext);
   if (macrostart==0) {
     yyless(0);
