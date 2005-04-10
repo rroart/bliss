@@ -5229,8 +5229,14 @@ make_macro_string(m,r)
   } // end while
   fprintf(stderr, "ITER %x\n",s);
   fprintf(stderr, "ITER %s\n",s);
+  cond_iter_macro_count=0; // reset it here because cannot in cond itself?
   return s;
  cond_macro:
+  // this seems to be done just like a simple macro?
+  // except for using cond_iter_macro_count? but might use it wrongly?
+  {}
+  extern int cond_iter_macro_count;
+  //cond_iter_macro_count=0; // cannot do this here?
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
     char * l = TREE_STRING_POINTER(t);
@@ -5257,6 +5263,8 @@ make_macro_string(m,r)
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x cond line macro expanded to %s\n",input_location.line,s);
 
+  cond_iter_macro_count++;
+
   return s;
 }
 
@@ -5269,10 +5277,9 @@ print_remain(r)
   for(t=r;t;t=TREE_CHAIN(t)) {
     tree old,new;
     char * l = TREE_STRING_POINTER(t);
-    if (s==0) s=xstrdup(l);
-    else
-      s=my_strcat(s,l,0);
-    
+    s=my_strcat_gen(s,l,0);
+    if (TREE_CHAIN(t))
+      s=my_strcat_gen(s,",",0);
   }
   
   //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
@@ -5386,6 +5393,12 @@ const struct ggc_root_tab gt_ggc_r_gt_c_pragma_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
+int check_little_endian() {
+  short sh = 0x1234;
+  char * c = &sh;
+  return (*c==0x34);
+}
+
 char * bliss_builtin = "MACRO %BLISS16[] = % , %BLISS36[] = % , %BLISS32[] = %REMAINING % ; ";
 
 void get_builtin(void) {
@@ -5432,6 +5445,11 @@ void add_builtin(void) {
   parse_this(bliss_builtin_struct_3);
   parse_this(bliss_builtin_struct_4);
   parse_this(bliss_builtin_struct_5);
+
+  if (check_little_endian) // had to do some of my own extensions
+    parse_this("compiletime $cpu_le = 1;");
+  else
+    parse_this("compiletime $cpu_le = 0;");
 }
 
 int
