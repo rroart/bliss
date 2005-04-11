@@ -105,8 +105,9 @@
   int add_tree_string(tree, const char *, int);
   void strip_par(char *);
 
-#define MAX_INCLUDE_DEPTH 10
+#define MAX_INCLUDE_DEPTH 40
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+  int include_stack_state[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -152,8 +153,10 @@
       if (new==0)
         new=empty;
 		strip_par(new);
-      include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
- 
+      include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+      include_stack_state[include_stack_ptr] = 0; 
+      include_stack_ptr++;
+
       yy_switch_to_buffer(yy_scan_string(new));
     }
 
@@ -176,9 +179,11 @@
   void
     push_req_stack(char *new)
     {
-      include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-		downcase(new);
-		opened_req[opened_req_ptr++]=xstrdup(new);
+      include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+      include_stack_state[include_stack_ptr] = 0;
+      include_stack_ptr++;
+      downcase(new);
+      opened_req[opened_req_ptr++]=xstrdup(new);
       yyin = fopen( new, "r" );
      
       yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
@@ -321,7 +326,7 @@ hexdigit [0-9a-f]
     switch (last) {
 	 case P_ALLOCATION:
 		{
-		  fprintf(stderr, "xxx %s\n",IDENTIFIER_POINTER((tree)mylast()));
+		  printf("xxx %s\n",IDENTIFIER_POINTER((tree)mylast()));
 		}
 		return P_SOFTERROR4;
 		break;
@@ -471,10 +476,7 @@ hexdigit [0-9a-f]
 		//yyless(my_yyleng);
 		printf("skipp %x %x %x\n",base_skip_mode,skip_mode,cond_stack_ptr);
 		if (skip_mode==0) {
-		  expr_parse++;
-		  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-		  yy_switch_to_buffer(yy_scan_string(myline));
-		  yyparse();
+		  parse_this(myline);
 		  push_cond_stack(0);
 		  skip_mode=get_cond_stack()|integer_zerop(fold(parser_build_binary_op(BIT_AND_EXPR,mylast(),build_int_2(1,0))));
 		  push_cond_stack(0);
@@ -609,12 +611,9 @@ hexdigit [0-9a-f]
 	 memset(what, 0, 255);
 	 memcpy(what, second, my_end - second);
 
-	 printf("setcti %s %s %d\n",myline,what,input_location.line);
+	 //printf("setcti %s %s %d\n",myline,what,input_location.line);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(what));
-	 yyparse();
+	 parse_this(what);
 
 	 set_cti(get_identifier(strdup(myline)), fold(mylast()));
 
@@ -697,11 +696,8 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(myline));
+	 parse_this(myline);
 	 printf("myretp %s\n",myline);
-	 yyparse();
 
 	 myret[myretp++]=TREE_INT_CST_LOW(fold(mylast()));
 
@@ -749,11 +745,8 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(myline));
+	 parse_this(myline);
 	 printf("myretp %s\n",myline);
-	 yyparse();
 
 	 myret+=strlen(IDENTIFIER_POINTER(fold(mylast())))-2;
 
@@ -803,11 +796,8 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(myline));
 	 printf("myretp %s\n",myline);
-	 yyparse();
+	 parse_this(myline);
 
 	 tmp=0;
 	 if (TREE_TYPE(TREE_OPERAND(fold(mylast()),0))==INTEGER_CST)
@@ -1112,11 +1102,8 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 expr_parse++;
-	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
-	 yy_switch_to_buffer(yy_scan_string(myline));
 	 printf("myretsp %s\n",myline);
-	 yyparse();
+	 parse_this(myline);
 
 	 tree t=fold(mylast());
 	 int v=TREE_INT_CST_LOW(t);
@@ -1376,7 +1363,7 @@ hexdigit [0-9a-f]
 		memcpy(myline,par,par_end-par);
 
 		strip_par(myline);
-		fprintf(stderr, "null parse this %s\n",myline);
+		printf("null parse this %s\n",myline);
 		tree t=parse_this(myline);
 		if (t) // check
 		  myret++;
@@ -1447,11 +1434,11 @@ hexdigit [0-9a-f]
 
 		char myline[255];
 
-		fprintf(stderr,"IDENT %s %s\n",myline1,myline2);
+		printf("IDENT %s %s\n",myline1,myline2);
 #if 0
 		tree t1=parse_this(myline1);
 		tree t2=parse_this(myline2);
-		fprintf(stderr,"IDENT %x %x\n",t1,t2);
+		printf("IDENT %x %x\n",t1,t2);
 #endif
 		if (0==strcmp(myline1,myline2))
 		  myline[0]='1';
@@ -1595,7 +1582,9 @@ hexdigit [0-9a-f]
 		char * p = print_tree(new);
 
 		expr_parse++;
-		include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+		include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+		include_stack_state[include_stack_ptr] = 1;
+		include_stack_ptr++;
 		yy_switch_to_buffer(yy_scan_string(p));
 
 		goto myout;
@@ -1710,6 +1699,8 @@ hexdigit [0-9a-f]
 		if (do_skip)
 		  goto do_break;
 
+		printf("exitm\n");
+
 		goto eof;
 		break;
 	 }
@@ -1728,11 +1719,10 @@ hexdigit [0-9a-f]
 	 }
   default: {
 #if 0
-	 fprintf(stderr,"DEF %x %x %x %s\n",key,strlen(yytext),keyw_len(key),yytext);
-	 fflush(stderr);
+	 printf("DEF %x %x %x %s\n",key,strlen(yytext),keyw_len(key),yytext);
 	 yyless(strlen(yytext));
 	 yyless(keyw_len(key));
-	 fprintf(stderr,"DEF %x %x %x %s\n",key,strlen(yytext),keyw_len(key),yytext);
+	 printf("DEF %x %x %x %s\n",key,strlen(yytext),keyw_len(key),yytext);
 #endif
 	 yyless(key_len);
 	 break;
@@ -1745,8 +1735,7 @@ hexdigit [0-9a-f]
 #if 0
   //if (key!=((int)-1))
   {
-	 fprintf(stderr, "key %x\n",key);
-	 fflush(stderr);
+	 printf("key %x\n",key);
   }
 #endif
   //  break;
@@ -1820,10 +1809,15 @@ hexdigit [0-9a-f]
       yy_delete_buffer( YY_CURRENT_BUFFER );
       yy_switch_to_buffer(include_stack[include_stack_ptr] );
     }
+#if 0
   if (expr_parse) {
 	 expr_parse--;
 	 return END_EXPR;
   }
+#else
+  if (include_stack_state[include_stack_ptr])
+    return END_EXPR;
+#endif
   if (do_builtin) {
 	 do_builtin--;
 	 return END_BUILTIN;
@@ -2236,8 +2230,7 @@ struct dict keywords[] =
   };
 
 int keyw_len(int key) {
-  fprintf(stderr," KEY %x %s\n",strlen(keywords[key-P_ALLOCATION].d_text),(keywords[key-P_ALLOCATION].d_text));
-  fflush(stderr);
+  printf(" KEY %x %s\n",strlen(keywords[key-P_ALLOCATION].d_text),(keywords[key-P_ALLOCATION].d_text));
   return strlen(keywords[key-P_ALLOCATION].d_text);
 }
 
@@ -2449,8 +2442,11 @@ int something_that_uses_yyunput(void) {
 }
 
 tree parse_this (char * this) {
+  printf("parse this %s\n",this);
   expr_parse++;
-  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+  include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+  include_stack_state[include_stack_ptr] = 1;
+  include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_string(this));
   //tree t = save_last_tree();
   yyparse();
@@ -2460,21 +2456,27 @@ tree parse_this (char * this) {
 
 tree parse_this_n (char * this, int n) {
   expr_parse++;
-  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+  include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+  include_stack_state[include_stack_ptr] = 1;
+  include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,n));
   yyparse();
   return mylast();
 }
 
 tree parse_this_range (char * this, char * end) {
+  goto skip_me;
   if (yydebug) {
+  skip_me: {}
     char myline[255];
     memset(myline, 0, 255);
     memcpy(myline,this,end-this);
     printf("parse_this_range %s\n",myline);
   }
   expr_parse++;
-  include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+  include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+  include_stack_state[include_stack_ptr] = 1;
+  include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,end-this));
   yyparse();
   return mylast();
