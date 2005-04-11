@@ -520,6 +520,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> data_name_value maybe_bind_routine_attribute_list
 %type <type_node_p> bind_routine_item_rest label_name_list
 %type <type_node_p> maybe_global_attribute_list global_attribute_list
+%type <type_node_p> maybe_external_attribute_list external_attribute_list
+%type <type_node_p> external_attribute external_name
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -3188,7 +3190,7 @@ global_name maybe_global_attribute_list
 external_declaration: K_EXTERNAL external_item_list ';' { $$ = 0; }
 ;
 
-external_item_list: external_item_list external_item 
+external_item_list: external_item_list ',' external_item 
 |external_item 
 ;
 
@@ -3196,7 +3198,35 @@ external_name:
 T_NAME
 ;
 
-external_item: external_name ':' attribute_list 
+maybe_external_attribute_list:
+|
+':' external_attribute_list
+;
+
+external_attribute_list:
+external_attribute_list ',' external_attribute
+{ 
+  $$= tree_cons (NULL_TREE, $3, $1);
+}
+|
+external_attribute 
+;
+
+external_attribute:
+attribute
+{
+  // temp
+}
+;
+
+external_item:
+external_name maybe_external_attribute_list 
+{
+  tree decl = build_decl (VAR_DECL, $1, integer_type_node);
+  DECL_EXTERNAL (decl) = 1;
+  decl = pushdecl (decl);
+  $$ = 0;
+}
 ;
 
 forward_declaration: K_FORWARD forward_item_list ';'  { $$ = 0; }
