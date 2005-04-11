@@ -2720,10 +2720,13 @@ structure_attribute:
   tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
   tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
   tree type, body_t, size_t, access_t, comp2, access;
+  size=tree_cons(0,size,0); // temp workaround for maybe changing root node
   my_substitute(size,alloc,$3);
   my_substitute(body,alloc,$3);
   my_substitute(size,alloc,-1);
   my_substitute(body,alloc,-1);
+  size=TREE_VALUE(size);
+
   my_fold(size);
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
