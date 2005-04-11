@@ -3934,7 +3934,14 @@ T_NAME
 forward_routine_item: 
 routine_name maybe_forward_routine_attribute_list 
 /*|T_NAME  */
+{
+  tree decl = build_decl (FUNCTION_DECL, $1, default_function_type);
+  DECL_EXTERNAL (decl) = 1;
+  decl = pushdecl (decl);
+  $$ = 0;
+}
 ;
+
 maybe_forward_routine_attribute_list: { $$=0; }
 |':' forward_routine_attribute_list { $$=$2; }
 ;
