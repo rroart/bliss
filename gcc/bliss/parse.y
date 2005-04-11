@@ -519,6 +519,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> global_name register_name literal_name label_name
 %type <type_node_p> data_name_value maybe_bind_routine_attribute_list
 %type <type_node_p> bind_routine_item_rest label_name_list
+%type <type_node_p> maybe_global_attribute_list global_attribute_list
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -590,6 +591,19 @@ maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
 |
 T_NAME END_EXPR 
 {
+  last_expr = $1;
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
+    last_expr=TREE_TYPE($1);
+  }
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
+    last_expr=get_identifier(TREE_TYPE($1));
+  }
+  YYACCEPT; 
+}
+|
+tname_list END_EXPR 
+{
+  // not quite finished? to catch parse(%remaining)
   last_expr = $1;
   if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
     last_expr=TREE_TYPE($1);
@@ -905,8 +919,7 @@ numeric_literal
 | T_NAME { 
   if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
 #if 0
-    fprintf(stderr,"\n\n\n\nCOMP %x %x\n\n\n\n",$1,TREE_TYPE($1),TREE_CODE(TREE_TYPE($1)));
-    fflush(stderr);
+    printf("\n\n\n\nCOMP %x %x\n\n\n\n",$1,TREE_TYPE($1),TREE_CODE(TREE_TYPE($1)));
     sleep(5);
 #endif
     $$=TREE_TYPE($1);
@@ -1484,7 +1497,10 @@ maybe_declaration_list: { $$=0; }
 maybe_declaration_list:  { $$=NULL_TREE; }
 | maybe_declaration_list declaration {
   /*  */
-  $$ = chainon($1, $2);
+  if ($2)
+    $$ = chainon($1, $2);
+  else
+    $$ = $1;
  }
 ;
 
@@ -2655,6 +2671,12 @@ declaration: data_declaration
 | label_declaration 
 | builtin_declaration  
 | undeclare_declaration 
+|
+';'
+{
+  $$ = 0;
+  // this is not according to official specs
+}
 ;
 
 attribute_list:
@@ -2700,6 +2722,8 @@ structure_attribute:
   tree type, body_t, size_t, access_t, comp2, access;
   my_substitute(size,alloc,$3);
   my_substitute(body,alloc,$3);
+  my_substitute(size,alloc,-1);
+  my_substitute(body,alloc,-1);
   my_fold(size);
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
@@ -2814,7 +2838,19 @@ alloc_actual_list: alloc_actual_list alloc_actual|alloc_actual;
 
 alloc_actual:  { $$=(int) 0; }
 | ctce 
-|allocation_unit 
+|
+allocation_unit 
+{
+  int i=0;
+  if ($1==char_type_node)
+    i=8;
+  if ($1==short_integer_type_node)
+    i=16;
+  if ($1==integer_type_node)
+    i=32;
+  if (i)
+    $$=build_int_2(i,0);
+}
 |extension_attribute 
 ;
 
@@ -2923,6 +2959,7 @@ T_NAME
 
 own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
 
   tree attr = current_declspecs;
   tree type = $2;
@@ -2957,6 +2994,7 @@ own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
 	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
 	 //	 TREE_TYPE(cell_)=newint;
 	 current_declspecs=tree_cons(0, newint, 0);
+	 mysize=tree_cons(0, newint, 0);
 	 decl=0; //newint;
 #else
     //type = char_array_type_node;
@@ -2978,7 +3016,7 @@ own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
   if (init)
 	 do_init=1;
 
-  cell_decl_p = start_decl (cell, 0/*current_declspecs*/, do_init,
+  cell_decl_p = start_decl (cell, mysize/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
   //printf("xxx %x\n",d);
@@ -3033,14 +3071,115 @@ allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 global_declaration: K_GLOBAL global_item_list  ';' { $$ = 0; }
 ;
 
-global_item_list:  global_item_list global_item 
+global_item_list:  global_item_list ',' global_item 
 |global_item 
 ;
 
 global_name:
 T_NAME;
 
-global_item: global_name ':' attribute_list 
+maybe_global_attribute_list:
+{ 
+  $$ = 0;
+}
+|
+':' global_attribute_list
+{
+  $$ = $2;
+}
+;
+
+global_attribute_list:
+attribute_list
+;
+
+global_item:
+global_name maybe_global_attribute_list 
+{
+  // only differs in start_init?
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
+
+  tree attr = current_declspecs;
+  tree type = $2;
+  tree myattr = $2;
+
+#ifndef NEW_POINTER
+  cell_=get_identifier(add_underscore($1,1));
+#else
+  cell_=$1;
+#endif
+  if (myattr && TREE_CODE(myattr)==STRUCTURE_STUFF) {
+    tree size, decl, astruct, cell__; 
+  
+    current_declspecs=0;
+
+    cell__=get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    myattr = finish_structure (astruct, TREE_OPERAND(myattr, 0) , 0,0,0,0); 
+    size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(myattr))));
+    decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+#ifdef NEW_POINTER
+	 tree byte=build_int_2(8,0);
+	 TREE_TYPE (byte) = widest_integer_literal_type_node;
+	 byte = convert (integer_type_node, byte);
+	 tree newsize = parser_build_binary_op (MULT_EXPR, byte, fold(size));
+	 tree newint=copy_node(integer_type_node);
+	 newsize=fold(newsize);
+	 if (TREE_CODE(newsize)==NON_LVALUE_EXPR)
+		newsize=TREE_OPERAND(newsize, 0);
+	 TYPE_SIZE(newint)=newsize;
+	 TYPE_SIZE_UNIT(newint)=integer_type_node;
+	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
+	 //	 TREE_TYPE(cell_)=newint;
+	 current_declspecs=tree_cons(0, newint, 0);
+	 mysize=tree_cons(0, newint, 0);
+	 decl=0; //newint;
+#else
+    //type=char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto local_end;
+#endif
+    cell=decl;
+    cell=cell_;
+  } else {
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
+  }
+
+  init = find_init_attr(myattr);
+  if (init)
+	 init = TREE_OPERAND(init, 0);
+
+  int do_init = 0;
+  if (init)
+	 do_init=1;
+
+  cell_decl_p = start_decl (cell, mysize/*current_declspecs*/, do_init,
+                       chainon (NULL_TREE, all_prefix_attributes));
+  //printf("xxx %x\n",d);
+  start_init(cell_decl_p,NULL,1);
+  finish_init();
+  finish_decl (cell_decl_p, init, NULL_TREE);
+
+#ifndef NEW_POINTER
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+
+  start_init(cell_decl, NULL, 1);
+  finish_init();
+
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (cell_decl, init, NULL_TREE);
+#endif
+ global_end:
+  current_declspecs=attr;
+}
 ;
 
 external_declaration: K_EXTERNAL external_item_list ';' { $$ = 0; }
@@ -3106,6 +3245,7 @@ T_NAME
 
 local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a declspecs
   tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
 
   tree attr = current_declspecs;
   tree type = $2;
@@ -3140,13 +3280,16 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
 	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
 	 //	 TREE_TYPE(cell_)=newint;
 	 current_declspecs=tree_cons(0, newint, 0);
+	 mysize=tree_cons(0, newint, 0);
 	 decl=0; //newint;
-#endif
+#else
     //type=char_array_type_node;
     type = set_array_declarator_type (decl, cell_, 0);
     //TREE_TYPE(c)=char_type_node;
     //goto local_end;
+#endif
     cell=decl;
+    cell=cell_;
   } else {
     TREE_TYPE(cell_)=integer_type_node;
     cell=cell_;
@@ -3160,7 +3303,7 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
   if (init)
 	 do_init=1;
 
-  cell_decl_p = start_decl (cell, 0/*current_declspecs*/, do_init,
+  cell_decl_p = start_decl (cell, mysize/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   //printf("xxx %x\n",d);
   start_init(cell_decl_p,NULL,global_bindings_p());
@@ -5189,7 +5332,7 @@ make_macro_string(m,r)
   for(;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
   while (new) {
 	 tree par=iter;
-	 fprintf(stderr,"new %x\n",new);
+	 //printf("new %x\n",new);
 	 tree t;
 	 for(t=b;t;t=TREE_CHAIN(t)) {
 		char * l = TREE_STRING_POINTER(t);
@@ -5359,7 +5502,7 @@ set_cti(tree id, tree val) {
 #endif
   if (TREE_CODE(val)==IDENTIFIER_NODE) {
     // workaround to catch predefined literals
-    fprintf(stderr, "SETCTI %s\n",IDENTIFIER_POINTER(val));
+    //printf("SETCTI %s\n",IDENTIFIER_POINTER(val));
     char myline[255];
     memset (myline, 0, 255);
     sprintf(myline, "(1 * %s)",IDENTIFIER_POINTER(val));
