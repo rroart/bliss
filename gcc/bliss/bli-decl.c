@@ -6713,7 +6713,9 @@ finish_structure (t, fieldlist, access_formal, allocation_formal, structure_size
 
   TYPE_SIZE (t) = 0;
 
+#if 0
   decl_attributes (&t, attributes, (int) ATTR_FLAG_TYPE_IN_PLACE);
+#endif
 
   /* Install struct as DECL_CONTEXT of each field decl.
      Also process specified field sizes,m which is found in the DECL_INITIAL.
