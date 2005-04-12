@@ -75,6 +75,10 @@ int turn_off_addr_expr = 0;
 
  static tree last_expr = 0;
 
+ static tree myselect = 0;
+ static tree mylabel = 0;
+ static tree selif = 0;
+
  int yyrec = 0;
 
 extern tree  build_modify_expr (tree, enum tree_code, tree);
@@ -2227,7 +2231,9 @@ K_IF {
 }
 exp
 {
-  c_expand_start_cond (c_common_truthvalue_conversion ($3), 
+  tree t=$3;
+  t=parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0));
+  c_expand_start_cond (c_common_truthvalue_conversion (t), 
 		       compstmt_count,$<type_node_p>2);
 }
 K_THEN
@@ -2389,15 +2395,45 @@ expression
 select_expression:
 select_type select_index
 {
+  myselect = fold($2);
+  tree label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
+  tree decl=label;
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+  mylabel = decl;
+#if 0
+  // not yet
+  tree label_decl = decl;
+  tree node = build (LABELED_BLOCK_EXPR, NULL_TREE, label_decl, NULL_TREE);
+  TREE_SIDE_EFFECTS (node) = 1;
+  TREE_TYPE(node)=void_type_node;
+  LABELED_BLOCK_LABEL(node)=label_decl; // superfluous?
+  // not yet? TREE_OPERAND(node, 1)= cur_last; // temp storage
+  $<type_node_p>$=node;
+#endif
+#if 0
+  // not now
   $<type_node_p>$ = c_start_case ($2);
   c_in_case_stmt++;
+#endif
 }
 K_OF K_SET select_line_list K_TES
 {
+#if 0
+  // not now
   c_finish_case ();
   c_in_case_stmt--;
   $$=0; 
   //  $$=$<type_node_p>3;
+#endif
+  $$ = 0;
+#if 0
+  $$=$<type_node_p>3;
+  $$=c_expand_expr_stmt($$);
+#endif
+  // simplest right now?
+  C_DECLARED_LABEL_FLAG (mylabel) = 1;
+  add_decl_stmt (mylabel)
 }
 ;
 
@@ -2421,14 +2457,68 @@ select_line_list select_line
 }
 |
 select_line 
+|
+error { yyerrok; }
 ;
 
 select_line:
-'[' select_label_list ']' ':' select_action ';'
+'[' 
 {
+  $<type_node_p>$ = c_begin_if_stmt ();
+  TREE_TYPE ($<type_node_p>$) = integer_type_node;
+}
+select_label_list ']' ':'
+{
+  tree t;
+  tree cond = $3;
+  if (cond==0) {
+    t=build_int_2(1,0);
+    goto no_t;
+  }
+  int eq=TREE_CHAIN(cond)==0;
+  if (eq) {
+    t=parser_build_binary_op(EQ_EXPR,myselect,TREE_VALUE(cond));
+  } else {
+    tree t1=parser_build_binary_op(GE_EXPR,myselect,TREE_VALUE(cond));
+    tree t2=parser_build_binary_op(LE_EXPR,myselect,TREE_VALUE(TREE_CHAIN(cond)));
+    t=parser_build_binary_op(BIT_AND_EXPR, t1, t2); 
+  }
+  no_t:
+  c_expand_start_cond (c_common_truthvalue_conversion (t), 
+			 compstmt_count,$<type_node_p>2);
+
+#if 0
+  // not now
   //chainon ($2, build_stmt (EXPR_STMT, $5));
-  add_stmt (build_stmt (EXPR_STMT, $5));
+  add_stmt (build_stmt (EXPR_STMT, $<type_node_p>5));
   add_stmt (build_break_stmt ()); // selectone always
+#endif
+}
+select_action ';'
+{
+  tree if_stmt = $<type_node_p>2;
+  if ($7) /* $<type_node_p>$ =*/ c_expand_expr_stmt($7);
+
+  // only if one?
+  tree decl=mylabel;
+  DECL_CONTEXT (decl) = current_function_decl;
+  DECL_IGNORED_P (decl) = 1;
+  tree newdecl=build(LABEL_EXPR, NULL_TREE, decl, NULL_TREE);
+
+#if 0
+  // not yet
+  tree label_block_expr = newdecl;
+  tree t = build (EXIT_BLOCK_EXPR, NULL_TREE, label_block_expr, NULL_TREE);
+  TREE_TYPE(t)=void_type_node;
+  TREE_SIDE_EFFECTS (t) = 1;
+  add_stmt(t);
+#endif
+  add_stmt (build_stmt (GOTO_STMT, mylabel));
+
+  c_finish_then();
+  //THEN_CLAUSE (if_stmt) = $7;
+  $$=$<type_node_p>2;
+  //  $$=$6;
 }
 ;
 
@@ -2444,17 +2534,34 @@ select_label
 select_label:
 exp  
 {
+#if 0
   $$ = do_case ($1, 0);
+#endif
+  $$ = tree_cons (0, $1, 0);
 }
 |
 exp K_TO exp
 {
+#if 0
+  // can not be variable. for future?
   $$ = do_case ($1, $3);
+#endif
+  $$ = tree_cons (0, $1, 0);
+  chainon($$, tree_cons(0, $3, 0));
 }  
 |
 K_OTHERWISE
 {
+  {
+    // get error in select_line_list
+    yyrec=1;
+    // workaround to handle some accepted grammar contrary to specs
+    // [OTHERWISE:] TES;
+  } 
+#if 0
   $$ = do_case (0, 0);
+#endif
+  $$ = 0;
 }
 |
 K_ALWAYS
@@ -2533,10 +2640,13 @@ pre_tested_loop:
 k_while_or_until 
 { $<type_node_p>$ = c_begin_while_stmt(); }
 exp
-{ $3 = c_common_truthvalue_conversion ( $3 ); 
+{
+  tree t=$3;
+  t=parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0));
+  t = c_common_truthvalue_conversion ( t ); 
   if ($1)
-	 $3 = build_unary_op (TRUTH_NOT_EXPR, $3, 0);
- c_finish_while_stmt_cond (c_common_truthvalue_conversion ( $3 ),
+	 t = build_unary_op (TRUTH_NOT_EXPR, t, 0);
+ c_finish_while_stmt_cond (c_common_truthvalue_conversion ( t ),
 			   $<type_node_p>2);
  $<type_node_p>$ = add_stmt ($<type_node_p>2); }
  K_DO exp  {
@@ -2559,7 +2669,9 @@ K_DO
 }
 exp k_while_or_until
 {
-  c_expand_expr_stmt($3);
+  tree t=$3;
+  t=parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0));
+  c_expand_expr_stmt(t);
   $$ = $<type_node_p>2;
   RECHAIN_STMTS ($$, DO_BODY ($$));
 }
