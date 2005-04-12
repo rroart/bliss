@@ -2469,21 +2469,17 @@ select_line:
 }
 select_label_list ']' ':'
 {
-  tree t;
+  tree t = 0;
   tree cond = $3;
   if (cond==0) {
     t=build_int_2(1,0);
     goto no_t;
   }
-  int eq=TREE_CHAIN(cond)==0;
-  if (eq) {
-    t=parser_build_binary_op(EQ_EXPR,myselect,TREE_VALUE(cond));
-  } else {
-    tree t1=parser_build_binary_op(GE_EXPR,myselect,TREE_VALUE(cond));
-    tree t2=parser_build_binary_op(LE_EXPR,myselect,TREE_VALUE(TREE_CHAIN(cond)));
-    t=parser_build_binary_op(BIT_AND_EXPR, t1, t2); 
-  }
-  no_t:
+  t = TREE_VALUE(cond);
+  for (cond=TREE_CHAIN(cond);cond;cond=TREE_CHAIN(cond)) {
+    t = parser_build_binary_op(BIT_IOR_EXPR,t,TREE_VALUE(cond));
+  } 
+ no_t:
   c_expand_start_cond (c_common_truthvalue_conversion (t), 
 			 compstmt_count,$<type_node_p>2);
 
@@ -2537,7 +2533,17 @@ exp
 #if 0
   $$ = do_case ($1, 0);
 #endif
-  $$ = tree_cons (0, $1, 0);
+  tree e1 = $1;
+  if (TREE_CODE(e1)==IDENTIFIER_NODE) {
+    char *s=IDENTIFIER_POINTER(e1);
+    e1=build_int_2(s[1],0);
+  }
+  if (TREE_CODE(e1)==STRING_CST) {
+    char *s=TREE_STRING_POINTER(e1);
+    e1=build_int_2(s[1],0);
+  }
+  tree t = parser_build_binary_op(EQ_EXPR,myselect,e1);
+  $$ = tree_cons (0, t, 0);
 }
 |
 exp K_TO exp
@@ -2546,8 +2552,28 @@ exp K_TO exp
   // can not be variable. for future?
   $$ = do_case ($1, $3);
 #endif
-  $$ = tree_cons (0, $1, 0);
-  chainon($$, tree_cons(0, $3, 0));
+  tree e1 = $1;
+  if (TREE_CODE(e1)==IDENTIFIER_NODE) {
+    char *s=IDENTIFIER_POINTER(e1);
+    e1=build_int_2(s[1],0);
+  }
+  if (TREE_CODE(e1)==STRING_CST) {
+    char *s=TREE_STRING_POINTER(e1);
+    e1=build_int_2(s[1],0);
+  }
+  tree e2 = $3;
+  if (TREE_CODE(e2)==IDENTIFIER_NODE) {
+    char *s=IDENTIFIER_POINTER(e2);
+    e2=build_int_2(s[1],0);
+  }
+  if (TREE_CODE(e2)==STRING_CST) {
+    char *s=TREE_STRING_POINTER(e2);
+    e2=build_int_2(s[1],0);
+  }
+  tree t1=parser_build_binary_op(GE_EXPR,myselect,e1);
+  tree t2=parser_build_binary_op(LE_EXPR,myselect,e2);
+  tree t = parser_build_binary_op(BIT_AND_EXPR, t1, t2); 
+  $$ = tree_cons (0, t, 0);
 }  
 |
 K_OTHERWISE
