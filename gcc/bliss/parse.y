@@ -218,6 +218,8 @@ bli_common_parse_file(set_yydebug)
  void * find_macro(struct mymacro * s,char * name);
  char * make_macro_string(struct mymacro * m, tree r);
  tree find_init_attr(tree t);
+ tree find_structure_attr(tree);
+ tree find_tree_code(tree, int);
  char * my_strcat(const char *, const char *, int);
  char * my_strcat_gen(const char *, const char *, int);
 
