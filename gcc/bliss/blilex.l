@@ -41,6 +41,7 @@
 
   extern int yydebug;
   extern int yy2debug;
+  extern int quiet_flag;
 
   char * s;
 
@@ -326,7 +327,7 @@ hexdigit [0-9a-f]
     switch (last) {
 	 case P_ALLOCATION:
 		{
-		  printf("xxx %s\n",IDENTIFIER_POINTER((tree)mylast()));
+		  if (!quiet_flag) printf("xxx %s\n",IDENTIFIER_POINTER((tree)mylast()));
 		}
 		return P_SOFTERROR4;
 		break;
@@ -462,9 +463,9 @@ hexdigit [0-9a-f]
 		int my_yyleng=5+my_end-my_yytext;
 		char myline[255];
 		memset(myline, 0, 255);
-		printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
+		if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 		memcpy(myline,my_yytext,my_end-my_yytext);
-		printf("my2 %s\n",myline);
+		if (!quiet_flag) printf("my2 %s\n",myline);
 #if 0
 		myline+=3;
 		myline[strlen(myline)-5]=0;
@@ -474,7 +475,7 @@ hexdigit [0-9a-f]
 		int len=my_end-yytext+5;
 		yyless(len);
 		//yyless(my_yyleng);
-		printf("skipp %x %x %x\n",base_skip_mode,skip_mode,cond_stack_ptr);
+		if (!quiet_flag) printf("skipp %x %x %x\n",base_skip_mode,skip_mode,cond_stack_ptr);
 		if (skip_mode==0) {
 		  parse_this(myline);
 		  push_cond_stack(0);
@@ -494,10 +495,10 @@ hexdigit [0-9a-f]
   case P_THEN: { if_mode = 0; then_mode = 1;
   //printf("then nod %x\n" , yylval.type_node_p);
   tree f=fold(yylval.type_node_p);
-  printf("f %x %x\n" , f, mylast());
+  if (!quiet_flag) printf("f %x %x\n" , f, mylast());
   push_cond_stack(0);
   skip_mode=get_cond_stack()|integer_zerop(fold(mylast()));
-  printf("skip %x\n",skip_mode);
+  if (!quiet_flag) printf("skip %x\n",skip_mode);
   //yyless(yyleng);
   exit(42);
   se2=1;
@@ -542,7 +543,7 @@ hexdigit [0-9a-f]
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int my_yyleng=1+my_end-my_yytext;
 	 char myline[255];
-	 printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
+	 if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 	 memcpy(myline,my_yytext,my_end-my_yytext);
 	 myline[my_end-my_yytext]=0;
 	 //yyless(my_yyleng);
@@ -633,7 +634,7 @@ hexdigit [0-9a-f]
 		is32=0;
 	 *my_end=')';
 	 char myline[255];
-	 printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
+	 if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 	 memcpy(myline,my_yytext,my_end-my_yytext);
 	 myline[my_end-my_yytext]=0;
 	 //yyless(my_yyleng);
@@ -697,7 +698,7 @@ hexdigit [0-9a-f]
 	 memcpy(myline,par,par_end-par);
 
 	 parse_this(myline);
-	 printf("myretp %s\n",myline);
+	 if (!quiet_flag) printf("myretp %s\n",myline);
 
 	 myret[myretp++]=TREE_INT_CST_LOW(fold(mylast()));
 
@@ -708,7 +709,7 @@ hexdigit [0-9a-f]
 
 	 myret[myretp]=39;
 	 char * s = strdup(myret);
-	 printf("myret %s\n",s);
+	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
 	 retval = T_STRING;
 
@@ -746,7 +747,7 @@ hexdigit [0-9a-f]
 	 memcpy(myline,par,par_end-par);
 
 	 parse_this(myline);
-	 printf("myretp %s\n",myline);
+	 if (!quiet_flag) printf("myretp %s\n",myline);
 
 	 myret+=strlen(IDENTIFIER_POINTER(fold(mylast())))-2;
 
@@ -758,7 +759,7 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 sprintf(myline,"%d",myret);
 	 char * s = strdup(myline);
-	 printf("myret %s\n",s);
+	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
 	 retval = T_DIGITS;
 
@@ -796,7 +797,7 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 printf("myretp %s\n",myline);
+	 if (!quiet_flag) printf("myretp %s\n",myline);
 	 parse_this(myline);
 
 	 tmp=0;
@@ -812,7 +813,7 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 sprintf(myline,"%d",myret);
 	 char * s = strdup(myline);
-	 printf("myret %s\n",s);
+	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
 	 retval = T_DIGITS;
 
@@ -881,7 +882,7 @@ hexdigit [0-9a-f]
 
 	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
 	 yy_switch_to_buffer(yy_scan_string(myline2));
-	 printf("myexp %s\n",myline2);
+	 if (!quiet_flag) printf("myexp %s\n",myline2);
 
 	 goto myout;
 	 break;
@@ -934,13 +935,13 @@ hexdigit [0-9a-f]
 	 memcpy(myline,par,par_end-par);
 
 	 strip_par(myline);
-	 printf("myretsp %s\n",myline);
+	 if (!quiet_flag) printf("myretsp %s\n",myline);
 	 tree t=parse_this(myline);
 	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
 	 char * c = &v;
 	 int i;
-	 printf("tc %x\n",TREE_CODE(t));
+	 if (!quiet_flag) printf("tc %x\n",TREE_CODE(t));
 
 	 if (TREE_CODE(t)!=INTEGER_CST)
 		goto no_int;
@@ -961,7 +962,7 @@ hexdigit [0-9a-f]
 	 }
 
 	 if (TREE_LANG_FLAG_2(t)) {
-		printf("ascid stuff not yet implemented\n");
+		if (!quiet_flag) printf("ascid stuff not yet implemented\n");
 	 }
 
 	 sprintf(&myret[myretp],"%d",v);
@@ -999,7 +1000,7 @@ hexdigit [0-9a-f]
 		myret[myretp]=39;
 
 	 char * s = strdup(myret);
-	 printf("myrets %s\n",s);
+	 if (!quiet_flag) printf("myrets %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
 
 	 void (*fn)()=0;
@@ -1102,14 +1103,14 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 printf("myretsp %s\n",myline);
+	 if (!quiet_flag) printf("myretsp %s\n",myline);
 	 parse_this(myline);
 
 	 tree t=fold(mylast());
 	 int v=TREE_INT_CST_LOW(t);
 	 char * c = &v;
 	 int i;
-	 printf("tc %x\n",TREE_CODE(t));
+	 if (!quiet_flag) printf("tc %x\n",TREE_CODE(t));
 
 	 if (TREE_CODE(t)!=INTEGER_CST)
 		goto ex_no_int;
@@ -1130,7 +1131,7 @@ hexdigit [0-9a-f]
 	 }
 
 	 if (TREE_LANG_FLAG_2(t)) {
-		printf("ascid stuff not yet implemented\n");
+		if (!quiet_flag) printf("ascid stuff not yet implemented\n");
 	 }
 
 	 sprintf(&myret[myretp],"%d",v);
@@ -1169,7 +1170,7 @@ hexdigit [0-9a-f]
 	 }
 
 	 char * s = strdup(myret);
-	 printf("myretexs %s\n",s);
+	 if (!quiet_flag) printf("myretexs %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
 
 	 retval=T_STRING;
@@ -1247,7 +1248,7 @@ hexdigit [0-9a-f]
 	 memcpy(myline,my_yytext,my_end-my_yytext);
 	 char * s = strdup(myline);
 #endif
-	 printf("myrem %s\n",my_yytext);
+	 if (!quiet_flag) printf("myrem %s\n",my_yytext);
 #if 0
 	 yylval.type_node_p=copy_node(get_identifier(s));
 	 retval = T_DIGITS;
@@ -1316,7 +1317,7 @@ hexdigit [0-9a-f]
 		tree is_there = maybe_get_identifier(myline2);
 		if (is_there==0)
 		  find_macro(0,myline2);
-		printf("decl %s %x\n",myline2,is_there);
+		if (!quiet_flag) printf("decl %s %x\n",myline2,is_there);
 
 		myline[1]=0;
 		if (is_there)
@@ -1363,7 +1364,7 @@ hexdigit [0-9a-f]
 		memcpy(myline,par,par_end-par);
 
 		strip_par(myline);
-		printf("null parse this %s\n",myline);
+		if (!quiet_flag) printf("null parse this %s\n",myline);
 		tree t=parse_this(myline);
 		if (t) // check
 		  myret++;
@@ -1385,7 +1386,7 @@ hexdigit [0-9a-f]
 		myline[1]=0;
 
 		char * s = strdup(myline);
-		printf("null %s\n",s);
+		if (!quiet_flag) printf("null %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
 		retval=T_DIGITS;
@@ -1434,11 +1435,11 @@ hexdigit [0-9a-f]
 
 		char myline[255];
 
-		printf("IDENT %s %s\n",myline1,myline2);
+		if (!quiet_flag) printf("IDENT %s %s\n",myline1,myline2);
 #if 0
 		tree t1=parse_this(myline1);
 		tree t2=parse_this(myline2);
-		printf("IDENT %x %x\n",t1,t2);
+		if (!quiet_flag) printf("IDENT %x %x\n",t1,t2);
 #endif
 		if (0==strcmp(myline1,myline2))
 		  myline[0]='1';
@@ -1447,7 +1448,7 @@ hexdigit [0-9a-f]
 		myline[1]=0;
 
 		char * s = strdup(myline);
-		printf("ident %s\n",s);
+		if (!quiet_flag) printf("ident %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
 		retval=T_DIGITS;
@@ -1506,7 +1507,7 @@ hexdigit [0-9a-f]
 		myline[1]=0;
 
 		char * s = strdup(myline);
-		printf("isstr %s\n",s);
+		if (!quiet_flag) printf("isstr %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
 		retval=T_DIGITS;
@@ -1607,7 +1608,7 @@ hexdigit [0-9a-f]
 		memset(myline,0,255);
 		sprintf(myline,"%d",len);
 		char * s = strdup(myline);
-		printf("len %s\n",s);
+		if (!quiet_flag) printf("len %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
 		retval=T_DIGITS;
@@ -1650,7 +1651,7 @@ hexdigit [0-9a-f]
 			 new[len-2]=0;
 			 v=atoi(new);
 		  } else {
-			 printf("not yet implemnted number\n");
+			 if (!quiet_flag) printf("not yet implemnted number\n");
 		  }
 		} else {
 		number_int:
@@ -1661,7 +1662,7 @@ hexdigit [0-9a-f]
 		memset(myline,0,255);
 		sprintf(myline,"%d",v);
 		char * s = strdup(myline);
-		printf("number %s\n",s);
+		if (!quiet_flag) printf("number %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
 
 		retval=T_DIGITS;
@@ -1699,7 +1700,7 @@ hexdigit [0-9a-f]
 		if (do_skip)
 		  goto do_break;
 
-		printf("exitm\n");
+		if (!quiet_flag) printf("exitm\n");
 
 		goto eof;
 		break;
@@ -1715,7 +1716,7 @@ hexdigit [0-9a-f]
   case P_NBITSU:
   case P_QUOTENAME:
 	 {
-		printf("key %x not yet implemented\n", key);
+		if (!quiet_flag) printf("key %x not yet implemented\n", key);
 	 }
   default: {
 #if 0
@@ -2230,7 +2231,7 @@ struct dict keywords[] =
   };
 
 int keyw_len(int key) {
-  printf(" KEY %x %s\n",strlen(keywords[key-P_ALLOCATION].d_text),(keywords[key-P_ALLOCATION].d_text));
+  if (!quiet_flag) printf(" KEY %x %s\n",strlen(keywords[key-P_ALLOCATION].d_text),(keywords[key-P_ALLOCATION].d_text));
   return strlen(keywords[key-P_ALLOCATION].d_text);
 }
 
@@ -2442,7 +2443,7 @@ int something_that_uses_yyunput(void) {
 }
 
 tree parse_this (char * this) {
-  printf("parse this %s\n",this);
+  if (!quiet_flag) printf("parse this %s\n",this);
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
@@ -2471,7 +2472,7 @@ tree parse_this_range (char * this, char * end) {
     char myline[255];
     memset(myline, 0, 255);
     memcpy(myline,this,end-this);
-    printf("parse_this_range %s\n",myline);
+    if (!quiet_flag) printf("parse_this_range %s\n",myline);
   }
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
