@@ -1972,8 +1972,12 @@ hexdigit [0-9a-f]
   }
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   if (macrocomma=='=') {
-	 TREE_TYPE(macroact)=build_string(strlen(yytext),yytext);
-	 goto out_macro_comma;
+    if (TREE_TYPE(tree_last(macroact))==0)
+      TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
+    else
+      add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext));
+    add_tree_string(TREE_TYPE(tree_last(macroact)), " ", 1);
+    goto out_macro_comma;
   }
   if (macrocomma==',' && macro_stack_ptr==1) {
 #if 0
@@ -1992,7 +1996,8 @@ hexdigit [0-9a-f]
 	 add_tree_string(t, yytext, strlen(yytext));
   }
  out_macro_comma:
-  macrocomma=1;
+  {}
+  //  macrocomma=1;
 }
 
 <macro>\n            input_line++;
