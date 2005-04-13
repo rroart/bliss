@@ -2825,7 +2825,7 @@ declaration: data_declaration
 attribute_list:
 attribute_list attribute
 { 
-  $$ = tree_cons (NULL_TREE, $1, $2); 
+  $$ = tree_cons (NULL_TREE, $2, $1); 
 }
 |
 attribute 
@@ -2834,8 +2834,8 @@ attribute
 }
 ;
 
-attribute:  allocation_unit 
-| extension_attribute 
+attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+| extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | structure_attribute  
 | field_attribute 
 | alignment_attribute  
@@ -3241,7 +3241,7 @@ own_attribute
 
 own_attribute:
 allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
-|extension_attribute 
+|extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |structure_attribute 
 |field_attribute 
 |alignment_attribute 
@@ -5605,9 +5605,7 @@ make_macro_string(m,r)
       }
     }
   subst_out:
-    if (s==0) s=xstrdup(l);
-    else
-      s=my_strcat(s,l,1);
+    s=my_strcat_gen(s,l,1);
   }
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
@@ -6029,6 +6027,7 @@ my_strcat_gen(str1, str2, space)
 	 str[len1]=32;
   memcpy(str+len1+space,str2,len2);
   str[len1+len2+space]=0;
+  free(str1);
   return str;
 }
 
