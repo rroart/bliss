@@ -40,6 +40,7 @@ int turn_off_addr_expr = 0;
 #include <stdlib.h>
 #include <string.h>
 
+ extern int quiet_flag;
  extern int undefmode;
  extern int tnamemode;
  extern int macromode;
@@ -4860,7 +4861,7 @@ compile_time_item_list: compile_time_item_list ',' compile_time_item
 compile_time_item:
 compile_time_name '=' compile_time_value
 {
-  printf("k_com %s %d %x\n",IDENTIFIER_POINTER($1),input_location.line,$3);
+  if (!quiet_flag) printf("k_com %s %d %x\n",IDENTIFIER_POINTER($1),input_location.line,$3);
   $$ = set_cti($1, $3);
 }
 ;
@@ -5661,8 +5662,8 @@ make_macro_string(m,r)
 		s = my_strcat(s,",",0); // remember to fix punctuation later
 	 cond_iter_macro_count++;
   } // end while
-  fprintf(stderr, "ITER %x\n",s);
-  fprintf(stderr, "ITER %s\n",s);
+  if (!quiet_flag) printf("ITER %x\n",s);
+  if (!quiet_flag) printf("ITER %s\n",s);
   cond_iter_macro_count=0; // reset it here because cannot in cond itself?
   return s;
  cond_macro:
@@ -5738,7 +5739,7 @@ add_underscore(t,n)
      tree t;
      int n;
 {
-    char * ss=xmalloc(IDENTIFIER_LENGTH(t)+n);
+    char * ss=xmalloc(IDENTIFIER_LENGTH(t)+n+1);
     strcpy(ss,IDENTIFIER_POINTER(t));
     ss[IDENTIFIER_LENGTH(t)+n]=0;
     while (n--)
