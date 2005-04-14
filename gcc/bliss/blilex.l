@@ -1726,6 +1726,19 @@ hexdigit [0-9a-f]
 	 }
 	 break;
 
+  case P_X:
+  case P_O:
+  case P_B:
+    {
+      yyless(key_len);
+      
+      if (do_skip)
+	goto do_break;
+
+      break;
+    }
+    break;
+
   case P_LTCE:
   case P_VARIANT:
   case P_UNQUOTE:
