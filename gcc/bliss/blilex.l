@@ -50,6 +50,10 @@
   unsigned int estimated_token_count=0;
 
   int cond_iter_macro_count = 0;
+  int pname_string=0;
+  char pname_out[256];
+  char * use_yytext;
+  void pname_macro(char *);
 
   char *p_title;
   int undefmode=0;
@@ -557,6 +561,7 @@ hexdigit [0-9a-f]
 	 myline[1]=0;
 	 myline[0]='4';
 	 yylval.type_node_p=copy_node(get_identifier(myline));
+	 pname_macro(myline);
 	 retval=T_DIGITS;
 	 goto out_data;
 #if 0
@@ -648,6 +653,7 @@ hexdigit [0-9a-f]
 		myline[0]='0';
 	 //printf("is32 %x\n",is32);
 	 yylval.type_node_p=copy_node(get_identifier(myline));
+	 pname_macro(myline);
 	 retval=T_DIGITS;
 	 goto out_data;
 #if 0
@@ -711,6 +717,7 @@ hexdigit [0-9a-f]
 	 char * s = strdup(myret);
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
+	 pname_macro(s);
 	 retval = T_STRING;
 
 	 goto out_data;
@@ -761,6 +768,7 @@ hexdigit [0-9a-f]
 	 char * s = strdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
+	 pname_macro(s);
 	 retval = T_DIGITS;
 
 	 goto out_data;
@@ -815,6 +823,7 @@ hexdigit [0-9a-f]
 	 char * s = strdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
+	 pname_macro(s);
 	 retval = T_DIGITS;
 
 	 goto out_data;
@@ -1032,10 +1041,12 @@ hexdigit [0-9a-f]
 		str="ERRORMACRO";
 		break;
 	 case P_NAME:
+	   pname_macro(s);
 		retval=T_NAME;
 		goto out_data;
 		break;
 	 case P_STRING:
+	   pname_macro(s);
 		retval=T_STRING;
 		goto out_data;
 		break;
@@ -1172,6 +1183,7 @@ hexdigit [0-9a-f]
 	 char * s = strdup(myret);
 	 if (!quiet_flag) printf("myretexs %s\n",s);
 	 yylval.type_node_p=copy_node(get_identifier(s));
+	 pname_macro(s);
 
 	 retval=T_STRING;
 	 goto out_data;
@@ -1325,6 +1337,7 @@ hexdigit [0-9a-f]
 		else
 		  myline[0]='0';
 		yylval.type_node_p=copy_node(get_identifier(myline));
+		pname_macro(myline);
 		retval=T_DIGITS;
 		goto out_data;
 
@@ -1388,6 +1401,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("null %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		retval=T_DIGITS;
 		goto out_data;
@@ -1450,6 +1464,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("ident %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		retval=T_DIGITS;
 		goto out_data;
@@ -1509,6 +1524,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("isstr %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		retval=T_DIGITS;
 		goto out_data;
@@ -1610,6 +1626,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("len %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		retval=T_DIGITS;
 		goto out_data;
@@ -1664,6 +1681,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("number %s\n",s);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		retval=T_DIGITS;
 		goto out_data;
@@ -1683,6 +1701,7 @@ hexdigit [0-9a-f]
 		sprintf(myline,"%d",cond_iter_macro_count);
 		char * s = strdup(myline);
 		yylval.type_node_p=copy_node(get_identifier(s));
+		pname_macro(s);
 
 		cond_iter_macro_count=0; // reset it here because cannot in cond itself?
 		retval=T_DIGITS;
@@ -1745,6 +1764,11 @@ hexdigit [0-9a-f]
 
  out_data:
   if (macromode) { return LEXEME; }
+  if (pname_string) {
+    pname_string=0;
+    use_yytext=pname_out;
+    goto pname_back;
+  }
   return retval;
 
  less_and_break:
@@ -1754,6 +1778,8 @@ hexdigit [0-9a-f]
 
  myout:
   {}
+  if (pname_string)
+    pname_string=0;
 }
 
 "%"				{
@@ -1834,6 +1860,7 @@ hexdigit [0-9a-f]
     yyless(0);
     goto ifall;
   }
+  pname_string=1;
   goto p_name;
 }
 
@@ -1962,12 +1989,14 @@ hexdigit [0-9a-f]
 
 <macro>{name}|{string}|{digit}+				{
  m_name:
-  downcase (yytext);
+  use_yytext=yytext;
+ pname_back:
+  downcase (use_yytext);
   if (macrostart==0) {
     yyless(0);
     goto ifall;
   }
-  struct mymacro * m=(void*)find_macro(0,yytext);
+  struct mymacro * m=(void*)find_macro(0,use_yytext);
   if (m) {
 #if 0
 	 // not  yet?
@@ -1989,27 +2018,27 @@ hexdigit [0-9a-f]
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
   if (macrocomma=='=') {
     if (TREE_TYPE(tree_last(macroact))==0)
-      TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
+      TREE_TYPE(tree_last(macroact))=build_string(strlen(use_yytext),use_yytext);
     else
-      add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext));
+      add_tree_string(TREE_TYPE(tree_last(macroact)), use_yytext, strlen(use_yytext));
     add_tree_string(TREE_TYPE(tree_last(macroact)), " ", 1);
     goto out_macro_comma;
   }
   if (macrocomma==',' && macro_stack_ptr==1) {
 #if 0
 	 // don't need this anymore?
-	 macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+	 macroact=chainon(macroact,build_string(strlen(use_yytext),use_yytext));
 #else
 	 tree t = tree_last(macroact);
-	 add_tree_string(t, yytext, strlen(yytext));
+	 add_tree_string(t, use_yytext, strlen(use_yytext));
 #endif
   } else {
 	 if (macroact==0) {
-		macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+		macroact=chainon(macroact,build_string(strlen(use_yytext),use_yytext));
 		goto out_macro_comma;
 	 }
 	 tree t = tree_last(macroact);
-	 add_tree_string(t, yytext, strlen(yytext));
+	 add_tree_string(t, use_yytext, strlen(use_yytext));
 	 add_tree_string(t, " ", 1);
   }
  out_macro_comma:
@@ -2664,4 +2693,19 @@ strip_par (s)
 	 end--;
   if (s[start]=='(' && s[end]==')')
 	 s[start]=s[end]=' ';
+}
+
+void
+pname_macro(src)
+     char * src;
+{
+  if (pname_string==0)
+    return;
+  int len=strlen(src);
+  if (len>250) {
+    printf("LEN %x %s\n",len,src);
+    exit(84);
+  }
+  memcpy(pname_out,src,len);
+  pname_out[len]=0;
 }
