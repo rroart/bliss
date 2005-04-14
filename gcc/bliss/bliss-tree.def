@@ -7,4 +7,5 @@ DEFTREECODE (INIT_ATTR, "init_attr", 't', 1)
 DEFTREECODE (FIELD_SELECTOR, "field_selector", 't', 3)
 DEFTREECODE (KEYWORD_PAIR, "keyword_pair", 't', 2)
 DEFTREECODE (PRESET_ATTR, "preset_attr", 't', 1)
+DEFTREECODE (MACRO_DEF, "macro_def", 't', 4)
 

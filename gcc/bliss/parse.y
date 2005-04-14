@@ -36,6 +36,8 @@ int yydebug=0;
 #endif
 int turn_off_addr_expr = 0;
 
+#define NEW_MACRO
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -127,6 +129,10 @@ struct mymacro {
 
  struct mymacro * macros = 0;
  
+#ifdef NEW_MACRO
+ struct mymacro amacro;
+#endif
+
  enum ps { p_none, p_ascii, p_asciz, p_ascic, p_ascid, p_rad50_11, p_rad50_10, p_sixbit, p_p };
 
 #define DSC$K_DTYPE_T 14
@@ -5533,6 +5539,11 @@ parm_first_to_last(mytree)
 
 void
 add_macro(char * name, int type, tree param, tree param2, tree body) {
+#ifdef NEW_MACRO
+  tree i = get_identifier(name);
+  tree t = build_nt(MACRO_DEF, type, param, param2, body);
+  pushtag(i, t);
+#else
   struct mymacro * t=xmalloc(sizeof(*t));
   struct mymacro **s=&macros;
   t->next=macros;
@@ -5542,16 +5553,37 @@ add_macro(char * name, int type, tree param, tree param2, tree body) {
   t->param2=param2;
   t->body=body;
   macros=t;
+#endif
 }
 
 void *
 find_macro(struct mymacro * s,char * name) {
+#ifdef NEW_MACRO
+  tree id=get_identifier(name);
+
+  tree tag = IDENTIFIER_TAG_VALUE (id);
+
+  if (tag==0)
+    return 0;
+
+  if (tag==0 || TREE_CODE (tag) != MACRO_DEF)
+    return 0;
+
+  tree t = tag;
+  struct mymacro * m=xmalloc(sizeof(struct mymacro));
+  m->type=TREE_OPERAND(t,0);
+  m->param=TREE_OPERAND(t,1);
+  m->param2=TREE_OPERAND(t,2);
+  m->body=TREE_OPERAND(t,3);
+  return m;
+#else
   struct mymacro * t=s;
   t=macros;
   // funny bug, should not be t->name == 0, funny thing with next
   while (t && t->name && strcmp(t->name,name)) t=t->next;
   if (t==0 || t->name==0) return 0;
   return t;
+#endif
 }
 
 char *
