@@ -25,7 +25,8 @@ leave . with ..
 get a working if_then with value 
 
 check if block_value implementation is usable?
+not much. might give double code.
 
-fix up the grammer with regard to shift/reduce reduce/reduce
+fix up the grammar with regard to shift/reduce reduce/reduce
 
 handle better the diffs between identifier and string

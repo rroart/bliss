@@ -229,6 +229,7 @@ bli_common_parse_file(set_yydebug)
  tree find_tree_code(tree, int);
  char * my_strcat(const char *, const char *, int);
  char * my_strcat_gen(const char *, const char *, int);
+ tree temp_value(tree);
 
 %}
 
@@ -2250,6 +2251,7 @@ exp
 {
   tree if_stmt = $<type_node_p>2;
   if ($6) /* $<type_node_p>$ =*/ c_expand_expr_stmt($6);
+  //temp_value(fold($6));
   c_finish_then();
   //THEN_CLAUSE (if_stmt) = $6;
   $$=$<type_node_p>2;
@@ -2269,6 +2271,7 @@ exp
   tree nop = build_int_2(0,0);
 
   if ($4) $4 /*$<type_node_p>$*/ = c_expand_expr_stmt($4);
+  //temp_value(fold($4));
   c_finish_else();
   c_expand_end_cond();
 
@@ -6075,4 +6078,33 @@ restore_last_tree(t)
 	  tree t;
 {
   last_tree = t;
+}
+
+tree
+temp_value(d1)
+     tree d1;
+{
+  tree dd;
+  tree type = integer_type_node;
+
+  // next something based on cp build_local_temp
+  tree slot = build_decl (VAR_DECL, NULL_TREE, type);
+  DECL_ARTIFICIAL (slot) = 1;
+  DECL_CONTEXT (slot) = current_function_decl;
+  layout_decl (slot, 0);
+
+  tree decl = slot;
+  tree value = d1;
+  // next something based on cp build_target_expr
+
+  if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
+  //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
+  tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value,
+						0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+  TREE_SIDE_EFFECTS (t) = 1;
+  dd = copy_node(t); //t;
+
+  c_expand_expr_stmt(t);
+  TREE_TYPE(dd)=integer_type_node;
+  return dd;
 }
