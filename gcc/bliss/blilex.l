@@ -1739,11 +1739,40 @@ hexdigit [0-9a-f]
     }
     break;
 
+  case P_SWITCHES:
+    {
+      // not really implemented
+      my_yytext=strchr(my_yytext,'(');
+      char * my_end=strchr(my_yytext, '\n');
+      my_end=my_strstrendbal(my_yytext, 0, 0, 1);
+
+      while (*my_end!=')')
+	my_end--;
+
+      int len=my_end-yytext+1;
+      yyless(len);
+      
+      if (do_skip)
+	goto do_break;
+
+      char myline[255];
+      myline[0]='0';
+      myline[1]=0;
+
+      char * s = strdup(myline);
+      yylval.type_node_p=copy_node(get_identifier(s));
+      pname_macro(s);
+
+      retval=T_DIGITS;
+      goto out_data;
+      break;
+    }
+    break;
+  
   case P_LTCE:
   case P_VARIANT:
   case P_UNQUOTE:
   case P_SIZE:
-  case P_SWITCHES:
   case P_NBITS:
   case P_NBITSU:
   case P_QUOTENAME:

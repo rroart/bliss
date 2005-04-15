@@ -536,6 +536,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> maybe_global_attribute_list global_attribute_list
 %type <type_node_p> maybe_external_attribute_list external_attribute_list
 %type <type_node_p> external_attribute external_name
+%type <type_node_p> switch_item_list switch_item on_off_switch_item 
+%type <type_node_p> special_switch_item
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -679,13 +681,13 @@ CODE		/* default */
 | ERRS			/* default */
 | NOERRS
 | U_OPTIMIZE		/* default */
-| NOOPTIMIZE
-| UNAMES
-| NOUNAMES		/* default */
+| U_NOOPTIMIZE
+| U_UNAMES
+| U_NOUNAMES		/* default */
 | SAFE			/* default */
 | NOSAFE
 | U_ZIP
-| NOZIP			/* default */
+| U_NOZIP			/* default */
 ;
 
 special_switch:
@@ -4327,9 +4329,42 @@ library_declaration: K_LIBRARY T_STRING ';'
 ;
 
 psect_declaration: K_PSECT psect_item_list ';' { $$ = 0; }
- ;
-switches_declaration: K_SWITCHES { $$ = 0; }
- ;
+;
+
+switches_declaration:
+K_SWITCHES
+{
+  undefmode=1;
+}
+switch_item_list ';'
+{
+  undefmode=0;
+  $$ = 0;
+}
+;
+
+switch_item_list:
+switch_item_list ',' switch_item
+|
+switch_item
+;
+
+switch_item:
+on_off_switch_item
+|
+special_switch_item
+;
+
+special_switch_item:
+common_switch
+{
+  // temp
+}
+;
+
+on_off_switch_item:
+onoffmodes
+;
 
 label_name_list:
 label_name_list ',' T_NAME
@@ -4824,7 +4859,15 @@ psect_attribute_list: psect_attribute_list ',' psect_attribute
 ;
 
 psect_item:
-storage_class '=' T_NAME '(' psect_attribute_list ')'  { $$ = $3; }
+storage_class '=' T_NAME
+{ 
+  undefmode=1;
+}
+'(' psect_attribute_list ')'  
+{ 
+  undefmode=0;
+  $$ = $3;
+}
 |storage_class '=' T_NAME { $$ = $3; }
 ;
 
