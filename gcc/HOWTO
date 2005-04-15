@@ -1,4 +1,6 @@
 COMPILE/INSTALL/RUN:
+you might need flex 2.5.4 (have had problems with 2.5.31)
+
 unpack a gcc 3.4.3 distribution
 
 put the bliss directories in gcc (alongside cp ada etc)
@@ -198,6 +200,10 @@ loops needs it in case there is no block.
 TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
+0.010
+More proper macros
+Lots of other stuff
+
 0.005
 Compiletime
 Lexicals
