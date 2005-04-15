@@ -11,7 +11,12 @@ c=%ASCIC 'hi';
 i=%ASCII 'hi';
 z=%ASCIZ 'hi';
 
+%if $cpu_le
+%then
+m=.c-%X'696802';
+%else
 m=.c-%X'2686900';
+%fi
 
 .m
 end;
