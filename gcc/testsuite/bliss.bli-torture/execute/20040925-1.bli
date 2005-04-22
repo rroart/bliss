@@ -12,7 +12,12 @@ v=%ASCID 'qwerty';
 
 m=.d;
 
+%if $cpu_le %then
+m=..d;
+.m<24,8>-1
+%else
 ..d-1
+%fi
 end;
 
 end
