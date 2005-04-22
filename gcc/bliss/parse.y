@@ -1165,6 +1165,9 @@ string_literal:  string_type T_STRING2 {
 	 TREE_TYPE (first) = widest_integer_literal_type_node;
 	 first = convert (long_long_integer_type_node, first);
 
+	 TREE_TYPE (addr) = widest_integer_literal_type_node;
+	 addr = convert (long_long_integer_type_node, addr);
+
 	 shift = build_int_2(32, 0);
 	 TREE_TYPE (shift) = widest_integer_literal_type_node;
 	 shift = convert (integer_type_node, shift);
