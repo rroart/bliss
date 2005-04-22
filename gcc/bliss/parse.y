@@ -3022,7 +3022,7 @@ allocation_unit
 |extension_attribute 
 ;
 
-field_attribute: K_FIELD field_stuff_list { $$ = 0; }
+field_attribute: K_FIELD '(' field_stuff_list ')' { $$ = 0; }
 ;
 
 field_stuff_list: field_stuff_list ','  field_name 
