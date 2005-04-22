@@ -1567,6 +1567,7 @@ maybe_block_value: { $$=build_int_2(0,0); }
   $$=$1; 
 #endif
 
+  goto no_cfun_block_value;
   if (cfun==0)
 	 goto no_cfun_block_value;
 
