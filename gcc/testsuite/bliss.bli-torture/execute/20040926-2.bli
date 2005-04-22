@@ -12,7 +12,12 @@ a=17;
 a<4,4>=10;
 a<24,2>=3;
 
+%if $cpu_le
+%then
+if .a eql 50331809 then (l=0);
+%else
 if .a eql 167772369 then (l=0);
+%fi
 
 .l
 end;
