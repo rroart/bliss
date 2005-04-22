@@ -2168,12 +2168,22 @@ op_exp12:  op_exp11 /*'='*/ '@' op_exp12
 executable_function:
 executable_function_name '('  actual_parameter_list  ')'
 {
+  // check redo
+  if ($1==P_REF)
+    goto do_pref;
   // copy from routine call?
   void * ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   ref = build_external_ref ($1, 1);
   $$ = build_function_call (ref, $3); 
+  goto out_exec_func;
+
+ do_pref:
+  // not quite according to 5.2.2.3
+  $$ = build_unary_op(ADDR_EXPR, TREE_VALUE($3), 0);
+
+ out_exec_func:
 }
 |executable_function_name '(' ')' 
 {
@@ -2218,8 +2228,11 @@ P_REMAINING { $$=0; }
 
 actual_parameter: expression 
 ;
-standard_function_name: T_NAME 
+
+standard_function_name: /*T_NAME also min max */
+P_REF
 ;
+
 character_handling_function_name: T_NAME 
 ;
 machine_specific_function_name: T_NAME 
@@ -2856,7 +2869,7 @@ attribute
 attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | structure_attribute  
-| field_attribute 
+| field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | alignment_attribute  
 | initial_attribute 
 | preset_attribute 
@@ -3019,7 +3032,7 @@ allocation_unit
   if (i)
     $$=build_int_2(i,0);
 }
-|extension_attribute 
+|extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 ;
 
 field_attribute: K_FIELD '(' field_stuff_list ')' { $$ = 0; }
@@ -3262,7 +3275,7 @@ own_attribute:
 allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |structure_attribute 
-|field_attribute 
+|field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 |alignment_attribute 
 |initial_attribute 
 |preset_attribute 
@@ -3402,9 +3415,9 @@ maybe_external_attribute_list:
 ;
 
 external_attribute_list:
-external_attribute_list ',' external_attribute
+external_attribute_list external_attribute
 { 
-  $$= tree_cons (NULL_TREE, $3, $1);
+  $$= tree_cons (NULL_TREE, $2, $1);
 }
 |
 external_attribute 
@@ -4662,7 +4675,7 @@ bind_data_attribute:
 allocation_unit 
 |extension_attribute 
 |structure_attribute 
-|field_attribute 
+|field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 |volatile_attribute 
 |weak_attribute 
 ;
