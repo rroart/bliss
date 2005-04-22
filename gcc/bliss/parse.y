@@ -1144,6 +1144,7 @@ string_literal:  string_type T_STRING2 {
 	 tree first;
 	 tree high;
 	 tree shift;
+	 int cpu_le=check_little_endian();
 
 	 tree string = build_string(len, str);
 	 TREE_TYPE(string) = /*string*/char_array_type_node; // or char_array?
@@ -1168,9 +1169,12 @@ string_literal:  string_type T_STRING2 {
 	 TREE_TYPE (shift) = widest_integer_literal_type_node;
 	 shift = convert (integer_type_node, shift);
 
-	 high = parser_build_binary_op (LSHIFT_EXPR, first, shift);
+	 if (cpu_le)
+	   addr = parser_build_binary_op (LSHIFT_EXPR, addr, shift);
+	 else
+	   first = parser_build_binary_op (LSHIFT_EXPR, first, shift);
 
-	 tree longlong = parser_build_binary_op (BIT_IOR_EXPR, addr, high);
+	 tree longlong = parser_build_binary_op (BIT_IOR_EXPR, first, addr);
 
 	 $$ = longlong;
 	 $$ = build_unary_op (ADDR_EXPR, longlong, 0);
@@ -5958,7 +5962,7 @@ void add_builtin(void) {
   parse_this(bliss_builtin_struct_4);
   parse_this(bliss_builtin_struct_5);
 
-  if (check_little_endian) // had to do some of my own extensions
+  if (check_little_endian()) // had to do some of my own extensions
     parse_this("compiletime $cpu_le = 1;");
   else
     parse_this("compiletime $cpu_le = 0;");
