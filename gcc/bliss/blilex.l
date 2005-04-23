@@ -1921,7 +1921,10 @@ hexdigit [0-9a-f]
 	     goto out;
 	   }
 	   tree t = tree_last(macroact);
-	   add_tree_string(t, yytext, 1);
+	   if (macrocomma=='=')
+	     add_tree_string(TREE_TYPE(t), yytext, 1);
+	   else
+	     add_tree_string(t, yytext, 1);
 	 }
 	 goto out;
   }
@@ -1931,7 +1934,10 @@ hexdigit [0-9a-f]
 		goto end_out;
 	 if (macro_stack_ptr>1) {
 		tree t = tree_last(macroact);
-		add_tree_string(t, yytext, 1);
+		if (macrocomma=='=')
+		  add_tree_string(TREE_TYPE(t), yytext, 1);
+		else
+		  add_tree_string(t, yytext, 1);
 		pop_macro_stack();
 		goto out;
 	 }
@@ -1966,10 +1972,18 @@ hexdigit [0-9a-f]
 	 default:
 		if (macro_stack_ptr>1) {
 		  tree t = tree_last(macroact);
-		  add_tree_string(t, yytext, strlen(yytext));
+		  if (macrocomma=='=')
+		    add_tree_string(TREE_TYPE(t), yytext, strlen(yytext));
+		  else
+		    add_tree_string(t, yytext, strlen(yytext));
 		} else {
 		  if (*yytext==',')
-		    macroact=chainon(macroact,build_string(0,""));
+		    if (macroact==0) {
+		      macroact=chainon(macroact,build_string(0,""));
+		      macroact=chainon(macroact,build_string(strlen(yytext),yytext));
+		    } else {
+		      macroact=chainon(macroact,build_string(0,""));
+		    }
 		  else {
 		    if (macroact==0) {
 		      macroact=chainon(macroact,build_string(strlen(yytext),yytext));
@@ -2024,7 +2038,7 @@ hexdigit [0-9a-f]
 	 //chainon(macroact,tree_cons(0,0,0));
   }
 
-  if (newmacrocomma==',' || newmacrocomma=='=')
+  if ((newmacrocomma==',' && macro_stack_ptr == 1) || newmacrocomma=='=')
     macrocomma=newmacrocomma;
 
 }
