@@ -1898,15 +1898,23 @@ hexdigit [0-9a-f]
 }
 
 <macro>"%"{name} {
+  downcase(yytext+1);
+  if (0==strcmp("%else",yytext) || strcmp("%if",yytext) || strcmp("%then",yytext) || strcmp("%fi",yytext))
+    goto do_p_name;
   if (macrostart==0) {
     yyless(0);
     goto ifall;
   }
   pname_string=1;
+ do_p_name:
   goto p_name;
 }
 
 <macro>{delim}|"%"				{
+  if (skip_mode && if_mode == 0) {
+    yyless(yyleng);
+    break;
+  }
   int newmacrocomma;
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
 	 if (macrostart==0)
@@ -2045,6 +2053,10 @@ hexdigit [0-9a-f]
 
 <macro>{name}|{string}|{digit}+				{
  m_name:
+  if (skip_mode && if_mode == 0) {
+    yyless(yyleng);
+    break;
+  }
   use_yytext=yytext;
  pname_back:
   downcase (use_yytext);
