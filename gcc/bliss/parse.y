@@ -254,6 +254,7 @@ bli_common_parse_file(set_yydebug)
 %token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME T_LABELNAME
 %token <type_node_p> P_SOFTERROR P_SOFTERROR2 P_SOFTERROR3 P_SOFTERROR4
 %token <type_node_p> START_CTCE START_LEX START_EXPR END_EXPR END_BUILTIN
+%token <type_node_p> T_FIELDNAME
 
 /*%light uplus uminus*/
 %right <type_node_code> '='
@@ -1611,12 +1612,12 @@ block_value: expression
 
 structure_reference:
   ordinary_structure_reference 
-| default_structure_reference 
+  /*| default_structure_reference nit ye*/
 | general_structure_reference 
 ;
 
 ordinary_structure_reference:
-T_NAME '[' access_actual_list ']' {
+segment_name '[' access_actual_list ']' {
   tree cell__ = get_identifier(add_underscore($1, 2));
   //tree t=build_external_ref ($1, 0);
   tree extref=RVAL_ADDR(build_external_ref ($1, 0));
@@ -1641,21 +1642,41 @@ access_actual_list:
 access_actual_list ',' access_actual
 {
   //$$ = chainon($1,$3);
-  chainon ($1, build_tree_list (NULL_TREE, $3));
+  chainon ($1, $3/* was: build_tree_list (NULL_TREE, $3)*/);
 }
 |
 access_actual 
 {
-  $$ = build_tree_list (NULL_TREE, $1);
+  // was:  $$ = build_tree_list (NULL_TREE, $1);
 }
 ;
 
-segment_name: T_NAME 
+segment_name:
+T_NAME
 ;
 
-access_actual: { $$=0; }
-|expression  
-| field_name  
+access_actual:
+{
+  // was: $$=0;
+  $$ = build_tree_list (NULL_TREE, 0);
+}
+|
+expression  
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
+|
+T_FIELDNAME 
+{
+  /* was: field_name, but it caused some grammar problems, so therefore
+     this workaround */
+  tree t = find_field(IDENTIFIER_POINTER($1));
+  if (t==0) {
+    $$ = 0; // something is wrong
+  } else {
+    $$ = my_copy_tree(t);
+  }
+}
 ;
 
 access_part:  
@@ -1679,13 +1700,17 @@ primary
 | executable_function 
 ;
 
-default_structure_reference: dsr1
-'[' access_actual_list ']' 
+default_structure_reference: 
+address '[' access_actual_list ']' 
+;
+
+structure_name:
+T_NAME
 ;
 
 general_structure_reference:
-T_NAME '[' access_part ';' alloc_actual_list ']' 
-|T_NAME '[' access_part ']' 
+structure_name '[' access_part ';' alloc_actual_list ']' 
+|structure_name '[' access_part ']' 
 ;
 
 alloc_actual_list: alloc_actual_list ',' alloc_actual
@@ -6129,7 +6154,7 @@ find_field(char * s) {
   struct field_struct * t = field_root;
   for (;t;t=t->next) {
 	 if (0==strcmp(t->name,s))
-		return t;
+		return t->t;
   }
   return 0;
 }
