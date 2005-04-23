@@ -3410,8 +3410,14 @@ T_NAME
 ;
 
 maybe_external_attribute_list:
+{
+  $$ = 0;
+}
 |
 ':' external_attribute_list
+{
+  $$ = $2;
+}
 ;
 
 external_attribute_list:
@@ -3436,10 +3442,109 @@ attribute
 external_item:
 external_name maybe_external_attribute_list 
 {
+#if 0
   tree decl = build_decl (VAR_DECL, $1, integer_type_node);
   DECL_EXTERNAL (decl) = 1;
   decl = pushdecl (decl);
   $$ = 0;
+#endif
+
+  tree cell, cell_, decl_p , cell_decl, init, t, cell_decl_p;
+
+  tree attr = current_declspecs;
+#if 1
+  tree type = $2;
+  tree myattr = $2;
+#else
+  tree type = integer_type_node;
+  tree myattr = integer_type_node;
+#endif
+  
+#ifndef NEW_POINTER
+  cell_=get_identifier(add_underscore($1,1));
+#else
+  cell_=$1;
+#endif
+  tree st_attr = find_structure_attr(myattr);
+  if (st_attr) {
+    tree size, decl, astruct, cell__;
+
+    current_declspecs = 0;
+
+    cell__ = get_identifier(add_underscore($1,2));
+    astruct = start_structure (STRUCTURE_ATTR, cell__);
+    st_attr = finish_structure (astruct, TREE_OPERAND(st_attr, 0) , 0, 0,0,0,0); 
+#if 0
+	 // not for bind? not allocating any
+    size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(st_attr))));
+    decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
+#endif
+#ifdef NEW_POINTER
+#if 0
+	 // not for bind? not allocating any
+	 tree byte=build_int_2(8,0);
+	 TREE_TYPE (byte) = widest_integer_literal_type_node;
+	 byte = convert (integer_type_node, byte);
+	 tree newsize = parser_build_binary_op (MULT_EXPR, byte, fold(size));
+	 tree newint=copy_node(integer_type_node);
+	 newsize=fold(newsize);
+	 if (TREE_CODE(newsize)==NON_LVALUE_EXPR)
+		newsize=TREE_OPERAND(newsize, 0);
+	 TYPE_SIZE(newint)=newsize;
+	 TYPE_SIZE_UNIT(newint)=integer_type_node;
+	 TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
+	 //	 TREE_TYPE(cell_)=newint;
+	 current_declspecs=tree_cons(0, newint, 0);
+#else
+	 current_declspecs=0;
+	 cell=make_pointer_declarator(0,$1);
+#endif
+	 decl=0; //newint;
+#else
+    //type = char_array_type_node;
+    type = set_array_declarator_type (decl, cell_, 0);
+    //TREE_TYPE(c)=char_type_node;
+    //goto own_end;
+#endif
+    cell=cell_;
+  } else {
+    TREE_TYPE(cell_)=integer_type_node;
+    cell=cell_;
+  }
+
+
+  cell_decl_p = start_decl (cell, current_declspecs, 0,
+                       chainon (NULL_TREE, all_prefix_attributes));
+  DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
+  //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+  //printf("xxx %x\n",d);
+#if 0
+  // not like bind here
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+  TREE_LANG_FLAG_0($1)=1;
+#else
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+#endif
+
+#ifndef NEW_POINTER
+  decl_p = make_pointer_declarator(0,$1);
+  cell_decl = start_decl (decl_p, current_declspecs, 1,
+                       chainon (NULL_TREE, all_prefix_attributes));
+
+  //TREE_STATIC(cell_decl)=1;
+  start_init(cell_decl,NULL,global_bindings_p());
+  finish_init();
+
+  //int ccc = build_external_ref(c,0);
+  //printf("yyy %x\n",ccc);
+  init = build_unary_op (ADDR_EXPR, cell_decl_p/*build_external_ref (c, 0)*/, 0);
+
+  finish_decl (cell_decl, init, NULL_TREE);
+#endif
+ external_end:
+  current_declspecs=attr;
 }
 ;
 
@@ -5699,8 +5804,13 @@ make_macro_string(m,r)
     for(old=p;old;old=TREE_CHAIN(old)) {
 		//printf("IDD4 %x %x %x\n",l,TREE_VALUE(old),TREE_PURPOSE(old));
       if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
-		  l=TREE_STRING_POINTER(TREE_PURPOSE(old));
-		  goto subst_out;
+	if (TREE_PURPOSE(old)) {
+	  l=TREE_STRING_POINTER(TREE_PURPOSE(old));
+	  goto subst_out;
+	} else {
+	  l=" ";
+	  goto subst_out;
+	}
       }
     }
   subst_out:
