@@ -408,8 +408,10 @@ hexdigit [0-9a-f]
     onlytname:
       s=strdup(yytext);
       yylval.type_node_p=get_identifier(s);
-		tree label = is_label (yylval.type_node_p);
-		if (m==0 && label) return T_LABELNAME; // workaround, temp
+      tree label = is_label (yylval.type_node_p);
+      if (m==0 && label) return T_LABELNAME; // workaround, temp
+      tree field = find_field (s);
+      if (m==0 && field) return T_FIELDNAME; // workaround, temp
       if (m==0) return T_NAME;
     }
   /*yylval.type_str=strdup(yytext);*/
