@@ -66,6 +66,7 @@ int turn_off_addr_expr = 0;
 #endif
  //#define IN_GCC
 
+static tree constructor_elements=0;
  static short *malloced_yyss;
  static void *malloced_yyvs;
 
@@ -1433,6 +1434,7 @@ attached_label_list: attached_label_list attached_label
 
 unlabeled_block_start: K_BEGIN { 
 #ifndef c99
+  compstmt_count++;
   $$=c_begin_compound_stmt ();
 #endif
 }
@@ -1446,8 +1448,10 @@ unlabeled_block_start2: '(' {
 	 allocate_struct_function();
 #endif
   }
-  if (cfun)
-	 $$=c_begin_compound_stmt ();
+  if (cfun) {
+    compstmt_count++;
+    $$=c_begin_compound_stmt ();
+  }
 #endif
 }
 ;
@@ -1725,11 +1729,12 @@ alloc_actual
 ;
 
 routine_call: ordinary_routine_call  
-| general_routine_call 
+/* not yet| general_routine_call */
 ;
 
 ordinary_routine_call:
 T_NAME '(' io_list3 ')' { 
+   // was:  shouldbe routine_designator
   void * ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
@@ -2572,6 +2577,7 @@ select_action ';'
   add_stmt (build_stmt (GOTO_STMT, mylabel));
 
   c_finish_then();
+  c_expand_end_cond();
   //THEN_CLAUSE (if_stmt) = $7;
   $$=$<type_node_p>2;
   //  $$=$6;
@@ -4038,6 +4044,7 @@ structure_size: { $$ = 0; }
 |
 {
   //  $<type_node_p>1=c_begin_compound_stmt ();
+  compstmt_count++;
   $$=c_begin_compound_stmt ();
 }
 pushlevel '[' expression ']' poplevel { 
@@ -4061,8 +4068,9 @@ structure_body:
 structure_body: 
 {
   // $<type_node_p>1 = c_begin_compound_stmt;
- $$ = c_begin_compound_stmt();
- }
+  compstmt_count++;
+  $$ = c_begin_compound_stmt();
+}
 pushlevel expression poplevel
 {
 $$=poplevel (kept_level_p (), 1, 0);
@@ -4802,8 +4810,8 @@ bind_data_attribute
 ;
 
 bind_data_attribute:
-allocation_unit 
-|extension_attribute 
+allocation_unit  { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+|extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 |volatile_attribute 
