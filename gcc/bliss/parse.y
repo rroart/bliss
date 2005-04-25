@@ -66,7 +66,6 @@ int turn_off_addr_expr = 0;
 #endif
  //#define IN_GCC
 
-static tree constructor_elements=0;
  static short *malloced_yyss;
  static void *malloced_yyvs;
 
@@ -231,6 +230,7 @@ bli_common_parse_file(set_yydebug)
  char * my_strcat(const char *, const char *, int);
  char * my_strcat_gen(const char *, const char *, int);
  tree temp_value(tree);
+ tree handle_preset(tree, tree, tree, tree);
 
 %}
 
@@ -3140,8 +3140,8 @@ preset_item:
 ctce_access_actual_list:
 ctce_access_actual_list ',' ctce_access_actual
 {
-  //  $$ = chainon($1,$3);
-  $$= tree_cons (NULL_TREE, $3, $1);
+  $$ = chainon($1, tree_cons(0, $3, 0));
+  //$$= tree_cons (NULL_TREE, $3, $1);
 
 }
 |
@@ -3211,9 +3211,10 @@ own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__;
+    tree decl, astruct, cell__;
 
     current_declspecs = 0;
 
@@ -3355,9 +3356,10 @@ global_name maybe_global_attribute_list
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__; 
+    tree decl, astruct, cell__; 
   
     current_declspecs=0;
 
@@ -3403,11 +3405,25 @@ global_name maybe_global_attribute_list
   if (init)
 	 do_init=1;
 
+  //extra
+  tree pres2 = find_tree_code(myattr, PRESET_ATTR); 
+  if (pres2) {
+    do_init=1;//diff here
+  }
+
   cell_decl_p = start_decl (cell, mysize/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   //printf("xxx %x\n",d);
   start_init(cell_decl_p,NULL,1);
   finish_init();
+
+
+  // moved
+  tree pres = find_tree_code(myattr, PRESET_ATTR);
+  if (pres) {
+    init = handle_preset($1, pres, cell_decl_p, fold(size));
+  }
+
   finish_decl (cell_decl_p, init, NULL_TREE);
 
 #ifndef NEW_POINTER
@@ -3496,9 +3512,10 @@ external_name maybe_external_attribute_list
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__;
+    tree decl, astruct, cell__;
 
     current_declspecs = 0;
 
@@ -3643,9 +3660,10 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__; 
+    tree decl, astruct, cell__; 
   
     current_declspecs=0;
 
@@ -3691,11 +3709,26 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
   if (init)
 	 do_init=1;
 
+  //extra
+  tree pres2 = find_tree_code(myattr, PRESET_ATTR); 
+  if (pres2) {
+    do_init=1;//diff here
+  }
+
   cell_decl_p = start_decl (cell, mysize/*current_declspecs*/, do_init,
                        chainon (NULL_TREE, all_prefix_attributes));
   //printf("xxx %x\n",d);
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
+
+
+
+  // moved
+  tree pres = find_tree_code(myattr, PRESET_ATTR);
+  if (pres) {
+    init = handle_preset($1, pres, cell_decl_p, fold(size));
+  }
+
   finish_decl (cell_decl_p, init, NULL_TREE);
 
 #ifndef NEW_POINTER
@@ -3714,65 +3747,6 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
 #endif
  local_end:
   current_declspecs=attr;
-
-  tree pres = find_tree_code(myattr, PRESET_ATTR);
-  if (pres) {
-    tree d3=TREE_VALUE(TREE_OPERAND(pres,0));
-    tree v=TREE_PURPOSE(TREE_OPERAND(pres,0));
-    tree dd;
-    // from ordinary_structure_reference:
-    tree cell__ = get_identifier(add_underscore($1, 2));
-    tree extref=RVAL_ADDR(build_external_ref ($1, 0));
-    tree params = d3;
-    tree type = xref_tag(STRUCTURE_ATTR,cell__);
-    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
-    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
-    chainon (tree_last(d3), build_tree_list(NULL_TREE, extref)); 
-    my_substitute(body,access,params);
-    dd=body;
-    
-    tree d1=dd;
-    d3=v;
-    //    next from opexp9 '=' opexp9
-    tree t=d1;
-    tree b=TREE_OPERAND (t, 2);
-    if (TREE_CODE(t) == BIT_FIELD_REFS && b && TREE_CODE(b) == BIT_FIELD_REF) {
-      tree newop0, op0=TREE_OPERAND(b, 0);
-      if (TREE_OPERAND(b, 1)) TREE_OPERAND(b, 1)=fold(TREE_OPERAND(b, 1));
-      if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
-      TREE_TYPE(TREE_OPERAND(b, 2)) = ubitsizetype;
-      if (TREE_CODE(op0)==INDIRECT_REF) {
-	newop0=op0;
-	op0=TREE_OPERAND(op0, 0);
-#if 0
-	if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
-	  fprintf(stdout, "\n\nxyz %x\n\n",input_location.line);
-	  TREE_TYPE(op0)==integer_type_node;
-	}
-#endif
-      } else {
-	tree tt=make_pointer_declarator(0,op0);
-	TREE_TYPE(tt)=build_pointer_type(integer_type_node);
-	TREE_TYPE(tt)=integer_type_node;
-	//tree i = build_unary_op (ADDR_EXPR, op0, 1);
-	//newop0=build_indirect_ref (convert(build_pointer_type (integer_type_node),op0), "unary *");
-	//newop0=build_indirect_ref (i, "unary *");
-	TREE_OPERAND(b, 0)=newop0;
-	TREE_OPERAND(b, 0)=tt;
-      }
-      dd=build_modify_expr(b, NOP_EXPR, d3);
-      goto bitend2;
-    }
-    if (TREE_CODE(t) == INTEGER_CST || (TREE_CODE(t)==NON_LVALUE_EXPR && TREE_CODE(TREE_OPERAND(t, 0))==INTEGER_CST )) {
-      t=make_pointer_declarator(0,d1);
-      TREE_TYPE(t)=build_pointer_type(integer_type_node);
-      dd=build_modify_expr(t, NOP_EXPR, d3); // check. no LVAL_ADDR?
-    } else {
-      dd=build_modify_expr(LVAL_ADDR(t), NOP_EXPR, d3);
-    }
-  bitend2:
-    $$=c_expand_expr_stmt(dd);
-  }
 }
 ;
 
@@ -4577,9 +4551,10 @@ literal_item: literal_name '=' compile_time_constant_expression ':' literal_attr
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = 0;// not yet?find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__;
+    tree decl, astruct, cell__;
 
     current_declspecs = 0;
 
@@ -4710,9 +4685,10 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
 #else
   cell_=$1;
 #endif
+  tree size;
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
-    tree size, decl, astruct, cell__;
+    tree decl, astruct, cell__;
 
     current_declspecs = 0;
 
@@ -6315,3 +6291,112 @@ temp_value(d1)
   TREE_TYPE(dd)=integer_type_node;
   return dd;
 }
+
+tree
+handle_preset(name, pres, cell_decl_p, size)
+     tree name;
+     tree pres;
+     tree cell_decl_p;
+     tree size;
+{
+  tree init;
+  tree constructor_elements=0;
+  tree attr=TREE_OPERAND(pres,0);
+  for (;attr;attr=TREE_CHAIN(attr)) {
+    tree d3=TREE_VALUE(attr);
+    tree v=TREE_PURPOSE(attr);
+    tree dd;
+    // from ordinary_structure_reference:
+    tree cell__ = get_identifier(add_underscore(name, 2));
+    tree extref=RVAL_ADDR(build_external_ref (name, 0));
+    tree params = d3;
+    tree type = xref_tag(STRUCTURE_ATTR,cell__);
+    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+    //chainon (tree_last(d3), build_tree_list(NULL_TREE, extref)); 
+    chainon (tree_last(d3), build_tree_list(NULL_TREE, build_int_2(0,0))); 
+    my_substitute(body,access,params);
+    //my_substitute_parmz(body,access,params);// extra to zero parm
+    dd=body;
+
+#if 0    
+    tree d1=dd;
+    d3=v;
+    //    next from opexp9 '=' opexp9
+    tree t=d1;
+    tree b=TREE_OPERAND (t, 2);
+    if (TREE_CODE(t) == BIT_FIELD_REFS && b && TREE_CODE(b) == BIT_FIELD_REF) {
+      tree newop0, op0=TREE_OPERAND(b, 0);
+      if (TREE_OPERAND(b, 1)) TREE_OPERAND(b, 1)=fold(TREE_OPERAND(b, 1));
+      if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
+      TREE_TYPE(TREE_OPERAND(b, 2)) = ubitsizetype;
+      if (TREE_CODE(op0)==INDIRECT_REF) {
+	newop0=op0;
+	op0=TREE_OPERAND(op0, 0);
+#if 0
+	if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
+	  fprintf(stdout, "\n\nxyz %x\n\n",input_location.line);
+	  TREE_TYPE(op0)==integer_type_node;
+	}
+#endif
+      } else {
+	tree tt=make_pointer_declarator(0,op0);
+	TREE_TYPE(tt)=build_pointer_type(integer_type_node);
+	TREE_TYPE(tt)=integer_type_node;
+	//tree i = build_unary_op (ADDR_EXPR, op0, 1);
+	//newop0=build_indirect_ref (convert(build_pointer_type (integer_type_node),op0), "unary *");
+	//newop0=build_indirect_ref (i, "unary *");
+	TREE_OPERAND(b, 0)=newop0;
+	TREE_OPERAND(b, 0)=tt;
+      }
+      dd=build_modify_expr(b, NOP_EXPR, d3);
+      goto gbitend2;
+    }
+    if (TREE_CODE(t) == INTEGER_CST || (TREE_CODE(t)==NON_LVALUE_EXPR && TREE_CODE(TREE_OPERAND(t, 0))==INTEGER_CST )) {
+      t=make_pointer_declarator(0,d1);
+      TREE_TYPE(t)=build_pointer_type(integer_type_node);
+      dd=build_modify_expr(t, NOP_EXPR, d3); // check. no LVAL_ADDR?
+    } else {
+      dd=build_modify_expr(LVAL_ADDR(t), NOP_EXPR, d3);
+    }
+  gbitend2:
+#endif
+#if 0
+    $$=c_expand_expr_stmt(dd);
+#endif
+    // differs from local from now on
+    tree t;
+    //t=LVAL_ADDR(t);
+    t=TREE_OPERAND(dd,2);
+    tree value=v;
+    tree field=build_decl (FIELD_DECL, 0/*cell_decl_p*/, integer_type_node);
+    SET_DECL_C_BIT_FIELD(field);
+    DECL_BIT_FIELD(field)=1;
+    TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
+    DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
+    DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
+    DECL_SIZE(field)=fold(TREE_OPERAND(t,1));//build_int_2(8,0);
+    fprintf(stderr, "off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
+    TREE_TYPE(DECL_FIELD_OFFSET(field)) = sizetype;
+#if 0
+    constructor_elements
+      = tree_cons (field, value, constructor_elements);
+#endif
+    constructor_elements = chainon (constructor_elements, tree_cons (field, value, 0));
+  }
+  //    tree mytype=copy_node(integer_type_node);
+  //    TREE_CODE (mytype) = RECORD_TYPE;
+  tree rt = make_node(RECORD_TYPE);
+  TREE_TYPE(rt)=integer_type_node;
+  TYPE_SIZE_UNIT(rt)=integer_type_node;
+  TYPE_SIZE_UNIT(rt)=size;//build_int_2(48,0);
+  TYPE_MODE(rt)=QImode;
+  tree mytype=rt;
+  TREE_TYPE(cell_decl_p)=rt;
+  tree constructor = build_constructor(mytype,constructor_elements);
+  TREE_CONSTANT(constructor)=1;
+  init=constructor;
+  //init=field;
+  return init;
+}
+
