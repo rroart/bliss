@@ -4186,6 +4186,7 @@ digest_init (tree type, tree init, int require_constant)
 	  if (flag_pedantic_errors)
 	    inside_init = error_mark_node;
 	}
+#if 0
       else if (require_constant
 	       && (!TREE_CONSTANT (inside_init)
 		   /* This test catches things like `7 / 0' which
@@ -4201,6 +4202,7 @@ digest_init (tree type, tree init, int require_constant)
 	  error_init ("initializer element is not constant");
 	  inside_init = error_mark_node;
 	}
+#endif
 
       return inside_init;
     }
@@ -4222,12 +4224,14 @@ digest_init (tree type, tree init, int require_constant)
 	  error_init ("initializer element is not constant");
 	  inside_init = error_mark_node;
 	}
+#if 0
       else if (require_constant
 	       && initializer_constant_valid_p (inside_init, TREE_TYPE (inside_init)) == 0)
 	{
 	  error_init ("initializer element is not computable at load time");
 	  inside_init = error_mark_node;
 	}
+#endif
 
       return inside_init;
     }
