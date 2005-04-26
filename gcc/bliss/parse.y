@@ -231,6 +231,7 @@ bli_common_parse_file(set_yydebug)
  char * my_strcat_gen(const char *, const char *, int);
  tree temp_value(tree);
  tree handle_preset(tree, tree, tree, tree);
+ tree convert_field_ref_to_decl(tree,tree);
 
 %}
 
@@ -1183,6 +1184,7 @@ string_literal:  string_type T_STRING2 {
 
 	 $$ = longlong;
 	 $$ = build_unary_op (ADDR_EXPR, longlong, 0);
+	 TREE_CONSTANT($$)=1;
 	 TREE_LANG_FLAG_2($$)=1;
 
 #if 0
@@ -4733,6 +4735,14 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
     cell=cell_;
   }
 
+  init = $3;
+
+  if (TREE_CODE(init)==BIT_FIELD_REFS) {
+    init=TREE_OPERAND(init, 2);
+    init=TREE_OPERAND(init, 0);
+    my_fold(init);
+  }
+  TREE_CONSTANT(init)=1;
 
   cell_decl_p = start_decl (cell, current_declspecs, 1,
                        chainon (NULL_TREE, all_prefix_attributes));
@@ -4740,7 +4750,7 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   //printf("xxx %x\n",d);
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
-  finish_decl (cell_decl_p, $3, NULL_TREE);
+  finish_decl (cell_decl_p, init, NULL_TREE);
   TREE_LANG_FLAG_0($1)=1;
 
 #ifndef NEW_POINTER
@@ -6293,6 +6303,27 @@ temp_value(d1)
 }
 
 tree
+convert_field_ref_to_decl(ref, value)
+     tree ref;
+     tree value;
+{
+  tree t = ref;
+  tree field=build_decl (FIELD_DECL, 0/*cell_decl_p*/, integer_type_node);
+  SET_DECL_C_BIT_FIELD(field);
+  if (TREE_CODE(value)!=ADDR_EXPR)
+    DECL_BIT_FIELD(field)=1;
+  TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
+  DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
+  DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
+  my_fold(DECL_FIELD_OFFSET(field));
+  DECL_SIZE_UNIT(field)=build_int_2(4,0);
+  DECL_SIZE(field)=fold(TREE_OPERAND(t,1));//build_int_2(8,0);
+  if (!quiet_flag) printf("off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
+  TREE_TYPE(DECL_FIELD_OFFSET(field)) = sizetype;
+  return field;
+}
+
+tree
 handle_preset(name, pres, cell_decl_p, size)
      tree name;
      tree pres;
@@ -6369,15 +6400,7 @@ handle_preset(name, pres, cell_decl_p, size)
     //t=LVAL_ADDR(t);
     t=TREE_OPERAND(dd,2);
     tree value=v;
-    tree field=build_decl (FIELD_DECL, 0/*cell_decl_p*/, integer_type_node);
-    SET_DECL_C_BIT_FIELD(field);
-    DECL_BIT_FIELD(field)=1;
-    TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
-    DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
-    DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
-    DECL_SIZE(field)=fold(TREE_OPERAND(t,1));//build_int_2(8,0);
-    fprintf(stderr, "off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
-    TREE_TYPE(DECL_FIELD_OFFSET(field)) = sizetype;
+    tree field=convert_field_ref_to_decl(t,value);
 #if 0
     constructor_elements
       = tree_cons (field, value, constructor_elements);
