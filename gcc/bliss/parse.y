@@ -1631,7 +1631,7 @@ block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 block_action: expression ';' { 
   /*bli_add_stmt ($1);*/
   if ($1) 
-    if (TREE_CODE($1)<SIZEOF_EXPR)
+    if (TREE_CODE($1)<=CLEANUP_STMT/*<SIZEOF_EXPR*/)
       $$=c_expand_expr_stmt($1);
 }
 ;
@@ -2355,7 +2355,8 @@ control_expression:  conditional_expression
 ;
 
 if_then:
-K_IF {
+K_IF
+{
   $<type_node_p>$ = c_begin_if_stmt ();
   TREE_TYPE ($<type_node_p>$) = integer_type_node;
 }
@@ -2365,12 +2366,28 @@ exp
   t=parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0));
   c_expand_start_cond (c_common_truthvalue_conversion (t), 
 		       compstmt_count,$<type_node_p>2);
+  compstmt_count++;
+  $<type_node_p>$=c_begin_compound_stmt ();
 }
 K_THEN
-exp
+pushlevel exp poplevel
 {
+#if 1
+  if ($7) /* $<type_node_p>$ =*/ c_expand_expr_stmt($7);
+#endif
+  $$=poplevel (KEEP_MAYBE, 0, 0);
+  SCOPE_STMT_BLOCK (TREE_PURPOSE ($8))
+    = SCOPE_STMT_BLOCK (TREE_VALUE ($8))
+    = $$;
+  RECHAIN_STMTS ($<type_node_p>4, COMPOUND_BODY ($<type_node_p>4)); 
+  last_expr_type = NULL_TREE;
+  //  $$=$3;
+
   tree if_stmt = $<type_node_p>2;
-  if ($6) /* $<type_node_p>$ =*/ c_expand_expr_stmt($6);
+#if 0
+  if ($7) /* $<type_node_p>$ =*/ c_expand_expr_stmt($7);
+#endif
+  //  RECHAIN_STMTS ($<type_node_p>4, COMPOUND_BODY ($<type_node_p>4));
   //temp_value(fold($6));
   c_finish_then();
   //THEN_CLAUSE (if_stmt) = $6;
@@ -2384,13 +2401,30 @@ if_then
 K_ELSE
 {
   c_expand_start_else();
+  compstmt_count++;
+  $$=c_begin_compound_stmt ();
 }
-exp
+pushlevel exp poplevel
 {
+#if 1
+  if ($5) $5 /*$<type_node_p>$*/ = c_expand_expr_stmt($5);
+#endif
+  $$=poplevel (KEEP_MAYBE, 0, 0);
+  SCOPE_STMT_BLOCK (TREE_PURPOSE ($6))
+    = SCOPE_STMT_BLOCK (TREE_VALUE ($6))
+    = $$;
+  RECHAIN_STMTS ($<type_node_p>3, COMPOUND_BODY ($<type_node_p>3)); 
+  last_expr_type = NULL_TREE;
+  //  $$=$3;
+
   tree if_stmt = $1;
   tree nop = build_int_2(0,0);
 
-  if ($4) $4 /*$<type_node_p>$*/ = c_expand_expr_stmt($4);
+#if 0
+  if ($5) $5 /*$<type_node_p>$*/ = c_expand_expr_stmt($5);
+#endif
+  //RECHAIN_STMTS ($<type_node_p>3, COMPOUND_BODY ($<type_node_p>3));
+
   //temp_value(fold($4));
   c_finish_else();
   c_expand_end_cond();
