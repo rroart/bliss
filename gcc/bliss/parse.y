@@ -82,6 +82,7 @@ int turn_off_addr_expr = 0;
  static tree mylabel = 0;
  static tree selif = 0;
  static char icc=0 ;
+ static tree ifthenelseval=0;
 
  int yyrec = 0;
 
@@ -1631,7 +1632,7 @@ block_action_list: block_action_list block_action { $$ = chainon ($1, $2); }
 block_action: expression ';' { 
   /*bli_add_stmt ($1);*/
   if ($1) 
-    if (TREE_CODE($1)<=CLEANUP_STMT/*<SIZEOF_EXPR*/)
+    if (TREE_CODE($1)<SIZEOF_EXPR)
       $$=c_expand_expr_stmt($1);
 }
 ;
@@ -2357,6 +2358,13 @@ control_expression:  conditional_expression
 if_then:
 K_IF
 {
+  // next something based on cp build_local_temp
+  tree slot = build_decl (VAR_DECL, NULL_TREE, integer_type_node);
+  DECL_ARTIFICIAL (slot) = 1;
+  DECL_CONTEXT (slot) = current_function_decl;
+  layout_decl (slot, 0);
+  ifthenelseval=slot;
+
   $<type_node_p>$ = c_begin_if_stmt ();
   TREE_TYPE ($<type_node_p>$) = integer_type_node;
 }
@@ -2372,6 +2380,11 @@ exp
 K_THEN
 pushlevel exp poplevel
 {
+  if ($7) {
+    $7 = build (TARGET_EXPR, TREE_TYPE (ifthenelseval), ifthenelseval, $7, 0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+    TREE_SIDE_EFFECTS ($7) = 1;
+  }
+
 #if 1
   if ($7) /* $<type_node_p>$ =*/ c_expand_expr_stmt($7);
 #endif
@@ -2406,6 +2419,11 @@ K_ELSE
 }
 pushlevel exp poplevel
 {
+  if ($5) {
+    $5 = build (TARGET_EXPR, TREE_TYPE (ifthenelseval), ifthenelseval, $5, 0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+    TREE_SIDE_EFFECTS ($5) = 1;
+  }
+
 #if 1
   if ($5) $5 /*$<type_node_p>$*/ = c_expand_expr_stmt($5);
 #endif
