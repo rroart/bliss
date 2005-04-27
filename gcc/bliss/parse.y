@@ -5549,6 +5549,7 @@ extern int flag_no_asm;
 
 static const struct resword reswords[] =
 {
+#if 0
   { "_Bool",            RID_BOOL,       0 },
   { "_Complex",         RID_COMPLEX,    0 },
   { "__FUNCTION__",     RID_FUNCTION_NAME, 0 },
@@ -5606,12 +5607,16 @@ static const struct resword reswords[] =
   { "goto",             RID_GOTO,       0 },
   { "if",               RID_IF,         0 },
   { "inline",           RID_INLINE,     D_TRAD|D_EXT89 },
+#endif
   { "int",              RID_INT,        0 },
   { "long",             RID_LONG,       0 },
+#if 0
   { "register",         RID_REGISTER,   0 },
   { "restrict",         RID_RESTRICT,   D_TRAD|D_C89 },
   { "return",           RID_RETURN,     0 },
+#endif
   { "short",            RID_SHORT,      0 },
+#if 0
   { "signed",           RID_SIGNED,     D_TRAD },
   { "sizeof",           RID_SIZEOF,     0 },
   { "static",           RID_STATIC,     0 },
@@ -5624,6 +5629,7 @@ static const struct resword reswords[] =
   { "void",             RID_VOID,       0 },
   { "volatile",         RID_VOLATILE,   D_TRAD },
   { "while",            RID_WHILE,      0 },
+#endif
 };
 #define N_reswords (sizeof reswords / sizeof (struct resword))
 
@@ -6377,6 +6383,8 @@ convert_field_ref_to_decl(ref, value)
   SET_DECL_C_BIT_FIELD(field);
   if (TREE_CODE(value)!=ADDR_EXPR)
     DECL_BIT_FIELD(field)=1;
+  if (TREE_CODE(value)==PARM_DECL)
+    value=RVAL_ADDR(value);
   TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
   DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
   DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
@@ -6478,7 +6486,7 @@ handle_preset(name, pres, cell_decl_p, size)
   TREE_TYPE(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=size;//build_int_2(48,0);
-  TYPE_MODE(rt)=QImode;
+  TYPE_MODE(rt)=SImode;
   tree mytype=rt;
   TREE_TYPE(cell_decl_p)=rt;
   tree constructor = build_constructor(mytype,constructor_elements);
