@@ -81,6 +81,7 @@ int turn_off_addr_expr = 0;
  static tree myselect = 0;
  static tree mylabel = 0;
  static tree selif = 0;
+ static char icc=0 ;
 
  int yyrec = 0;
 
@@ -1151,10 +1152,24 @@ string_literal:  string_type T_STRING2 {
 
 	 tree string = build_string(len, str);
 
-#if 1
+#if 0
 	 tree decl = build_decl (CONST_DECL, 0, string_type_node);
 	 DECL_INITIAL(decl)=string;
 	 pushdecl(decl);
+#else
+	 TREE_TYPE(string)=string_type_node;
+	 char s2[32];
+	 sprintf(s2,"_dsc_a_pointer%d",icc);
+	 tree d2 = build_nt(ARRAY_REF,get_identifier(s2),build_int_2(len+1,0));
+	 tree decl = start_decl(d2, tree_cons(0, char_type_node, 0), 1, 0);
+	 start_init(decl,NULL,global_bindings_p());
+	 finish_init();
+
+	 tree constructor2 = build_constructor(TREE_TYPE(decl)/*integer_type_node int_array_type_node*/,string);
+	 TREE_CONSTANT(constructor2)=1;
+	 init=constructor2;
+
+	 finish_decl (decl, string, NULL_TREE);
 #endif
 
 	 TREE_TYPE(string) = /*string*/char_array_type_node; // or char_array?
@@ -1177,25 +1192,38 @@ string_literal:  string_type T_STRING2 {
 
 	 tree last = tree_cons(build_int_2(1,0),addr,0);
 	 tree nextlast = tree_cons(build_int_2(0,0),build_int_2(firstlong,0), last);
-	 tree constructor = build_constructor(int_array_type_node,nextlast);
-	 TREE_CONSTANT(constructor)=1;
-	 init=constructor;
 
 #if 0
 	 tree decl2 = build_decl (CONST_DECL, 0, string_type_node);
 	 DECL_INITIAL(decl2)=constructor;
 	 pushdecl(decl2);
 #endif
-	 static char icc=0 ;
 	 char s[16];
 	 sprintf(s,"_dsc%d",icc);
 	 icc++;
-	 tree decl2 = start_decl(get_identifier(s), tree_cons(0, build_array_type(integer_type_node,build_index_type(build_int_2(2,0))), 0), 1, 0);
+#if 0	 
+	 type=long_integer_type_node;
+	 tree size=build_int_2(2,0);
+	 tree index_type = c_common_signed_type (sizetype);
+	 tree itype=build_int_2(1,0);
+	 itype = build_index_type (itype);
+	 type = build_array_type (type, itype);
+	 type = int_array_type_node;
+#endif
+	 tree d = build_nt(ARRAY_REF,get_identifier(s),build_int_2(2,0));
+	 tree decl2 = start_decl(d, tree_cons(0, type, 0), 1, 0);
+#if 0
 	 DECL_SIZE_UNIT(decl2)=build_int_2(8,0);	
 	 DECL_SIZE(decl2)=build_int_2(64,0);
 	 DECL_ALIGN(decl2)=1;
+#endif
 	 start_init(decl2,NULL,global_bindings_p());
 	 finish_init();
+
+	 tree constructor = build_constructor(TREE_TYPE(decl2)/*integer_type_node int_array_type_node*/,nextlast);
+	 TREE_CONSTANT(constructor)=1;
+	 init=constructor;
+
 	 finish_decl (decl2, init, NULL_TREE);
 
 	 //	 fprintf(stderr, "vec %x %x %x %x %x\n",firstlong,sizeof( long),vec[0],vec[1],len);
