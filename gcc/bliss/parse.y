@@ -927,6 +927,12 @@ lowlevel: T_DIGITS
 | T_NAME 
 ;
 
+routine_designator:
+primary  
+/*| executable_function */
+/* placing here temp workaround because of reduce reduce*/
+;
+
 /**** 2.0 EXPRESSIONS ***********************************************/
 expression: 
 primary
@@ -959,6 +965,8 @@ numeric_literal
 	 //fprintf(stderr, "CON\n");
 	 goto myout;
   }
+  if (yychar == '(')
+    goto myout;
   if (!turn_off_addr_expr)
 	 $$ = RVAL_ADDR($$);
  myout:
@@ -1801,20 +1809,45 @@ routine_call: ordinary_routine_call
 ;
 
 ordinary_routine_call:
-T_NAME '(' io_list3 ')' { 
-   // was:  shouldbe routine_designator
-  void * ref;
+routine_designator /*T_NAME*/ '(' io_list3 ')' { 
+   // was:  shouldbe routine_designator. %prec '.' ?
+  tree ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
-  ref = build_external_ref ($1, 1);
+  if (TREE_CODE($1)==IDENTIFIER_NODE)
+    ref = build_external_ref ($1, 1);
+  else
+    ref=$1;
+#if 1
+  if (TREE_CODE(ref)!=FUNCTION_DECL) {
+    // next something based on cp build_local_temp
+    tree slot = build_decl (VAR_DECL, NULL_TREE, default_function_type);
+    DECL_ARTIFICIAL (slot) = 1;
+    DECL_CONTEXT (slot) = current_function_decl;
+    layout_decl (slot, 0);
+
+    tree decl = slot;
+    tree value = ref;
+    // next something based on cp build_target_expr
+
+    if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
+    //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
+    tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value,
+						0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+    TREE_SIDE_EFFECTS (t) = 1;
+    c_expand_expr_stmt(t);
+    ref = slot;
+
+#if 0
+    ref = build_unary_op(ADDR_EXPR, ref, 0);
+    TREE_TYPE(ref)=default_function_type;
+#endif
+  }
+#endif
+  //    ref= build_decl( FUNCTION_DECL, build_unary_op (ADDR_EXPR, ref, 0), integer_type_node);
   $$ = build_function_call (ref, $3); 
 }
 /*nonfin should be routine_designator, but it did not work*/
-;
-
-routine_designator:
-primary  
-/*| executable_function */
 ;
 
 io_list3: { $$=0; }
