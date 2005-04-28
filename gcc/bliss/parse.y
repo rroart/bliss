@@ -3206,7 +3206,10 @@ alloc_actual_list: alloc_actual_list alloc_actual|alloc_actual;
 */
 
 
-alloc_actual:  { $$=(int) 0; }
+alloc_actual:
+{
+  $$=build_int_2(0,0);
+}
 | ctce 
 |
 allocation_unit 
