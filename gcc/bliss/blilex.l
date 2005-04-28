@@ -1901,7 +1901,7 @@ hexdigit [0-9a-f]
 
 <macro>"%"{name} {
   downcase(yytext+1);
-  if (0==strcmp("%else",yytext) || strcmp("%if",yytext) || strcmp("%then",yytext) || strcmp("%fi",yytext))
+  if (0==strcmp("%else",yytext) || 0==strcmp("%if",yytext) || 0==strcmp("%then",yytext) || 0==strcmp("%fi",yytext))
     goto do_p_name;
   if (macrostart==0) {
     yyless(0);
