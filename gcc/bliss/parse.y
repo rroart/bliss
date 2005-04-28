@@ -2362,6 +2362,9 @@ actual_parameter: expression
 
 standard_function_name: /*T_NAME also min max */
 P_REF
+{
+  $$ = P_REF;
+}
 ;
 
 character_handling_function_name: T_NAME 
@@ -2404,7 +2407,7 @@ K_IF
 exp
 {
   tree t=$3;
-  t=parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0));
+  t=parser_build_binary_op(BIT_AND_EXPR,convert(integer_type_node,t),build_int_2(1,0));
   c_expand_start_cond (c_common_truthvalue_conversion (t), 
 		       compstmt_count,$<type_node_p>2);
   compstmt_count++;
