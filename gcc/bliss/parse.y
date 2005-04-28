@@ -2447,8 +2447,11 @@ pushlevel exp poplevel
   c_finish_else();
   c_expand_end_cond();
 
+  //c_expand_expr_stmt(ifthenelseval);
+
   $$ = 0;
   $$ = $1; 
+  $$ = ifthenelseval;
 
 #if 0
   if (TREE_TYPE(THEN_CLAUSE(if_stmt))==0)
