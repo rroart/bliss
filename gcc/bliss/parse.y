@@ -3358,7 +3358,7 @@ own_item: own_name maybe_own_attribute_list setspecs { //maybe... is a declspecs
   tree mysize=tree_cons(0,integer_type_node,0);
 
   tree attr = current_declspecs;
-  tree type = $2;
+  tree type = integer_type_node;
   tree myattr = $2;
   
 #ifndef NEW_POINTER
@@ -3503,7 +3503,7 @@ global_name maybe_global_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
 
   tree attr = current_declspecs;
-  tree type = $2;
+  tree type = integer_type_node;
   tree myattr = $2;
 
 #ifndef NEW_POINTER
@@ -3655,7 +3655,7 @@ external_name maybe_external_attribute_list
 
   tree attr = current_declspecs;
 #if 1
-  tree type = $2;
+  tree type = integer_type_node;
   tree myattr = $2;
 #else
   tree type = integer_type_node;
@@ -3716,7 +3716,7 @@ external_name maybe_external_attribute_list
   }
 
 
-  cell_decl_p = start_decl (cell, current_declspecs, 0,
+  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0),/*current_declspecs,*/ 0,
                        chainon (NULL_TREE, all_prefix_attributes));
   DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
@@ -3807,7 +3807,7 @@ local_item: local_name maybe_local_attribute_list setspecs { //maybe... is a dec
   tree mysize=tree_cons(0,integer_type_node,0);
 
   tree attr = current_declspecs;
-  tree type = $2;
+  tree type = integer_type_node;
   tree myattr = $2;
 
 #ifndef NEW_POINTER
@@ -4828,7 +4828,7 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
 
   tree attr = current_declspecs;
 #if 1
-  tree type = $4;
+  tree type = integer_type_node;
   tree myattr = $4;
 #else
   tree type = integer_type_node;
