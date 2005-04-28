@@ -2442,6 +2442,7 @@ pushlevel exp poplevel
   //THEN_CLAUSE (if_stmt) = $6;
   $$=$<type_node_p>2;
   //  $$=$6;
+  $$ = ifthenelseval;
 }
 ;
 
