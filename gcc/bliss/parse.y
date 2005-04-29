@@ -530,7 +530,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> macro_actuals macro_actual_parameter_list macro_actual_parameter
 %type <type_node_p> keyword_assignments keyword_assignment keyword_formal_name
 %type <type_node_p> maybe_local_attribute_list local_attribute local_attribute_list
-%type <type_node_p> by_exp k_while_or_until
+%type <type_node_p> by_exp from_exp to_exp k_while_or_until
 %type <type_node_p> if_then compile_time_item compile_time_name compile_time_value
 %type <type_node_p> field_definition field_component_list field_component
 %type <type_node_p> maybe_bind_data_attribute_list
@@ -2832,8 +2832,37 @@ indexed_loop_expression
 tested_loop_expression  
 ;
 
-by_exp: { $$ = 0; }
-| K_BY exp { $$ = $2; }
+by_exp:
+{
+  $$ = build_int_2(1,0);
+}
+|
+K_BY exp
+{
+  $$ = $2;
+}
+;
+
+from_exp:
+{
+  $$ = build_int_2(0,0);
+}
+|
+K_FROM exp
+{
+  $$ = $2;
+}
+;
+
+to_exp:
+{
+  $$ = build_int_2(0,0);
+}
+|
+K_TO exp
+{
+  $$ = $2;
+}
 ;
 
 indexed_loop_expression:
@@ -2844,9 +2873,9 @@ indexed_loop_type
   add_stmt ($<type_node_p>$);  
 }
  T_NAME
-K_FROM exp  
+from_exp  
 {
-  // $6
+  // $5
   tree decl = lookup_name ($3);
   if (decl)
 	 goto skip_decl;
@@ -2856,17 +2885,17 @@ K_FROM exp
  skip_decl:
   {}
   tree count = build_external_ref($3,1);
-  tree init = build_modify_expr (count, NOP_EXPR, $5);
+  tree init = build_modify_expr (count, NOP_EXPR, $4);
   c_expand_expr_stmt(init);
   RECHAIN_STMTS ($<type_node_p>2, FOR_INIT_STMT ($<type_node_p>2));
 }
-K_TO exp   by_exp  K_DO exp 
+to_exp   by_exp  K_DO exp 
 {
   tree count = build_external_ref($3,1);
-  tree check = parser_build_binary_op (LE_EXPR, count, $8);
+  tree check = parser_build_binary_op (LE_EXPR, count, $6);
   FOR_COND ($<type_node_p>2) = c_common_truthvalue_conversion (check);
 
-  tree incr_count=$9;
+  tree incr_count=$7;
   if (incr_count==0) {
 	 tree f = build_int_2(1,0);
 	 TREE_TYPE (f) = widest_integer_literal_type_node;
@@ -2875,9 +2904,31 @@ K_TO exp   by_exp  K_DO exp
   }
   tree incr = build_modify_expr (count, PLUS_EXPR, incr_count);
   FOR_EXPR ($<type_node_p>2) = incr;
-  c_expand_expr_stmt($11);
+
+  tree type = integer_type_node;
+
+  // next something based on cp build_local_temp
+  tree slot = build_decl (VAR_DECL, NULL_TREE, type);
+  DECL_ARTIFICIAL (slot) = 1;
+  DECL_CONTEXT (slot) = current_function_decl;
+  layout_decl (slot, 0);
+
+  tree decl = slot;
+  tree value = $9;
+  tree t = value;
+  // next something based on cp build_target_expr
+
+  if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
+  if (TREE_CODE(t)==VAR_DECL && DECL_ARTIFICIAL (slot)) 
+    goto skip_this;
+  //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
+  t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value, 0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
+  TREE_SIDE_EFFECTS (t) = 1;
+
+ skip_this:
+  c_expand_expr_stmt(t);
   RECHAIN_STMTS ($<type_node_p>2, FOR_BODY ($<type_node_p>2));
-  $$=0;
+  $$=decl;
 }
 ;
 indexed_loop_type:
