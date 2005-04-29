@@ -107,7 +107,7 @@
   int bli_init_reswords (void);
   int yylex ( void );
   int something_that_uses_yyunput(void);
-  int add_tree_string(tree, const char *, int);
+  int add_tree_string(tree, const char *, int, int);
   void strip_par(char *);
 
 #define MAX_INCLUDE_DEPTH 40
@@ -1932,9 +1932,9 @@ hexdigit [0-9a-f]
 	   }
 	   tree t = tree_last(macroact);
 	   if (macrocomma=='=')
-	     add_tree_string(TREE_TYPE(t), yytext, 1);
+	     add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 	   else
-	     add_tree_string(t, yytext, 1);
+	     add_tree_string(t, yytext, 1, 0);
 	 }
 	 goto out;
   }
@@ -1945,9 +1945,9 @@ hexdigit [0-9a-f]
 	 if (macro_stack_ptr>1) {
 		tree t = tree_last(macroact);
 		if (macrocomma=='=')
-		  add_tree_string(TREE_TYPE(t), yytext, 1);
+		  add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 		else
-		  add_tree_string(t, yytext, 1);
+		  add_tree_string(t, yytext, 1, 0);
 		pop_macro_stack();
 		goto out;
 	 }
@@ -1983,9 +1983,9 @@ hexdigit [0-9a-f]
 		if (macro_stack_ptr>1) {
 		  tree t = tree_last(macroact);
 		  if (macrocomma=='=')
-		    add_tree_string(TREE_TYPE(t), yytext, strlen(yytext));
+		    add_tree_string(TREE_TYPE(t), yytext, strlen(yytext), 1);
 		  else
-		    add_tree_string(t, yytext, strlen(yytext));
+		    add_tree_string(t, yytext, strlen(yytext), 0);
 		} else {
 		  if (*yytext==',')
 		    if (macroact==0) {
@@ -2004,10 +2004,9 @@ hexdigit [0-9a-f]
 		      if (TREE_TYPE(tree_last(macroact))==0)
 			TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
 		      else
-			add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext));
-		      add_tree_string(TREE_TYPE(tree_last(macroact)), " ", 1);
+			add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext), 1);
 		    } else {
-		      add_tree_string(t, yytext, strlen(yytext));
+		      add_tree_string(t, yytext, strlen(yytext), 0);
 		    }
 		  }
 		}
@@ -2090,8 +2089,7 @@ hexdigit [0-9a-f]
     if (TREE_TYPE(tree_last(macroact))==0)
       TREE_TYPE(tree_last(macroact))=build_string(strlen(use_yytext),use_yytext);
     else
-      add_tree_string(TREE_TYPE(tree_last(macroact)), use_yytext, strlen(use_yytext));
-    add_tree_string(TREE_TYPE(tree_last(macroact)), " ", 1);
+      add_tree_string(TREE_TYPE(tree_last(macroact)), use_yytext, strlen(use_yytext), 1);
     goto out_macro_comma;
   }
   if (macrocomma==',' && macro_stack_ptr==1) {
@@ -2100,7 +2098,7 @@ hexdigit [0-9a-f]
 	 macroact=chainon(macroact,build_string(strlen(use_yytext),use_yytext));
 #else
 	 tree t = tree_last(macroact);
-	 add_tree_string(t, use_yytext, strlen(use_yytext));
+	 add_tree_string(t, use_yytext, strlen(use_yytext), 0);
 #endif
   } else {
 	 if (macroact==0) {
@@ -2108,8 +2106,7 @@ hexdigit [0-9a-f]
 		goto out_macro_comma;
 	 }
 	 tree t = tree_last(macroact);
-	 add_tree_string(t, use_yytext, strlen(use_yytext));
-	 add_tree_string(t, " ", 1);
+	 add_tree_string(t, use_yytext, strlen(use_yytext), 1);
   }
  out_macro_comma:
   {}
@@ -2734,19 +2731,24 @@ change_macromode() {
 }
 
 int
-add_tree_string(t,s,len)
+add_tree_string(t,s,len,space)
 	  tree t;
 	  const char * s;
 	  int len;
+	  int space;
 {
   // maybe a source for leakage
   int orig_len = TREE_STRING_LENGTH (t);
   char str[1024]; // check bound overflow later
   memcpy(str, TREE_STRING_POINTER(t), orig_len);
-  memcpy(str+orig_len, s, len);
-  str[orig_len+len]=0;
-  TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len);
-  TREE_STRING_LENGTH (t) = orig_len+len;
+  if (space) {
+    str[orig_len]=32;
+    space=1;
+  }
+  memcpy(str+orig_len+space, s, len);
+  str[orig_len+len+space]=0;
+  TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len+space);
+  TREE_STRING_LENGTH (t) = orig_len+len+space;
   //  free(str); leak
 }
 
