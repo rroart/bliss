@@ -1895,7 +1895,7 @@ hexdigit [0-9a-f]
   }
 } 
 
-<macro>"%x"|"%X"|"%o"|"%O"|"%b"|"%B"|"%bpval"|"%BPVAL"|"%bpunit"|"%BPUNIT"|"%bpaddr"|%"BPADDR"|"%upval"|"%UPVAL" {
+<macro>"%x"|"%X"|"%o"|"%O"|"%b"|"%B"|"%bpval"|"%BPVAL"|"%bpunit"|"%BPUNIT"|"%bpaddr"|%"BPADDR"|"%upval"|"%UPVAL"|"%ASCID"|"%ascid"|"%ASCIC"|"%ascic"|"%ASCIZ"|"%asciz" {
   goto m_name;
 }
 
