@@ -1790,6 +1790,7 @@ routine_designator /*T_NAME*/ '(' io_list3 ')' {
 
   if (TREE_CODE(ref)!=FUNCTION_DECL) {
     tree decl = create_temp_var();
+    TREE_TYPE(decl)=default_function_type;
     tree t = set_temp_var(decl, ref);
     c_expand_expr_stmt(t);
     ref = decl;
