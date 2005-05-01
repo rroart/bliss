@@ -2009,10 +2009,7 @@ hexdigit [0-9a-f]
 	 // not yet? pop_nested_macro();
 	 if (nested_macro_stack_ptr==0) {
 		macrostart=0;
-#define NEW_MACRO
-#ifdef NEW_MACRO
 		free(macr);
-#endif
 		macr=0;
 		macroact=0;
 		macrocomma=1;
@@ -2060,9 +2057,7 @@ hexdigit [0-9a-f]
 	 // temp workaround if macros are simple enough?
 	 if (m->param==0 && m->param2==0) {
 		push_macro(make_macro_string(m,0));
-#ifdef NEW_MACRO
 		free(m);
-#endif
 		continue;
 	 }
   }
