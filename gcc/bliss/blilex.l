@@ -496,24 +496,6 @@ hexdigit [0-9a-f]
 	 }
 	 break;
 
-#if 0
-	 // dead code soon to be removed
-  case P_THEN: { if_mode = 0; then_mode = 1;
-  //printf("then nod %x\n" , yylval.type_node_p);
-  tree f=fold(yylval.type_node_p);
-  if (!quiet_flag) printf("f %x %x\n" , f, mylast());
-  push_cond_stack(0);
-  skip_mode=get_cond_stack()|integer_zerop(fold(mylast()));
-  if (!quiet_flag) printf("skip %x\n",skip_mode);
-  //yyless(yyleng);
-  exit(42);
-  se2=1;
-  return P_SOFTERROR3;
-  break;
-  }
-	 break;
-#endif
-
   case P_ELSE: {
 	 then_mode = 0;
 	 skip_mode=get_prev_cond_stack()|!get_cond_stack();
