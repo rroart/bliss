@@ -465,7 +465,7 @@ hexdigit [0-9a-f]
 		//yyless(yyleng);
 		return START_CTCE;
 #endif
-		char * my_end=my_strcasestr(my_yytext, "%then");
+		my_end=my_strcasestr(my_yytext, "%then");
 		int my_yyleng=5+my_end-my_yytext;
 		char myline[255];
 		memset(myline, 0, 255);
@@ -527,7 +527,6 @@ hexdigit [0-9a-f]
 
   case P_ALLOCATION: {
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, ')');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int my_yyleng=1+my_end-my_yytext;
 	 char myline[255];
@@ -570,7 +569,6 @@ hexdigit [0-9a-f]
 
   case P_ASSIGN: {
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int len=my_end-yytext+1;
 	 yyless(len);
@@ -613,7 +611,6 @@ hexdigit [0-9a-f]
 
   case P_BLISS: {
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, ')');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int my_yyleng=1+my_end-my_yytext;
 	 *my_end=0;
@@ -662,7 +659,6 @@ hexdigit [0-9a-f]
 
   case P_CHAR: {
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, ')');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 	 int len=my_end-yytext+1;
 	 yyless(len);
@@ -711,7 +707,6 @@ hexdigit [0-9a-f]
 
   case P_CHARCOUNT: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -762,7 +757,6 @@ hexdigit [0-9a-f]
 
   case P_CTCE: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -817,7 +811,6 @@ hexdigit [0-9a-f]
 
   case P_EXPLODE: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -891,8 +884,6 @@ hexdigit [0-9a-f]
   case P_NAME:
   case P_STRING: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
-	 my_end=my_strstrend(my_yytext,0);
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -1043,7 +1034,6 @@ hexdigit [0-9a-f]
 
   case P_EXACTSTRING: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -1177,7 +1167,6 @@ hexdigit [0-9a-f]
 
   case P_REMOVE: { 
 	 my_yytext=strchr(my_yytext,'(');
-	 char * my_end=strchr(my_yytext, '\n');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 	 while (*my_end!=')')
@@ -1259,7 +1248,7 @@ hexdigit [0-9a-f]
   case P_TITLE:
 	 {
 		my_yytext=strchr(my_yytext,39);
-		char * my_end=strchr(my_yytext+1, 39);
+		my_end=strchr(my_yytext+1, 39);
 		int my_yyleng=1+my_end-my_yytext;
 		int len=my_end-yytext+1;
 		yyless(len);
@@ -1270,8 +1259,6 @@ hexdigit [0-9a-f]
   case P_DECLARED:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
-		my_end=my_strstrend(my_yytext,0);
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
@@ -1332,7 +1319,7 @@ hexdigit [0-9a-f]
   case P_NULL:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=my_strstrendbal(my_yytext, 0, 0, 1);
+		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
 		  my_end--;
@@ -1396,7 +1383,6 @@ hexdigit [0-9a-f]
   case P_IDENTICAL:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
@@ -1459,7 +1445,6 @@ hexdigit [0-9a-f]
   case P_ISSTRING:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
@@ -1519,7 +1504,6 @@ hexdigit [0-9a-f]
   case P_FIELDEXPAND:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
@@ -1621,7 +1605,6 @@ hexdigit [0-9a-f]
   case P_NUMBER:
 	 {
 		my_yytext=strchr(my_yytext,'(');
-		char * my_end=strchr(my_yytext, '\n');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
 		while (*my_end!=')')
@@ -1727,7 +1710,6 @@ hexdigit [0-9a-f]
     {
       // not really implemented
       my_yytext=strchr(my_yytext,'(');
-      char * my_end=strchr(my_yytext, '\n');
       my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
       while (*my_end!=')')
