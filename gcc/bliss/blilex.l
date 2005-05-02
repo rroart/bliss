@@ -453,6 +453,7 @@ hexdigit [0-9a-f]
 
   int retval = 0;
   char * my_yytext=yytext+strlen(yytext);
+  char * my_end;
   yyless(strlen(yytext));
 
   switch (key) {
