@@ -69,6 +69,7 @@
   int last_p=0;
   int one_lexeme=0;
   int balanced_lexemes=0;
+  int do_quote=0;
 
   int blipre_lineno=1;
   int blipre_charno=1;
@@ -372,7 +373,9 @@ hexdigit [0-9a-f]
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   s=strdup(yytext);
   //fprintf(stderr, "TDIG %s\n",s); fflush(stderr); 
-  yylval.type_node_p=copy_node(get_identifier(s));
+  //yylval.type_node_p=copy_node(get_identifier(s));
+  //yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
+  yylval.type_node_p=build_int_2(atoi(yytext),0);
   return T_DIGITS;
 }
 
@@ -386,6 +389,21 @@ hexdigit [0-9a-f]
   int key=0;
 
   downcase (yytext);
+  if (do_quote) {
+    do_quote=0;
+    if (macromode)
+      goto out_do_quote;
+#if 1
+    yylval.type_node_p = get_identifier(yytext);
+#else
+    yylval.type_node_p = maybe_get_identifier(yytext);
+    if (yylval.type_node_p==0)
+      yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
+#endif
+    return T_NAME;
+  out_do_quote:
+    {}
+  }
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
@@ -407,15 +425,26 @@ hexdigit [0-9a-f]
 #endif
     onlytname:
       s=strdup(yytext);
-      yylval.type_node_p=get_identifier(s);
-      tree label = is_label (yylval.type_node_p);
-      if (m==0 && label) return T_LABELNAME; // workaround, temp
+#if 1
+      yylval.type_node_p=get_identifier(yytext);
+      //yylval.type_node_p=build_string(strlen(yytext),yytext);
+#else
+      yylval.type_node_p = maybe_get_identifier(yytext);
+      if (yylval.type_node_p==0)
+	yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
+#endif
+      tree label = is_label (maybe_get_identifier(yytext));
+      if (m==0 && label) {
+	//yylval.type_node_p=get_identifier(s);
+	return T_LABELNAME; // workaround, temp
+      }
       tree field = find_field (s);
       if (m==0 && field) return T_FIELDNAME; // workaround, temp
       if (m==0) return T_NAME;
     }
   /*yylval.type_str=strdup(yytext);*/
   yylval.type_node_p=get_identifier(yytext);
+  //yylval.type_node_p=build_string(strlen(yytext),yytext);
   return key;
 }
 
@@ -510,7 +539,16 @@ hexdigit [0-9a-f]
   case P_FI: { /*skip_mode = 0;*/ pop_cond_stack(); pop_cond_stack(); /*yyless(yyleng);*/ yyless(3); key=-1; }
 	 break;
 
-  case P_QUOTE: { /* quote_mode_next = 1; */ yyless(6/*yyleng*/); key=-1; }
+  case P_QUOTE: {
+    if (do_quote && macromode) {
+      do_quote=0;
+      yylval.type_node_p = build_string(strlen(yytext),yytext);
+      return LEXEME;
+    }
+    yyless(6/*yyleng*/);
+    do_quote=1;
+    key=-1;
+  }
 	 break;
 
   case P_EXPAND: { /* quote_mode_next = 1; */ yyless(7/*yyleng*/); key=-1; }
@@ -544,7 +582,9 @@ hexdigit [0-9a-f]
   
 	 myline[1]=0;
 	 myline[0]='4';
-	 yylval.type_node_p=copy_node(get_identifier(myline));
+	 //yylval.type_node_p=copy_node(get_identifier(myline));
+	 //yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
+	 yylval.type_node_p=build_int_2(4,0);
 	 pname_macro(myline);
 	 retval=T_DIGITS;
 	 goto out_data;
@@ -630,11 +670,15 @@ hexdigit [0-9a-f]
 	 yyless(len);
 	 myline[1]=0;
 	 if (is32)
+	   is32=1;
+	 if (is32)
 		myline[0]='1';
 	 else
 		myline[0]='0';
 	 //printf("is32 %x\n",is32);
-	 yylval.type_node_p=copy_node(get_identifier(myline));
+	 //yylval.type_node_p=copy_node(get_identifier(myline));
+	 //yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
+	 yylval.type_node_p=build_int_2(is32,0);
 	 pname_macro(myline);
 	 retval=T_DIGITS;
 	 goto out_data;
@@ -697,7 +741,8 @@ hexdigit [0-9a-f]
 	 myret[myretp]=39;
 	 char * s = strdup(myret);
 	 if (!quiet_flag) printf("myret %s\n",s);
-	 yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(get_identifier(s));
+	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
 	 pname_macro(s);
 	 retval = T_STRING;
 
@@ -747,7 +792,9 @@ hexdigit [0-9a-f]
 	 sprintf(myline,"%d",myret);
 	 char * s = strdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
-	 yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
+	 yylval.type_node_p=build_int_2(myret,0);
 	 pname_macro(s);
 	 retval = T_DIGITS;
 
@@ -801,7 +848,9 @@ hexdigit [0-9a-f]
 	 sprintf(myline,"%d",myret);
 	 char * s = strdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
-	 yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
+	 yylval.type_node_p=build_int_2(myret,0);
 	 pname_macro(s);
 	 retval = T_DIGITS;
 
@@ -959,11 +1008,17 @@ hexdigit [0-9a-f]
 
 	 {}
 
-	 char * start = IDENTIFIER_POINTER(t);
+	 char * start=0;
+	 if (TREE_CODE(t)==IDENTIFIER_NODE) start=IDENTIFIER_POINTER(t);
+	 if (TREE_CODE(t)==STRING_CST) start=TREE_STRING_POINTER(t);
 
-	 if (key==P_NAME && TREE_CODE(t)==IDENTIFIER_NODE && *start!=39) {
-		int len=IDENTIFIER_LENGTH(t);
-		memcpy(&myret[myretp],IDENTIFIER_POINTER(t),len);
+	 if (key==P_NAME && (TREE_CODE(t)==IDENTIFIER_NODE || TREE_CODE(t)==STRING_CST) && *start!=39) {
+		int len;
+		if (TREE_CODE(t)==IDENTIFIER_NODE)
+		  len=IDENTIFIER_LENGTH(t);
+		else
+		  len=TREE_STRING_LENGTH(t);
+		memcpy(&myret[myretp],start,len);
 		myretp+=len;
 		goto str_out;
 	 }
@@ -986,7 +1041,8 @@ hexdigit [0-9a-f]
 
 	 char * s = strdup(myret);
 	 if (!quiet_flag) printf("myrets %s\n",s);
-	 yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(get_identifier(s));
+	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
 
 	 void (*fn)()=0;
 	 char * str;
@@ -1017,6 +1073,7 @@ hexdigit [0-9a-f]
 		str="ERRORMACRO";
 		break;
 	 case P_NAME:
+	   yylval.type_node_p=get_identifier(s);
 	   pname_macro(s);
 		retval=T_NAME;
 		goto out_data;
@@ -1157,7 +1214,8 @@ hexdigit [0-9a-f]
 
 	 char * s = strdup(myret);
 	 if (!quiet_flag) printf("myretexs %s\n",s);
-	 yylval.type_node_p=copy_node(get_identifier(s));
+	 //yylval.type_node_p=copy_node(get_identifier(s));
+	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
 	 pname_macro(s);
 
 	 retval=T_STRING;
@@ -1284,10 +1342,12 @@ hexdigit [0-9a-f]
 		memset(myline, 0, 255);
 		memcpy(myline,my_yytext,1+my_end-my_yytext);
 
-#if 0
-		printf("decl0 %s\n",myline);
+#if 1
+		if (!quiet_flag) printf("decl0 %s\n",myline);
 		tree n = parse_this(myline);
-		char * myline2=IDENTIFIER_POINTER(n);
+		char * myline2=0;
+		if (TREE_CODE(n)==IDENTIFIER_NODE) myline2=IDENTIFIER_POINTER(n);
+		if (TREE_CODE(n)==STRING_CST) myline2=TREE_STRING_POINTER(n);
 #else
 		char * quote=my_strcasestr(myline,"%quote");
 		char * myline2=myline;
@@ -1301,14 +1361,20 @@ hexdigit [0-9a-f]
 		tree is_there = maybe_get_identifier(myline2);
 		if (is_there==0)
 		  find_macro(0,myline2);
+		if (is_there)
+		  is_there=is_something(is_there);
 		if (!quiet_flag) printf("decl %s %x\n",myline2,is_there);
 
 		myline[1]=0;
 		if (is_there)
+		  is_there=1;
+		if (is_there)
 		  myline[0]='1';
 		else
 		  myline[0]='0';
-		yylval.type_node_p=copy_node(get_identifier(myline));
+		//yylval.type_node_p=copy_node(get_identifier(myline));
+		//yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
+		yylval.type_node_p=build_int_2(is_there,0);
 		pname_macro(myline);
 		retval=T_DIGITS;
 		goto out_data;
@@ -1369,10 +1435,16 @@ hexdigit [0-9a-f]
 		else
 		  myline[0]='0';
 		myline[1]=0;
+		if (myret==0)
+		  myret=1;
+		else
+		  myret=0;
 
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("null %s\n",s);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(myret,0);
 		pname_macro(s);
 
 		retval=T_DIGITS;
@@ -1434,7 +1506,9 @@ hexdigit [0-9a-f]
 
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("ident %s\n",s);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(myline[0]-48,0);
 		pname_macro(s);
 
 		retval=T_DIGITS;
@@ -1493,7 +1567,9 @@ hexdigit [0-9a-f]
 
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("isstr %s\n",s);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(myline[0]-48,0);
 		pname_macro(s);
 
 		retval=T_DIGITS;
@@ -1594,7 +1670,9 @@ hexdigit [0-9a-f]
 		sprintf(myline,"%d",len);
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("len %s\n",s);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(len,0);
 		pname_macro(s);
 
 		retval=T_DIGITS;
@@ -1648,7 +1726,9 @@ hexdigit [0-9a-f]
 		sprintf(myline,"%d",v);
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("number %s\n",s);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(v,0);
 		pname_macro(s);
 
 		retval=T_DIGITS;
@@ -1668,7 +1748,9 @@ hexdigit [0-9a-f]
 		memset(myline,0,255);
 		sprintf(myline,"%d",cond_iter_macro_count);
 		char * s = strdup(myline);
-		yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(get_identifier(s));
+		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
+		yylval.type_node_p=build_int_2(cond_iter_macro_count,0);
 		pname_macro(s);
 
 		cond_iter_macro_count=0; // reset it here because cannot in cond itself?
@@ -1727,7 +1809,9 @@ hexdigit [0-9a-f]
       myline[1]=0;
 
       char * s = strdup(myline);
-      yylval.type_node_p=copy_node(get_identifier(s));
+      //yylval.type_node_p=copy_node(get_identifier(s));
+      //yylval.type_node_p=copy_node(build_string(strlen(s),s));
+      yylval.type_node_p=build_int_2(0,0);
       pname_macro(s);
 
       retval=T_DIGITS;
@@ -1792,6 +1876,11 @@ hexdigit [0-9a-f]
 }
 
 "%"				{
+  if (do_quote && macromode) {
+    do_quote=0;
+    yylval.type_node_p = build_string(strlen(yytext),yytext);
+    return LEXEME;
+  }
   if (macromode) macromode=0;
   if (skip_mode && if_mode == 0) {
     yyless(yyleng);
@@ -1819,7 +1908,8 @@ hexdigit [0-9a-f]
   }
 #endif
   s=strdup(yytext);
-  yylval.type_node_p=copy_node(get_identifier(s));
+  //yylval.type_node_p=copy_node(get_identifier(s));
+  yylval.type_node_p=copy_node(build_string(strlen(s),s));
   return T_STRING;
 }
 
