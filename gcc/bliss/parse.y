@@ -960,10 +960,12 @@ decimal_literal  { /* TREE_TYPE($1)=integer_type_node;*/ }
 
 decimal_literal: 
 T_DIGITS { 
-  tree t;
-  t = build_int_2(atoi(IDENTIFIER_POINTER($1)),0);
+  tree t=$1;
+#if 0
+  t = build_int_2(atoi(TREE_STRING_POINTER($1)),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
+#endif
   $$ = t;
  }
 ;
@@ -976,28 +978,28 @@ opt_sign: { $$=0; }
 integer_literal: 
 P_B T_STRING  { 
   tree t;
-  t = build_int_2(1+strtol(IDENTIFIER_POINTER($2),0,2),0);
+  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,2),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_O T_STRING  {
   tree t;
-  t = build_int_2(1+strtol(IDENTIFIER_POINTER($2),0,8),0);
+  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,8),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_DECIMAL T_STRING  {
   tree t;
-  t = build_int_2(1+strtol(IDENTIFIER_POINTER($2),0,10),0);
+  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,10),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_X T_STRING  {
   tree t;
-  t = build_int_2(strtol(1+IDENTIFIER_POINTER($2),0,16),0);
+  t = build_int_2(strtol(1+TREE_STRING_POINTER($2),0,16),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
@@ -1021,7 +1023,7 @@ integer_digit:   digits
 
 character_code_literal: P_C T_STRING { 
   tree t;
-  t = build_int_2(*(char*)(1+IDENTIFIER_POINTER($2)),0);
+  t = build_int_2(*(char*)(1+TREE_STRING_POINTER($2)),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
@@ -1065,7 +1067,7 @@ digits: digits T_DIGITS
 // not quite right implemented with regard to all types
 string_literal:  string_type T_STRING2 {
   enum ps type = $1;
-  char * str=IDENTIFIER_POINTER($2);
+  char * str=TREE_STRING_POINTER($2);
   int len=strlen(str)-2;
   str++;
   switch (type) {
@@ -4304,7 +4306,7 @@ require_declaration: K_REQUIRE T_STRING ';'
 {
   //push_srcloc($2,0);
   //pushfilestack();
-  char *new=xstrdup(IDENTIFIER_POINTER($2)+1);
+  char *new=xstrdup(TREE_STRING_POINTER($2)+1);
   new[strlen(new)-1]=0;
   char * colon = strchr(new,':');
   if (colon)
@@ -4326,7 +4328,7 @@ library_declaration: K_LIBRARY T_STRING ';'
   // approx. doing the same as require, since we have no librarian utility
   //push_srcloc($2,0);
   //pushfilestack();
-  char *new=xstrdup(IDENTIFIER_POINTER($2)+1);
+  char *new=xstrdup(TREE_STRING_POINTER($2)+1);
   new[strlen(new)-1]=0;
   char * colon = strchr(new,':');
   if (colon)
@@ -5490,7 +5492,10 @@ add_macro(char * name, int type, tree param, tree param2, tree body) {
 
 void *
 find_macro(struct mymacro * s,char * name) {
-  tree id=get_identifier(name);
+  tree id=maybe_get_identifier(name);
+
+  if (id==0)
+    return 0;
 
   tree tag = IDENTIFIER_TAG_VALUE (id);
 
@@ -5951,9 +5956,38 @@ find_structure_attr(t)
 
 tree
 is_label(t)
-	  tree t;
+     tree t;
 {
+  if (t==0)
+    return t;
   return IDENTIFIER_LABEL_VALUE(t);
+}
+
+tree
+is_symbol(t)
+     tree t;
+{
+  if (t==0)
+    return t;
+  return IDENTIFIER_SYMBOL_VALUE(t);
+}
+
+tree
+is_tag(t)
+     tree t;
+{
+  if (t==0)
+    return t;
+  return IDENTIFIER_TAG_VALUE(t);
+}
+
+tree
+is_something(t)
+     tree t;
+{
+  if (t==0)
+    return t;
+  return IDENTIFIER_SYMBOL_VALUE(t)||IDENTIFIER_TAG_VALUE(t)||IDENTIFIER_LABEL_VALUE(t);
 }
 
 char *
