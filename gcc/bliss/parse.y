@@ -1128,10 +1128,17 @@ string_literal:  string_type T_STRING2 {
 	 tree first;
 	 tree high;
 	 tree shift;
+	 tree string;
 	 int cpu_le=check_little_endian();
 
-	 tree string = build_string(len, str);
-
+	 if (len)
+	   string = build_string(len, str);
+	 else
+	   goto skip_build_string_etc;
+#if 0
+	 else
+	   string = build_string(1, "");
+#endif
 #if 0
 	 tree decl = build_decl (CONST_DECL, 0, string_type_node);
 	 DECL_INITIAL(decl)=string;
@@ -1142,6 +1149,13 @@ string_literal:  string_type T_STRING2 {
 	 sprintf(s2,"_dsc_a_pointer%d",icc);
 	 tree d2 = build_nt(ARRAY_REF,get_identifier(s2),build_int_2(len+1,0));
 	 tree decl = start_decl(d2, tree_cons(0, char_type_node, 0), 1, 0);
+	 if (len<4) {
+	   int tmp_len=len+1;
+	   tree index_type = c_common_signed_type (sizetype);
+	   tree itype = fold (convert (index_type, build_int_2(tmp_len, 0))); 
+	   itype = build_index_type (itype);
+	   TREE_TYPE(decl) = build_array_type (char_type_node, itype);
+	 }
 	 start_init(decl,NULL,global_bindings_p());
 	 finish_init();
 
@@ -1158,7 +1172,10 @@ string_literal:  string_type T_STRING2 {
 #else
 	 tree addr = build_unary_op (ADDR_EXPR, decl, 0);
 #endif
-
+	 skip_build_string_etc:
+	 if (len==0) {
+	   addr=build_int_2(0,0); // later: init this to be start of dsc
+	 }
 	 addr = convert (integer_type_node, addr);
 
 #if 0
@@ -2137,11 +2154,12 @@ opexp9 '=' opexp9 {
 
 opexp9:
 primary
-| operator_expression  { 
-  //$$=c_expand_expr_stmt($1); abort(); 
-}
-|executable_function 
+|
+operator_expression 
+|
+executable_function 
 ;
+
 infix_expression: op_exp infix_operator op_exp { abort(); }
 ;
 
@@ -2514,14 +2532,32 @@ K_SET case_line_list K_TES
 ;
 
 case_line_list:
-case_line_list case_line 
+case_line_list
+{ 
+  yyrec = 1;
+  // handle no ; before tes
+}
+case_line 
 |
+{ 
+  yyrec = 1;
+  // handle no ; before tes
+}
 case_line 
 ;
 
 case_line:
 '[' case_label_list ']' ':' case_action ';'
 {
+  //chainon ($2, build_stmt (EXPR_STMT, $5));
+  add_stmt (build_stmt (EXPR_STMT, $5));
+  add_stmt (build_break_stmt ()); // selectone always
+}
+|
+'[' case_label_list ']' ':' case_action error
+{
+  yyerrok;
+  // another deviation. handle no ';' before tes
   //chainon ($2, build_stmt (EXPR_STMT, $5));
   add_stmt (build_stmt (EXPR_STMT, $5));
   add_stmt (build_break_stmt ()); // selectone always
@@ -2629,7 +2665,10 @@ select_line_list select_line
 |
 select_line 
 |
-error { yyerrok; }
+error {
+  yyerrok;
+  // handle empty otherwise
+}
 ;
 
 select_line:
