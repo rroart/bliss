@@ -23,9 +23,8 @@ incr/decr with implicitly declared count
 leave . with ..
 
 get a working if_then with value 
-
 check if block_value implementation is usable?
-not much. might give double code.
+remember to make more temp vars to return of conditionals
 
 fix up the grammar with regard to shift/reduce reduce/reduce
 
