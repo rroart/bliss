@@ -4438,7 +4438,7 @@ K_LABEL label_name_list ';'
 }
 ;
 
-builtin_declaration: K_BUILTIN { $$ = 0; }
+builtin_declaration: K_BUILTIN tname_list ';' { $$ = 0; }
  ;
 undeclare_declaration: K_UNDECLARE tname_list ';' { $$ = 0; }
  ;
