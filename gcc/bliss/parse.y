@@ -3089,7 +3089,7 @@ attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 | initial_attribute 
 | preset_attribute 
 | { undefmode=1; } psect_allocation{ undefmode=0; $$=$2; }
-| volatile_attribute 
+| volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 | novalue_attribute 
 | linkage_attribute  
 | range_attribute 
@@ -3458,7 +3458,7 @@ allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |initial_attribute 
 |preset_attribute 
 |psect_allocation 
-|volatile_attribute 
+|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 ;
 
 global_declaration: K_GLOBAL global_item_list  ';' { $$ = 0; }
@@ -4195,7 +4195,7 @@ allocation_unit
 |extension_attribute 
 |structure_attribute 
 |field_attribute 
-|volatile_attribute 
+|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 ;
 routine_attribute: novalue_attribute 
 |linkage_attribute 
@@ -4588,7 +4588,7 @@ allocation_unit  { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-|volatile_attribute 
+|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 |weak_attribute 
 ;
 
