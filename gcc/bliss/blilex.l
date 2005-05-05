@@ -42,6 +42,7 @@
   extern int yydebug;
   extern int yy2debug;
   extern int quiet_flag;
+  int opexpcnt=0;
 
   char * s;
 
@@ -353,6 +354,7 @@ hexdigit [0-9a-f]
 
 	 if (*text=='=') {}
 #endif
+#if 0
 	 if (last_eq) {
 		last_eq=0;
 		if (*yytext=='+')
@@ -360,6 +362,22 @@ hexdigit [0-9a-f]
 		else
 		  return UMINUS;
 	 }
+#else
+	 if (opexpcnt==0) {
+		if (*yytext=='+')
+		  return UPLUS;
+		else
+		  return UMINUS;
+	 }
+#endif
+  }
+
+  if (*yytext=='=' || *yytext=='(' || *yytext=='[')
+    opexpcnt=0; // for unary op workaround
+  else {
+#if 0
+    opexpcnt++;
+#endif
   }
 
   return *yytext;
@@ -376,6 +394,7 @@ hexdigit [0-9a-f]
   //yylval.type_node_p=copy_node(get_identifier(s));
   //yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
   yylval.type_node_p=build_int_2(atoi(yytext),0);
+  opexpcnt++; // for unary op workaround
   return T_DIGITS;
 }
 
@@ -439,12 +458,14 @@ hexdigit [0-9a-f]
 	return T_LABELNAME; // workaround, temp
       }
       tree field = find_field (s);
+      opexpcnt++; // for unary op workaround
       if (m==0 && field) return T_FIELDNAME; // workaround, temp
       if (m==0) return T_NAME;
     }
   /*yylval.type_str=strdup(yytext);*/
   yylval.type_node_p=get_identifier(yytext);
   //yylval.type_node_p=build_string(strlen(yytext),yytext);
+  opexpcnt=0; // for unary op workaround
   return key;
 }
 
