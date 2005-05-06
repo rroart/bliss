@@ -2082,7 +2082,7 @@ hexdigit [0-9a-f]
 		      else
 			add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext), 1);
 		    } else {
-		      add_tree_string(t, yytext, strlen(yytext), 0);
+		      add_tree_string(t, yytext, strlen(yytext), 1);
 		    }
 		  }
 		}
@@ -2169,7 +2169,10 @@ hexdigit [0-9a-f]
 	 macroact=chainon(macroact,build_string(strlen(use_yytext),use_yytext));
 #else
 	 tree t = tree_last(macroact);
-	 add_tree_string(t, use_yytext, strlen(use_yytext), 0);
+	 int space=0;
+	 if (TREE_STRING_LENGTH(t))
+	   space=1;
+	 add_tree_string(t, use_yytext, strlen(use_yytext), space);
 #endif
   } else {
 	 if (macroact==0) {
