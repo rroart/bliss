@@ -1131,7 +1131,7 @@ string_literal:  string_type T_STRING2 {
 	 tree string;
 	 char mystr[1024];
 	 int new_len=1+((len+3)&1021);
-	 memset(mystr+new_len-3, 0, 4);
+	 memset(mystr+new_len-4, 0, 5);
 	 memcpy(mystr, str, len);
 	 int cpu_le=check_little_endian();
 
@@ -4310,13 +4310,20 @@ K_EXTERNAL K_ROUTINE external_routine_item_list ';' { $$ = 0; }
 external_routine_item_list: external_routine_item_list ',' external_routine_item 
 |external_routine_item 
 ;
-external_routine_item: routine_name ':' ext_routine_attribute_list 
-| routine_name { 
+
+maybe_ext_routine_attribute_list:
+|
+':' ext_routine_attribute_list
+;
+
+external_routine_item: routine_name maybe_ext_routine_attribute_list 
+{ 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, 1);
 }
 ;
+
 ext_routine_attribute_list:
 ext_routine_attribute_list ext_routine_attribute 
 |ext_routine_attribute 
