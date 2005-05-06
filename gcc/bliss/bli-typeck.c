@@ -1949,6 +1949,7 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
 	typetail = TREE_CHAIN (typetail);
     }
 
+#if 0
   if (typetail != 0 && TREE_VALUE (typetail) != void_type_node)
     {
       if (name)
@@ -1957,6 +1958,7 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
       else
 	error ("too few arguments to function");
     }
+#endif
 
   return nreverse (result);
 }
