@@ -528,6 +528,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> external_attribute external_name
 %type <type_node_p> switch_item_list switch_item on_off_switch_item 
 %type <type_node_p> special_switch_item
+%type <type_node_p> expr_list
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -576,8 +577,10 @@ save_location
   finish_fname_decls ();
   finish_file ();
 }
+/*
 |
 expression END_EXPR { last_expr = $1; YYACCEPT; }
+*/
 |
 maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
 |
@@ -593,17 +596,31 @@ T_NAME END_EXPR
   YYACCEPT; 
 }
 |
-tname_list END_EXPR 
+expr_list END_EXPR 
 {
   // not quite finished? to catch parse(%remaining)
-  last_expr = $1;
-  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
-    last_expr=TREE_TYPE($1);
+  tree d1=$1;
+  d1=TREE_VALUE(d1);
+  last_expr = d1;
+  if (TREE_CODE(d1)==IDENTIFIER_NODE && TREE_TYPE(d1) && TREE_CODE(TREE_TYPE(d1))==INTEGER_CST) {
+    last_expr=TREE_TYPE(d1);
   }
-  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
-    last_expr=get_identifier(TREE_TYPE($1));
+  if (TREE_CODE(d1)==IDENTIFIER_NODE && TREE_TYPE(d1) && TREE_CODE(TREE_TYPE(d1))==IDENTIFIER_NODE) {
+    last_expr=get_identifier(TREE_TYPE(d1));
   }
   YYACCEPT; 
+}
+;
+
+expr_list:
+expr_list ',' expression
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+expression
+{
+  $$ = build_tree_list (NULL_TREE, $1);
 }
 ;
 
