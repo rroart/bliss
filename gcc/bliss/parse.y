@@ -1129,10 +1129,14 @@ string_literal:  string_type T_STRING2 {
 	 tree high;
 	 tree shift;
 	 tree string;
+	 char mystr[1024];
+	 int new_len=1+((len+3)&1021);
+	 memset(mystr+new_len-3, 0, 4);
+	 memcpy(mystr, str, len);
 	 int cpu_le=check_little_endian();
 
 	 if (len)
-	   string = build_string(len, str);
+	   string = build_string(new_len, mystr);
 	 else
 	   goto skip_build_string_etc;
 #if 0
@@ -1147,15 +1151,17 @@ string_literal:  string_type T_STRING2 {
 	 TREE_TYPE(string)=string_type_node;
 	 char s2[32];
 	 sprintf(s2,"_dsc_a_pointer%d",icc);
-	 tree d2 = build_nt(ARRAY_REF,get_identifier(s2),build_int_2(len+1,0));
+	 tree d2 = build_nt(ARRAY_REF,get_identifier(s2),build_int_2(new_len/*+1*/,0));
 	 tree decl = start_decl(d2, tree_cons(0, char_type_node, 0), 1, 0);
+#if 0
 	 if (len<4) {
 	   int tmp_len=len+1;
 	   tree index_type = c_common_signed_type (sizetype);
-	   tree itype = fold (convert (index_type, build_int_2(tmp_len, 0))); 
+	   tree itype = fold (convert (index_type, build_int_2(5, 0))); 
 	   itype = build_index_type (itype);
 	   TREE_TYPE(decl) = build_array_type (char_type_node, itype);
 	 }
+#endif
 	 start_init(decl,NULL,global_bindings_p());
 	 finish_init();
 
