@@ -4790,11 +4790,26 @@ T_NAME
 linkage_definition_list: linkage_definition_list ',' linkage_definition 
 |linkage_definition 
 ;
-linkage_definition: T_NAME '=' linkage_type 
+linkage_definition: linkage_name '=' linkage_type linkage_type_stuff maybe_linkage_option
 ;
 
 linkage_type: U_CALL  { $$ = 0; }
 | T_NAME 
+;
+
+linkage_type_stuff:
+|
+'(' maybe_input_parameter_location_list maybe_output_parameter_location_list ')'
+;
+
+maybe_input_parameter_location_list:
+|
+input_parameter_location_list
+;
+
+maybe_output_parameter_location_list:
+|
+';' output_parameter_location_list
 ;
 
 input_parameter_location_list:input_parameter_location_list ',' input_parameter_location 
@@ -4812,6 +4827,59 @@ input_parameter_location: U_STANDARD  { $$ = 0; }
 output_parameter_location:
 '(' K_REGISTER '=' T_DIGITS ')' { $$ = 0; }
 ;
+
+maybe_linkage_option:
+|
+':'
+{ 
+  undefmode=1;
+}
+linkage_option_list
+{
+  undefmode=0;
+}
+;
+
+linkage_option_list:
+linkage_option_list linkage_option
+|
+linkage_option
+;
+
+linkage_option:
+K_GLOBAL '(' global_register_segment_list ')'
+|
+U_PRESERVE '(' register_number_list ')'
+{
+  // another one not according to specs
+}
+|
+U_NOPRESERVE '(' register_number_list ')'
+|
+U_NOTUSED '(' register_number_list ')'
+;
+
+global_register_segment_list:
+global_register_segment_list ',' global_register_segment
+|
+global_register_segment
+;
+
+global_register_segment:
+global_register_name '=' register_number
+;
+
+global_register_name:
+T_NAME
+;
+
+register_number_list:
+register_number_list ',' register_number
+|
+register_number
+;
+
+register_number: ctce;
 
 psect_item_list: psect_item_list ',' psect_item 
 |psect_item 
