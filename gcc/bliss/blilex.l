@@ -471,14 +471,25 @@ hexdigit [0-9a-f]
 
 "%"{name}			{
  p_name:
-  /* store that string w/o '' */
-  if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
-
+  {}
   int my_yyleng=0;
   signed int key = -3;
   downcase (yytext);
   key = keyword (yytext);
   int key_len = strlen(yytext);
+
+  if (macromode) {
+    if (do_quote) {
+      do_quote=0;
+      goto do_ret_lex;
+    } 
+    if (key==P_QUOTE)
+      goto p_quote;
+  do_ret_lex:
+    yylval.type_node_p = build_string(strlen(yytext),yytext);
+    return LEXEME;
+  }
+
 #if 0
   if (key==-1)
 	 {
@@ -561,11 +572,14 @@ hexdigit [0-9a-f]
 	 break;
 
   case P_QUOTE: {
+  p_quote:
+#if 0
     if (do_quote && macromode) {
       do_quote=0;
       yylval.type_node_p = build_string(strlen(yytext),yytext);
       return LEXEME;
     }
+#endif
     yyless(6/*yyleng*/);
     do_quote=1;
     key=-1;
