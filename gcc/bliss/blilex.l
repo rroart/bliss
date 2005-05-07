@@ -1061,8 +1061,10 @@ hexdigit [0-9a-f]
 	 start++;
 	 char * end = strchr(start,39);
 
-	 memcpy(&myret[myretp],start,end-start);
-	 myretp+=strlen(&myret[myretp]);
+	 if (end) {
+	   memcpy(&myret[myretp],start,end-start);
+	   myretp+=strlen(&myret[myretp]);
+	 }
 
   str_out:
 
