@@ -372,7 +372,7 @@ hexdigit [0-9a-f]
 #endif
   }
 
-  if (*yytext=='=' || *yytext=='(' || *yytext=='[')
+  if (*yytext=='=' || *yytext=='(' || *yytext=='[' || *yytext==',')
     opexpcnt=0; // for unary op workaround
   else {
 #if 0
