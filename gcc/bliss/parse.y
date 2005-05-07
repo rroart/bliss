@@ -4825,7 +4825,7 @@ input_parameter_location: U_STANDARD  { $$ = 0; }
 ;
 
 output_parameter_location:
-'(' K_REGISTER '=' T_DIGITS ')' { $$ = 0; }
+K_REGISTER '=' T_DIGITS { $$ = 0; }
 ;
 
 maybe_linkage_option:
