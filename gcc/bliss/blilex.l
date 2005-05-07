@@ -2869,3 +2869,15 @@ pname_macro(src)
   memcpy(pname_out,src,len);
   pname_out[len]=0;
 }
+
+check_lib(s) 
+     char * s;
+{
+  // lib.req is really compiled lib and seems to imply starlet, too
+  downcase(s);
+  if (0==strcmp("lib",s)) {
+    char * f="starlet.req";
+    if (!is_opened(f))
+      push_req_stack(f);
+  }
+}

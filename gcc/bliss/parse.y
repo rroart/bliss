@@ -4405,6 +4405,7 @@ library_declaration: K_LIBRARY T_STRING ';'
   char * brack = strchr(new,']');
   if (brack)
 	 new=brack+1;
+  check_lib(new);
   char * new2 = my_strcat(new,".req",0);
   if (!is_opened(new2))
 	 push_req_stack(new2);
