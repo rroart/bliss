@@ -214,10 +214,10 @@ bli_common_parse_file(set_yydebug)
  tree find_tree_code(tree, int);
  char * my_strcat(const char *, const char *, int);
  char * my_strcat_gen(const char *, const char *, int);
- tree temp_value(tree);
  tree handle_preset(tree, tree, tree, tree);
  tree convert_field_ref_to_decl(tree,tree);
  tree handle_structure(tree, tree, int);
+ tree handle_structure_attribute(tree, tree, int);
  tree create_temp_var();
  tree set_temp_var(tree, tree);
 
@@ -528,7 +528,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> external_attribute external_name
 %type <type_node_p> switch_item_list switch_item on_off_switch_item 
 %type <type_node_p> special_switch_item
-%type <type_node_p> expr_list
+%type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -1666,35 +1666,7 @@ maybe_block_value: { $$=build_int_2(0,0); }
   $$=$1; 
 #endif
 
-  goto no_cfun_block_value;
-  if (cfun==0)
-	 goto no_cfun_block_value;
-
-  tree type = integer_type_node;
-
-  // next something based on cp build_local_temp
-  tree slot = build_decl (VAR_DECL, NULL_TREE, type);
-  DECL_ARTIFICIAL (slot) = 1;
-  DECL_CONTEXT (slot) = current_function_decl;
-  layout_decl (slot, 0);
-
-  tree decl = slot;
-  tree value = $1;
-  // next something based on cp build_target_expr
-
-  if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
-  //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
-  tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value,
-						0 /*cxx_maybe_build_cleanup (decl)*/, NULL_TREE);
-  TREE_SIDE_EFFECTS (t) = 1;
-  $$ = copy_node(t); //t;
-
-  c_expand_expr_stmt(t);
-  TREE_TYPE($$)=integer_type_node;
-  goto block_value_out;
- no_cfun_block_value:
   $$ = $1;
- block_value_out:
 }
 ;
 
@@ -3125,68 +3097,43 @@ attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 */
 /*extension_attribute:  K_SIGNED | K_UNSIGNED 
 ;*/
-structure_attribute:
-  K_REF T_NAME '[' alloc_actual_list ']' { $$ = 0; }
-|  K_REF T_NAME  { $$ = 0; }
-|   T_NAME '[' alloc_actual_list ']' { 
-  //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
-  //tree t=find_struct(mystructs,$1);
-  tree t=xref_tag(STRUCTURE_TYPE,$1);
-  tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
-  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
-  tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
-  tree type, body_t, size_t, access_t, comp2, access;
-  size=tree_cons(0,size,0); // temp workaround for maybe changing root node
-  my_substitute(size,alloc,$3);
-  my_substitute(body,alloc,$3);
-  my_substitute(size,alloc,-1);
-  my_substitute(body,alloc,-1);
-  size=TREE_VALUE(size);
 
-  my_fold(size);
-  //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
-  ////decl->exp.operands[2]=t;
-  type=char_type_node;
-  //$$ = set_array_declarator_type (decl, type, 0);
-  //TREE_TYPE(decl)=STRUCTURE_DECL;
-  access=TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t)));
-  //$$ = tree;
+maybe_ref:
+{ $$ = 0; }
+|
+K_REF
+;
 
-  body_t=tree_cons(0,body,0);
-  size_t=tree_cons(0,size,body_t);
-  access_t=tree_cons(0,access,size_t);
-  comp2=tree_cons(0,0,access_t);
-
-  $$ = build_nt (STRUCTURE_STUFF, comp2, comp2);
-
+maybe_alloc_actual_list:
+{
+  $$ = 0;
 }
-|   T_NAME  
+|
+'[' alloc_actual_list ']'
+{
+  $$ = $2;
+}
+;
+
+structure_attribute:
+  K_REF T_NAME '[' alloc_actual_list ']'
+{
+  $$ = handle_structure_attribute($2, $4, 1);
+}
+|
+  K_REF T_NAME
+{
+  $$ = handle_structure_attribute($2, 0, 1);
+}
+|
+  T_NAME '[' alloc_actual_list ']'
 { 
-  //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
-  //tree t=find_struct(mystructs,$1);
-  tree t=xref_tag(STRUCTURE_TYPE,$1);
-  tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
-  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
-  tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
-  tree type, body_t, size_t, access_t, comp2, access;
-  //my_substitute(size,alloc,$3);
-  //my_substitute(body,alloc,$3);
-  my_substitute(body,alloc,-1);
-  my_fold(size);
-  //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
-  ////decl->exp.operands[2]=t;
-  type=char_type_node;
-  //$$ = set_array_declarator_type (decl, type, 0);
-  //TREE_TYPE(decl)=STRUCTURE_DECL;
-  access=TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t)));
-  //$$ = tree;
-
-  body_t=tree_cons(0,body,0);
-  size_t=tree_cons(0,size,body_t);
-  access_t=tree_cons(0,access,size_t);
-  comp2=tree_cons(0,0,access_t);
-
-  $$ = build_nt (STRUCTURE_STUFF, comp2, comp2);
+  $$ = handle_structure_attribute($1, $3, 0);
+}
+|
+  T_NAME
+{
+  $$ = handle_structure_attribute($1, 0, 0);
 }
 ;
 
@@ -6183,33 +6130,6 @@ restore_last_tree(t)
   last_tree = t;
 }
 
-tree
-temp_value(d1)
-     tree d1;
-{
-  tree dd;
-  tree type = integer_type_node;
-
-  // next something based on cp build_local_temp
-  tree slot = build_decl (VAR_DECL, NULL_TREE, type);
-  DECL_ARTIFICIAL (slot) = 1;
-  DECL_CONTEXT (slot) = current_function_decl;
-  layout_decl (slot, 0);
-
-  tree decl = slot;
-  tree value = d1;
-  // next something based on cp build_target_expr
-
-  if (value==0) value=build_int_2(0,0); // workaround to avoid decl 0 and crash
-  //fprintf(stderr, "bu %x %x %x %x\n",TREE_TYPE (decl), decl, value,0);
-  tree t = set_temp_var(decl, value);
-  dd = copy_node(t); //t;
-
-  c_expand_expr_stmt(t);
-  TREE_TYPE(dd)=integer_type_node;
-  return dd;
-}
-
 tree build_our_record(size)
      tree size;
 {
@@ -6395,4 +6315,45 @@ set_temp_var(decl, value)
   tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value, 0, NULL_TREE);
   TREE_SIDE_EFFECTS (t) = 1;
   return t;
+}
+
+tree
+handle_structure_attribute(name, alloc_actual_list, ref)
+     tree name;
+     tree alloc_actual_list;
+     int ref;
+{
+  // fix later: ref
+  //$$ = build_nt(STRUCTURE_ATTR,$1,$3); 
+  //tree t=find_struct(mystructs,$1);
+  tree t=xref_tag(STRUCTURE_TYPE, name);
+  tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+  tree body=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t)))))));
+  tree alloc=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
+  tree type, body_t, size_t, access_t, comp2, access;
+  if (alloc_actual_list) {
+    size=tree_cons(0,size,0); // temp workaround for maybe changing root node
+    my_substitute(size,alloc,alloc_actual_list);
+    my_substitute(body,alloc,alloc_actual_list);
+    my_substitute(size,alloc,-1);
+    my_substitute(body,alloc,-1);
+    size=TREE_VALUE(size);
+  } else {
+    my_substitute(body,alloc,-1);
+  }
+  my_fold(size);
+  //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
+  ////decl->exp.operands[2]=t;
+  type=char_type_node;
+  //$$ = set_array_declarator_type (decl, type, 0);
+  //TREE_TYPE(decl)=STRUCTURE_DECL;
+  access=TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(t)));
+  //$$ = tree;
+
+  body_t=tree_cons(0,body,0);
+  size_t=tree_cons(0,size,body_t);
+  access_t=tree_cons(0,access,size_t);
+  comp2=tree_cons(0,0,access_t);
+
+  return build_nt (STRUCTURE_STUFF, comp2, comp2);
 }
