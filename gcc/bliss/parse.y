@@ -529,6 +529,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> switch_item_list switch_item on_off_switch_item 
 %type <type_node_p> special_switch_item
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
+%type <type_node_p> built_in_name_list built_in_name
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -3080,7 +3081,7 @@ attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 | extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | structure_attribute  
 | field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-| alignment_attribute  
+| alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | initial_attribute 
 | preset_attribute 
 | { undefmode=1; } psect_allocation{ undefmode=0; $$=$2; }
@@ -3424,7 +3425,7 @@ allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-|alignment_attribute 
+|alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 |initial_attribute 
 |preset_attribute 
 |psect_allocation 
@@ -4416,8 +4417,36 @@ K_LABEL label_name_list ';'
 }
 ;
 
-builtin_declaration: K_BUILTIN tname_list ';' { $$ = 0; }
- ;
+built_in_name:
+T_NAME
+{
+  tree cell, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
+  tree size=tree_cons(0,integer_type_node,0);
+
+  tree type = integer_type_node;
+  
+  cell=$1;
+
+  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 0, 0);
+  DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
+  //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+}
+;
+
+built_in_name_list:
+built_in_name_list ',' built_in_name
+|
+built_in_name
+;
+
+builtin_declaration:
+K_BUILTIN built_in_name_list ';'
+{ $$ = 0; }
+;
+
 undeclare_declaration: K_UNDECLARE tname_list ';' { $$ = 0; }
  ;
 
@@ -4878,7 +4907,7 @@ U_READ { $$ = 0; }
 |K_LOCAL  { $$ = 0; }
 |K_GLOBAL  { $$ = 0; }
 |U_VECTOR  { $$ = 0; }
-|alignment_attribute 
+|alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 |addressing_mode_attribute { $$ = 0; }
 ;
 
