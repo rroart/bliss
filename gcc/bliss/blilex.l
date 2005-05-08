@@ -302,6 +302,8 @@ hexdigit [0-9a-f]
 
 \n            input_line++;
  { }
+\r { }
+ { }
 
 {space}+          { }
 
@@ -2206,6 +2208,8 @@ hexdigit [0-9a-f]
 
 <macro>\n            input_line++;
 <macro> { }
+<macro>\r { }
+<macro> { }
 
 <macro>{space}+          { }
 
