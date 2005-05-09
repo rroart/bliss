@@ -115,6 +115,7 @@
 #define MAX_INCLUDE_DEPTH 40
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
   int include_stack_state[MAX_INCLUDE_DEPTH];
+  int include_stack_start[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -162,6 +163,7 @@
 		strip_par(new);
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0; 
+      include_stack_start[include_stack_ptr] = YY_START; 
       include_stack_ptr++;
 
       yy_switch_to_buffer(yy_scan_string(new));
@@ -188,6 +190,7 @@
     {
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0;
+      include_stack_start[include_stack_ptr] = YY_START;
       include_stack_ptr++;
       downcase(new);
       opened_req[opened_req_ptr++]=xstrdup(new);
@@ -207,6 +210,7 @@
 	{
 	  yy_delete_buffer( YY_CURRENT_BUFFER );
 	  yy_switch_to_buffer(include_stack[include_stack_ptr] );
+	  BEGIN(include_stack_start[include_stack_ptr]);
 	}
     }
 
@@ -955,6 +959,8 @@ hexdigit [0-9a-f]
 	 }
 
 	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+	 include_stack_state[include_stack_ptr] = 0;
+	 include_stack_start[include_stack_ptr] = YY_START;
 	 yy_switch_to_buffer(yy_scan_string(myline2));
 	 if (!quiet_flag) printf("myexp %s\n",myline2);
 
@@ -1685,7 +1691,8 @@ hexdigit [0-9a-f]
 
 		expr_parse++;
 		include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
-		include_stack_state[include_stack_ptr] = 1;
+		include_stack_state[include_stack_ptr] = 0;
+		include_stack_start[include_stack_ptr] = YY_START;
 		include_stack_ptr++;
 		yy_switch_to_buffer(yy_scan_string(p));
 
@@ -1974,6 +1981,8 @@ hexdigit [0-9a-f]
     {
       yy_delete_buffer( YY_CURRENT_BUFFER );
       yy_switch_to_buffer(include_stack[include_stack_ptr] );
+      if (include_stack_state[include_stack_ptr])
+	BEGIN(include_stack_start[include_stack_ptr]);
     }
 #if 0
   if (expr_parse) {
@@ -1996,9 +2005,13 @@ hexdigit [0-9a-f]
 
 <macro>"%"{name} {
   downcase(yytext+1);
-  if (0==strcmp("%else",yytext) || 0==strcmp("%if",yytext) || 0==strcmp("%then",yytext) || 0==strcmp("%fi",yytext))
+  if (0==strcmp("%else",yytext) || 0==strcmp("%if",yytext) || 0==strcmp("%then",yytext) || 0==strcmp("%fi",yytext)) {
+    if (macrostart==0 && 0==strcmp("%if",yytext))
+      goto do_this;
     goto do_p_name;
+  }
   if (macrostart==0) {
+  do_this:
     yyless(0);
     goto ifall;
   }
@@ -2661,8 +2674,10 @@ tree parse_this (char * this) {
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
+  include_stack_start[include_stack_ptr] = YY_START;
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_string(this));
+  BEGIN(0);
   //tree t = save_last_tree();
   yyparse();
   //restore_last_tree(t);
@@ -2673,8 +2688,10 @@ tree parse_this_n (char * this, int n) {
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
+  include_stack_start[include_stack_ptr] = YY_START;
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,n));
+  BEGIN(0);
   yyparse();
   return mylast();
 }
@@ -2691,8 +2708,10 @@ tree parse_this_range (char * this, char * end) {
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
+  include_stack_start[include_stack_ptr] = YY_START;
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,end-this));
+  BEGIN(0);
   yyparse();
   return mylast();
 }
