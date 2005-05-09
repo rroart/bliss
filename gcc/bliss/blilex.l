@@ -51,6 +51,7 @@
   unsigned int estimated_token_count=0;
 
   int cond_iter_macro_count = 0;
+  int cur_act_par = 0;
   int pname_string=0;
   char pname_out[256];
   char * use_yytext;
@@ -116,6 +117,7 @@
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
   int include_stack_state[MAX_INCLUDE_DEPTH];
   int include_stack_start[MAX_INCLUDE_DEPTH];
+  int include_stack_cond[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -128,6 +130,8 @@
   void* nested_macro_stack_mac[MAX_MACRO_DEPTH];
   tree nested_macro_stack_act[MAX_MACRO_DEPTH];
   int nested_macro_stack_ptr=0;
+
+ enum{SIMP_MACRO,COND_MACRO,ITER_MACRO,KEYW_MACRO};
 
   int expr_parse = 0;
 
@@ -164,6 +168,7 @@
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0; 
       include_stack_start[include_stack_ptr] = YY_START; 
+      include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
       include_stack_ptr++;
 
       yy_switch_to_buffer(yy_scan_string(new));
@@ -191,6 +196,7 @@
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0;
       include_stack_start[include_stack_ptr] = YY_START;
+      include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
       include_stack_ptr++;
       downcase(new);
       opened_req[opened_req_ptr++]=xstrdup(new);
@@ -961,6 +967,7 @@ hexdigit [0-9a-f]
 	 include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
 	 include_stack_state[include_stack_ptr] = 0;
 	 include_stack_start[include_stack_ptr] = YY_START;
+	 include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
 	 yy_switch_to_buffer(yy_scan_string(myline2));
 	 if (!quiet_flag) printf("myexp %s\n",myline2);
 
@@ -1693,6 +1700,7 @@ hexdigit [0-9a-f]
 		include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
 		include_stack_state[include_stack_ptr] = 0;
 		include_stack_start[include_stack_ptr] = YY_START;
+		include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
 		include_stack_ptr++;
 		yy_switch_to_buffer(yy_scan_string(p));
 
@@ -1711,6 +1719,7 @@ hexdigit [0-9a-f]
 		tree t=macroact;
 		int len=0;
 		for (;t;t=TREE_CHAIN(t),len++) ;
+		len = cur_act_par;
 
 		char myline[255];
 		memset(myline,0,255);
@@ -1909,6 +1918,7 @@ hexdigit [0-9a-f]
     use_yytext=pname_out;
     goto pname_back;
   }
+  opexpcnt++;
   return retval;
 
  less_and_break:
@@ -1947,7 +1957,11 @@ hexdigit [0-9a-f]
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   m=(void*)find_macro(0,yytext);
   macr=m;
-  if (m) BEGIN(macro);
+  if (m) { 
+    BEGIN(macro);
+    exit(42);
+  }
+
 #if 0
   if (m) {
     push_macro(make_macro_string(m));
@@ -1981,6 +1995,11 @@ hexdigit [0-9a-f]
     {
       yy_delete_buffer( YY_CURRENT_BUFFER );
       yy_switch_to_buffer(include_stack[include_stack_ptr] );
+      if (include_stack_cond[include_stack_ptr] != cond_stack_ptr) {
+	if (!quiet_flag)printf("resetting cond_stack_ptr %x %x\n", include_stack_cond[include_stack_ptr], cond_stack_ptr); 
+	sleep (1);
+	cond_stack_ptr = include_stack_cond[include_stack_ptr]; 
+      }
       if (include_stack_state[include_stack_ptr])
 	BEGIN(include_stack_start[include_stack_ptr]);
     }
@@ -2039,7 +2058,7 @@ hexdigit [0-9a-f]
 	     goto out;
 	   }
 	   tree t = tree_last(macroact);
-	   if (macrocomma=='=')
+	   if (macrocomma=='=' && macr->type==KEYW_MACRO)
 	     add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 	   else
 	     add_tree_string(t, yytext, 1, 0);
@@ -2052,7 +2071,7 @@ hexdigit [0-9a-f]
 		goto end_out;
 	 if (macro_stack_ptr>1) {
 		tree t = tree_last(macroact);
-		if (macrocomma=='=')
+		if (macrocomma=='=' && macr->type==KEYW_MACRO)
 		  add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 		else
 		  add_tree_string(t, yytext, 1, 0);
@@ -2085,12 +2104,12 @@ hexdigit [0-9a-f]
       goto ifall;
       break;
 	 case '=':
-		if (macro_stack_ptr==1)
+		if (macro_stack_ptr==1 && macr->type==KEYW_MACRO)
 		  goto out;
 	 default:
 		if (macro_stack_ptr>1) {
 		  tree t = tree_last(macroact);
-		  if (macrocomma=='=')
+		  if (macrocomma=='=' && macr->type==KEYW_MACRO)
 		    add_tree_string(TREE_TYPE(t), yytext, strlen(yytext), 1);
 		  else
 		    add_tree_string(t, yytext, strlen(yytext), 0);
@@ -2108,7 +2127,7 @@ hexdigit [0-9a-f]
 		      goto out;
 		    }
 		    tree t = tree_last(macroact);
-		    if (macrocomma=='=') {
+		    if (macrocomma=='=' && macr->type==KEYW_MACRO) {
 		      if (TREE_TYPE(tree_last(macroact))==0)
 			TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
 		      else
@@ -2130,6 +2149,7 @@ hexdigit [0-9a-f]
       }
       if (p==0)
         remaining=a;
+      for (cur_act_par = 0, a = macroact; a; a = TREE_CHAIN(a), cur_act_par++) ;
     }
     push_macro(make_macro_string(macr,macroact));
 	 // not yet? pop_nested_macro();
@@ -2188,7 +2208,7 @@ hexdigit [0-9a-f]
 	 }
   }
   if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
-  if (macrocomma=='=') {
+  if (macrocomma=='=' && macr->type==KEYW_MACRO) {
     if (TREE_TYPE(tree_last(macroact))==0)
       TREE_TYPE(tree_last(macroact))=build_string(strlen(use_yytext),use_yytext);
     else
@@ -2675,6 +2695,7 @@ tree parse_this (char * this) {
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
+  include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_string(this));
   BEGIN(0);
@@ -2689,6 +2710,7 @@ tree parse_this_n (char * this, int n) {
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
+  include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,n));
   BEGIN(0);
@@ -2709,6 +2731,7 @@ tree parse_this_range (char * this, char * end) {
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
+  include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,end-this));
   BEGIN(0);
