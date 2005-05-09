@@ -611,6 +611,12 @@ expr_list END_EXPR
   }
   YYACCEPT; 
 }
+|
+T_FIELDNAME END_EXPR 
+{
+  last_expr = $1;
+  YYACCEPT; 
+}
 ;
 
 expr_list:
