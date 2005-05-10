@@ -443,9 +443,9 @@ hexdigit [0-9a-f]
   if (key == -1) 
     {
       struct mymacro * m=(void*)find_macro(0,yytext);
-      macr=m;
       if (m) { 
   	     //if (m->param==0) goto ifall;
+	macr=m;
 	     BEGIN(macro);
 	     continue;
       }
@@ -615,6 +615,13 @@ hexdigit [0-9a-f]
   case P_ALLOCATION: {
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
+	 int len=my_end-yytext+1;
+	 yyless(len);
+	 while(!my_isletter(*my_yytext))
+	   my_yytext++;
+	 while(!my_isletter(*my_end))
+	   my_end--;
+	 my_end++;
 	 int my_yyleng=1+my_end-my_yytext;
 	 char myline[255];
 	 if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
@@ -622,17 +629,37 @@ hexdigit [0-9a-f]
 	 myline[my_end-my_yytext]=0;
 	 //yyless(my_yyleng);
 	 //  yytext=my_yytext+=my_yyleng;
-	 int len=my_end-yytext+1;
-	 yyless(len);
 
 	 if (do_skip)
 		goto do_break;
-  
-	 myline[1]=0;
-	 myline[0]='4';
+
+#if 0
+	 tree t=get_identifier(myline);
+	 tree cell__ = maybe_get_identifier(add_underscore(myline, 2));
+#endif
+	 myline[my_end-my_yytext]='_';
+	 myline[1+my_end-my_yytext]='_';
+	 myline[2+my_end-my_yytext]=0;
+	 if (!quiet_flag) printf("my %s\n",myline);
+	 tree t=maybe_get_identifier(myline);
+	 if (t)
+	   t=mytag(t);
+	 if (t) {
+	   //	   tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+	   tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
+	   size=fold(size);
+
+	   int val=TREE_INT_CST_LOW(size);
+	   sprintf(myline,"%d",val);
+	   yylval.type_node_p=build_int_2(val,0);
+	   if(!quiet_flag)printf("all %x\n",val);
+	 } else {
+	   myline[1]=0;
+	   myline[0]='4';
+	   yylval.type_node_p=build_int_2(4,0);
+	 }
 	 //yylval.type_node_p=copy_node(get_identifier(myline));
 	 //yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
-	 yylval.type_node_p=build_int_2(4,0);
 	 pname_macro(myline);
 	 retval=T_DIGITS;
 	 goto out_data;
@@ -829,7 +856,11 @@ hexdigit [0-9a-f]
 	 parse_this(myline);
 	 if (!quiet_flag) printf("myretp %s\n",myline);
 
-	 myret+=strlen(IDENTIFIER_POINTER(fold(mylast())))-2;
+	 tree last=fold(mylast());
+	 if (TREE_CODE(last)==IDENTIFIER_NODE)
+	   myret+=strlen(IDENTIFIER_POINTER(last))-2;
+	 if (TREE_CODE(last)==STRING_CST)
+	   myret+=strlen(TREE_STRING_POINTER(last))-2;
 
 	 if (*par_end==',') {
 		par = par_end + 1;
@@ -1956,8 +1987,8 @@ hexdigit [0-9a-f]
   /* store that string w/o '' */
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   m=(void*)find_macro(0,yytext);
-  macr=m;
   if (m) { 
+    macr=m;
     BEGIN(macro);
     exit(42);
   }
