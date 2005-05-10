@@ -118,6 +118,7 @@
   int include_stack_state[MAX_INCLUDE_DEPTH];
   int include_stack_start[MAX_INCLUDE_DEPTH];
   int include_stack_cond[MAX_INCLUDE_DEPTH];
+  int include_stack_act_par[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -169,6 +170,7 @@
       include_stack_state[include_stack_ptr] = 0; 
       include_stack_start[include_stack_ptr] = YY_START; 
       include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+      include_stack_act_par[include_stack_ptr] = cur_act_par; 
       include_stack_ptr++;
 
       yy_switch_to_buffer(yy_scan_string(new));
@@ -197,6 +199,7 @@
       include_stack_state[include_stack_ptr] = 0;
       include_stack_start[include_stack_ptr] = YY_START;
       include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+      include_stack_act_par[include_stack_ptr] = 0; 
       include_stack_ptr++;
       downcase(new);
       opened_req[opened_req_ptr++]=xstrdup(new);
@@ -999,6 +1002,7 @@ hexdigit [0-9a-f]
 	 include_stack_state[include_stack_ptr] = 0;
 	 include_stack_start[include_stack_ptr] = YY_START;
 	 include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+	 include_stack_act_par[include_stack_ptr] = cur_act_par; 
 	 yy_switch_to_buffer(yy_scan_string(myline2));
 	 if (!quiet_flag) printf("myexp %s\n",myline2);
 
@@ -1447,6 +1451,8 @@ hexdigit [0-9a-f]
 		  find_macro(0,myline2);
 		if (is_there)
 		  is_there=is_something(is_there);
+		if (is_there==0)
+		  is_there = find_field(myline2);
 		if (!quiet_flag) printf("decl %s %x\n",myline2,is_there);
 
 		myline[1]=0;
@@ -1695,7 +1701,12 @@ hexdigit [0-9a-f]
 		  goto no_p2;
 		}
 
-		while (my_isletter(*p2_end))
+		p2++;
+		while (my_isblank(*p2))
+		  p2++;
+
+		p2_end = p2;
+		while (isdigit(*p2_end)) // fix/change later
 		  p2_end++;
 
 	 no_p2:
@@ -1717,7 +1728,7 @@ hexdigit [0-9a-f]
 
 		tree new;
 
-		if (p2)
+		if (p2==0)
 		  new = my_copy_tree(exp);
 		else {
 		  v++;
@@ -1732,6 +1743,7 @@ hexdigit [0-9a-f]
 		include_stack_state[include_stack_ptr] = 0;
 		include_stack_start[include_stack_ptr] = YY_START;
 		include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+		include_stack_act_par[include_stack_ptr] = cur_act_par; 
 		include_stack_ptr++;
 		yy_switch_to_buffer(yy_scan_string(p));
 
@@ -2031,6 +2043,10 @@ hexdigit [0-9a-f]
 	sleep (1);
 	cond_stack_ptr = include_stack_cond[include_stack_ptr]; 
       }
+      if (include_stack_act_par[include_stack_ptr] != cur_act_par) {
+	if (!quiet_flag)printf("setting cur_act_par %x %x\n", include_stack_act_par[include_stack_ptr], cur_act_par); 
+	cur_act_par = include_stack_act_par[include_stack_ptr]; 
+      }
       if (include_stack_state[include_stack_ptr])
 	BEGIN(include_stack_start[include_stack_ptr]);
     }
@@ -2180,9 +2196,9 @@ hexdigit [0-9a-f]
       }
       if (p==0)
         remaining=a;
+      push_macro(make_macro_string(macr,macroact));
       for (cur_act_par = 0, a = macroact; a; a = TREE_CHAIN(a), cur_act_par++) ;
     }
-    push_macro(make_macro_string(macr,macroact));
 	 // not yet? pop_nested_macro();
 	 if (nested_macro_stack_ptr==0) {
 		macrostart=0;
@@ -2727,6 +2743,7 @@ tree parse_this (char * this) {
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+  include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_string(this));
   BEGIN(0);
@@ -2742,6 +2759,7 @@ tree parse_this_n (char * this, int n) {
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+  include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,n));
   BEGIN(0);
@@ -2763,6 +2781,7 @@ tree parse_this_range (char * this, char * end) {
   include_stack_state[include_stack_ptr] = 1;
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
+  include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,end-this));
   BEGIN(0);
