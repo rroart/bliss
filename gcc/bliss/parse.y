@@ -6024,13 +6024,17 @@ print_tree(r)
   tree t;
   for(t=r;t;t=TREE_CHAIN(t)) {
     tree old,new;
+#if 0
     char * l = IDENTIFIER_POINTER(t);
+#endif
+    char l[256];
+    sprintf(l,"%d",TREE_INT_CST_LOW(TREE_VALUE(t)));
     if (s==0) s=xstrdup(l);
     else {
       s=my_strcat(s,l,0);  
       s=my_strcat(s,",",0);
     }
-	 s[strlen(s)-1]=0;
+	 s[strlen(s)]=0;
   }
   
   //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
@@ -6172,6 +6176,7 @@ tree build_our_record(size)
   TREE_TYPE(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=size;
+  TYPE_SIZE(rt)=size;
   TYPE_MODE(rt)=SImode;
   return rt;
 }
@@ -6377,6 +6382,8 @@ handle_structure_attribute(name, alloc_actual_list, ref)
     my_substitute(body,alloc,-1);
   }
   my_fold(size);
+  if (ref)
+    size=build_int_2(4,0);
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
   type=char_type_node;
