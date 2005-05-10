@@ -6392,3 +6392,26 @@ handle_structure_attribute(name, alloc_actual_list, ref)
 
   return build_nt (STRUCTURE_STUFF, comp2, comp2);
 }
+
+tree
+xref_struct (name)
+     char * name;
+{
+  tree id = name;
+#if 0
+  tree id = maybe_get_identifier (name);
+  if (id==0)
+    return 0;
+#endif
+  return IDENTIFIER_TAG_VALUE (id);
+}
+
+tree
+mytag (t)
+     tree t;
+{
+  if (t)
+    return IDENTIFIER_TAG_VALUE(t);
+  else
+    return 0;
+}
