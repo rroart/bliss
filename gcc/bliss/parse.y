@@ -529,7 +529,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> switch_item_list switch_item on_off_switch_item 
 %type <type_node_p> special_switch_item
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
-%type <type_node_p> built_in_name_list built_in_name
+%type <type_node_p> built_in_name_list built_in_name select_action_with_end
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -2599,6 +2599,8 @@ K_OUTRANGE
 
 case_action:
 expression 
+|
+error
 ;
 
 select_expression:
@@ -2658,19 +2660,30 @@ expression
 ;
 
 select_line_list:
-select_line_list select_line 
+select_line_list
+{ 
+  //yyrec = 1;
+  // handle no ; before tes
+}
+select_line 
 {
   // check. must connect in some other way, later
   // do not. last in list got chained to itself
   //$$ = chainon($1, $2);
 }
 |
-select_line 
-|
-error {
-  yyerrok;
-  // handle empty otherwise
+{ 
+  //yyrec = 1;
+  // handle no ; before tes
 }
+select_line 
+;
+
+error_or_semi:
+error
+{ yyerrok; }
+|
+';'
 ;
 
 select_line:
@@ -2701,8 +2714,9 @@ select_label_list ']' ':'
   add_stmt (build_stmt (EXPR_STMT, $<type_node_p>5));
   add_stmt (build_break_stmt ()); // selectone always
 #endif
+  yyrec = 1;
 }
-select_action ';'
+select_action_with_end
 {
   tree if_stmt = $<type_node_p>2;
   if ($7) /* $<type_node_p>$ =*/ c_expand_expr_stmt($7);
@@ -2811,7 +2825,27 @@ K_ALWAYS
 ;
 
 select_action:
-expression 
+expression
+;
+
+select_action_with_end:
+select_action error_or_semi
+|
+error {
+  yyerrok;
+  // handle empty otherwise
+  $$ = build_int_2(0,0);
+#if 0
+  c_expand_expr_stmt(build_int_2(0,0));
+
+  add_stmt (build_stmt (GOTO_STMT, mylabel));
+
+  c_finish_then();
+  c_expand_end_cond();
+
+  $$=0;
+#endif
+}
 ;
 
 loop_expression:
