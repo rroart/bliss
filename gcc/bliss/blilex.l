@@ -2657,7 +2657,7 @@ static int keyword (cp)
 
   first = 0;				/* inclusive */
   last = NKEYW;				/* exclusive */
-  last = sizeof keywords / sizeof (struct dict) - 2;
+  last = sizeof keywords / sizeof (struct dict) - 1;
   while (first < last)
     {
       half = (first + last) / 2;
