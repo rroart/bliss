@@ -95,7 +95,7 @@ bliss-warn = $(LOOSE_WARN) -pedantic -Wno-long-long -Wmissing-prototypes -Wmissi
 
 bliss BLISS:bliss.done bliss.check.drivers.done
 
-bliss.done: bli1$(exeext)
+bliss.done: bli1$(exeext) bliss/libbli.a
 	${STAMP} bliss.done
 
 # core compiler 
@@ -166,6 +166,9 @@ $(blibld)/blilex.c: $(blisrc)/blilex.l
 	$(LEX) $(LEXFLAGS) -o$(blibld)/blilex.c $(blisrc)/blilex.l
 
 # -v for verbose .output file
+
+bliss/libbli.a: bliss/libbli.o
+	ar -rv bliss/libbli.a bliss/libbli.o 
 
 $(INTL_TARGETS): 
 
