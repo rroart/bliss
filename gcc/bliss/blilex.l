@@ -2105,10 +2105,15 @@ hexdigit [0-9a-f]
 	     goto out;
 	   }
 	   tree t = tree_last(macroact);
-	   if (macrocomma=='=' && macr->type==KEYW_MACRO)
-	     add_tree_string(TREE_TYPE(t), yytext, 1, 1);
-	   else
+	   if (macrocomma=='=' && macr->type==KEYW_MACRO) {
+	     // was: add_tree_string(TREE_TYPE(t), yytext, 1, 1);
+	     if (TREE_TYPE(tree_last(macroact))==0)
+	       TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
+	     else
+	       add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, 1, 1);
+	   } else {
 	     add_tree_string(t, yytext, 1, 0);
+	   }
 	 }
 	 goto out;
   }
@@ -2196,7 +2201,18 @@ hexdigit [0-9a-f]
       }
       if (p==0)
         remaining=a;
-      push_macro(make_macro_string(macr,macroact));
+      char * mstr = make_macro_string(macr,macroact);
+      if (((signed long)mstr)==-1)
+#if 0
+	push_macro("%exitmacro");
+#else
+      do_eof();
+#if 0
+	goto eof;
+#endif
+#endif
+	else
+      push_macro(mstr);
       for (cur_act_par = 0, a = macroact; a; a = TREE_CHAIN(a), cur_act_par++) ;
     }
 	 // not yet? pop_nested_macro();
@@ -2249,7 +2265,18 @@ hexdigit [0-9a-f]
 #endif
 	 // temp workaround if macros are simple enough?
 	 if (m->param==0 && m->param2==0) {
-		push_macro(make_macro_string(m,0));
+		char * mstr = make_macro_string(m,0);
+		if (((signed long)mstr)==-1)
+#if 0
+		  push_macro("%exitmacro");
+#else
+		do_eof();
+#if 0
+		  goto eof;
+#endif
+#endif
+		  else
+		push_macro(mstr);
 		free(m);
 		continue;
 	 }
@@ -3026,7 +3053,9 @@ void
 strip_par (s)
 	  char * s;
 {
+#if 0
   return;
+#endif
   int end = strlen(s)-1;
   int start = 0;
   if (my_isblank(s[start]))
@@ -3063,3 +3092,42 @@ check_lib(s)
       push_req_stack(f);
   }
 }
+
+do_eof()
+{ 
+ eof:
+  if ( --include_stack_ptr < 0 )
+    {
+      if (yy2debug) inform("\nempty include stack\n");
+      return YY_NULL;
+    }
+  else
+    {
+      yy_delete_buffer( YY_CURRENT_BUFFER );
+      yy_switch_to_buffer(include_stack[include_stack_ptr] );
+      if (include_stack_cond[include_stack_ptr] != cond_stack_ptr) {
+	if (!quiet_flag)printf("resetting cond_stack_ptr %x %x\n", include_stack_cond[include_stack_ptr], cond_stack_ptr); 
+	sleep (1);
+	cond_stack_ptr = include_stack_cond[include_stack_ptr]; 
+      }
+      if (include_stack_act_par[include_stack_ptr] != cur_act_par) {
+	if (!quiet_flag)printf("setting cur_act_par %x %x\n", include_stack_act_par[include_stack_ptr], cur_act_par); 
+	cur_act_par = include_stack_act_par[include_stack_ptr]; 
+      }
+      if (include_stack_state[include_stack_ptr])
+	BEGIN(include_stack_start[include_stack_ptr]);
+    }
+#if 0
+  if (expr_parse) {
+	 expr_parse--;
+	 return END_EXPR;
+  }
+#else
+  if (include_stack_state[include_stack_ptr])
+    return END_EXPR;
+#endif
+  if (do_builtin) {
+	 do_builtin--;
+	 return END_BUILTIN;
+  }
+} 
