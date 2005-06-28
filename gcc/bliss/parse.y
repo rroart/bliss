@@ -215,6 +215,7 @@ bli_common_parse_file(set_yydebug)
  char * my_strcat(const char *, const char *, int);
  char * my_strcat_gen(const char *, const char *, int);
  tree handle_preset(tree, tree, tree, tree);
+ tree handle_initial(tree, tree, tree, tree);
  tree convert_field_ref_to_decl(tree,tree);
  tree handle_structure(tree, tree, int);
  tree handle_structure_attribute(tree, tree, int);
@@ -633,6 +634,17 @@ T_FIELDNAME END_EXPR
   last_expr = $1;
   YYACCEPT; 
 }
+|
+allocation_unit END_EXPR 
+{
+  if ($1==char_type_node)
+    last_expr = build_string(strlen("byte"),"byte");
+  if ($1==short_integer_type_node)
+    last_expr = build_string(strlen("word"),"word");
+  if ($1==integer_type_node)
+    last_expr = build_string(strlen("long"),"long");
+  YYACCEPT; 
+}
 ;
 
 expr_list:
@@ -970,8 +982,8 @@ numeric_literal
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   $$ = build_external_ref ($1, yychar == '(');
-  if (TREE_LANG_FLAG_0($1)) {
-	 //fprintf(stderr, "CON\n");
+  if (TREE_LANG_FLAG_0($1) || TREE_LANG_FLAG_0($$)) {
+         //fprintf(stderr, "CON %s\n",IDENTIFIER_POINTER($1));
 	 goto myout;
   }
   if (yychar == '(')
@@ -3296,21 +3308,36 @@ K_INITIAL '(' initial_item_list ')'
 }
 ;
 
-initial_item_list: initial_item_list ',' initial_item 
-|initial_item 
+initial_item_list:
+initial_item_list ',' initial_item 
+{
+  chainon($1, $3);
+}
+|
+initial_item 
 ;
 
 initial_item: 
 initial_group  
-| initial_expression 
-| initial_string 
+{
+  $$ = tree_cons($1, 0, 0);
+}
+|
+initial_expression 
+{
+  $$ = tree_cons($1, 0, 0);
+}
+|
+initial_string 
+{
+  $$ = tree_cons($1, 0, 0);
+}
 ;
 
 initial_group: 
-allocation_unit '(' initial_item_list ')' 
+allocation_unit '(' initial_item_list ')' /* not easy to interpret i_group */
 | K_REP replicator K_OF '(' initial_item_list ')'  { $$ = 0; }
 | K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { $$ = 0; }
-/*| '(' initial_item_list ')' */
 ;
 
 /*
@@ -3430,8 +3457,11 @@ own_name maybe_own_attribute_list
   }
 
   init = find_init_attr(myattr);
+
+  tree orig_init = init;
+
   if (init)
-	 init = TREE_OPERAND(init, 0);
+	 init = TREE_PURPOSE(TREE_OPERAND(init, 0));
 
   int do_init = 0;
   if (init)
@@ -3442,7 +3472,17 @@ own_name maybe_own_attribute_list
     do_init=1;
   }
 
-  cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  tree array_type;
+
+  if (orig_init && st_attr) {
+    //    tree t = build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
+    tree t = build_array_declarator(build_int_2(10,0),0/*tree_cons(0,integer_type_node,0)*/,0,0);
+    set_array_declarator_type(t, cell, 0);
+    cell_decl_p = start_decl (t, mysize, do_init, 0);
+    array_type = TREE_TYPE(cell_decl_p);
+  } else {
+    cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  }
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
   start_init(cell_decl_p,NULL,global_bindings_p());
@@ -3452,9 +3492,12 @@ own_name maybe_own_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr)
+    if (st_attr && (orig_init == 0))
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
   }
+
+  if (orig_init && st_attr)
+    init = handle_initial($1, orig_init, cell_decl_p, array_type);
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -3533,7 +3576,7 @@ global_name maybe_global_attribute_list
 
   init = find_init_attr(myattr);
   if (init)
-	 init = TREE_OPERAND(init, 0);
+	 init = TREE_PURPOSE(TREE_OPERAND(init, 0));
 
   int do_init = 0;
   if (init)
@@ -3699,7 +3742,7 @@ local_name maybe_local_attribute_list
 
   init = find_init_attr(myattr);
   if (init)
-	 init = TREE_OPERAND(init, 0);
+	 init = TREE_PURPOSE(TREE_OPERAND(init, 0));
 
   int do_init = 0;
   if (init)
@@ -4612,7 +4655,9 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
     init=TREE_OPERAND(init, 0);
     my_fold(init);
   }
+#if 0
   TREE_CONSTANT(init)=1;
+#endif
 
   cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 1, 0);
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
@@ -4620,7 +4665,7 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
   finish_decl (cell_decl_p, init, NULL_TREE);
-  TREE_LANG_FLAG_0($1)=1;
+  TREE_LANG_FLAG_0(cell_decl_p)=1; // was $1
 }
 {
 /*
@@ -5745,6 +5790,12 @@ make_macro_string(m,r)
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
+#if 0
+  if (s==0)
+    printf ("s 0\n");
+  if (s==0)
+    exit(99);
+#endif
   return s;
  other_macro:
   if (m->type==COND_MACRO)
@@ -5798,12 +5849,29 @@ make_macro_string(m,r)
   if (!quiet_flag) printf("ITER %x\n",s);
   if (!quiet_flag) printf("ITER %s\n",s);
   cond_iter_macro_count=0; // reset it here because cannot in cond itself?
+#if 0
+  if (s==0)
+    printf ("s 0\n");
+  if (s==0)
+    exit(99);
+#endif
   return s;
  cond_macro:
   // this seems to be done just like a simple macro?
   // except for using cond_iter_macro_count? but might use it wrongly?
+  // and 16.3.3.3 1 b and c: too few actuals and 0 eql actuals eql formals
   {}
   extern int cond_iter_macro_count;
+  int actual_cnt;
+  int formal_cnt;
+  for (actual_cnt=0, tmp=r; tmp; actual_cnt++, tmp=TREE_CHAIN(tmp)) ;
+  for (formal_cnt=0, tmp=m->param; tmp; formal_cnt++, tmp=TREE_CHAIN(tmp)) ;
+#if 1
+  if (actual_cnt < formal_cnt) // 16.3.3.3 1 b
+    return -1;
+  if (actual_cnt==0 && formal_cnt==0) // 16.3.3.3 1 c
+    return -1;
+#endif
   //cond_iter_macro_count=0; // cannot do this here?
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
@@ -5833,6 +5901,12 @@ make_macro_string(m,r)
 
   cond_iter_macro_count++;
 
+#if 0
+  if (s==0)
+    printf ("s 0\n");
+  if (s==0)
+    exit(99);
+#endif
   return s;
 }
 
@@ -6350,6 +6424,63 @@ handle_preset(name, pres, cell_decl_p, size)
 }
 
 tree
+handle_initial(name, pres, cell_decl_p, size)
+     tree name;
+     tree pres;
+     tree cell_decl_p;
+     tree size;
+{
+  tree init;
+  tree constructor_elements=0;
+  tree attr=TREE_OPERAND(pres,0);
+  int i;
+  for (i=0;attr;attr=TREE_CHAIN(attr),i++) {
+#if 0
+    tree d3=TREE_VALUE(attr);
+#endif
+    tree v=TREE_PURPOSE(attr);
+#if 0
+    tree dd;
+    // from ordinary_structure_reference:
+    tree cell__ = get_identifier(add_underscore(name, 2));
+    tree extref=RVAL_ADDR(build_external_ref (name, 0));
+    tree params = d3;
+    tree type = xref_tag(STRUCTURE_ATTR,cell__);
+    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+    //chainon (tree_last(d3), build_tree_list(NULL_TREE, extref)); 
+    chainon (tree_last(d3), build_tree_list(NULL_TREE, build_int_2(0,0))); 
+    my_substitute(body,access,params);
+    //my_substitute_parmz(body,access,params);// extra to zero parm
+    dd=body;
+#endif
+
+    // differs from local from now on
+#if 0
+    tree t;
+    //t=LVAL_ADDR(t);
+    t=TREE_OPERAND(dd,2);
+#endif
+    tree value=v;
+    constructor_elements = chainon (constructor_elements, tree_cons (build_int_2(i,0), value, 0));
+  }
+  //    tree mytype=copy_node(integer_type_node);
+  //    TREE_CODE (mytype) = RECORD_TYPE;
+  tree mytype=build_our_record(size);
+  mytype=size;
+#if 0
+  mytype=build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
+  TYPE_MAIN_VARIANT(mytype)=integer_type_node;
+  TREE_TYPE(cell_decl_p)=mytype;
+#endif
+  tree constructor = build_constructor(mytype,constructor_elements);
+  TREE_CONSTANT(constructor)=1;
+  init=constructor;
+  //init=field;
+  return init;
+}
+
+tree
 handle_structure(name, st_attr, alloc)
      tree name;
      tree st_attr;
@@ -6364,6 +6495,7 @@ handle_structure(name, st_attr, alloc)
   tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(st_attr))));
   if (alloc==0)
     return 0;
+#if 0
   decl=build_array_declarator (fold(size), NULL_TREE, 0, 0) ; // 4x too big?
   tree byte=build_int_2(8,0);
   TREE_TYPE (byte) = widest_integer_literal_type_node;
@@ -6377,6 +6509,7 @@ handle_structure(name, st_attr, alloc)
   TYPE_SIZE_UNIT(newint)=integer_type_node;
   TYPE_SIZE_UNIT(newint)=TYPE_SIZE(TYPE_SIZE_UNIT(newint));
   //	 TREE_TYPE(cell_)=newint;
+#endif
   return size;
 }
 
