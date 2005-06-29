@@ -131,6 +131,11 @@ struct mymacro {
  };
  // has not got descrip.h (yet)
 
+ struct dsc$descriptor commadsc = {
+   dsc$w_length : 1,
+   dsc$a_pointer : ","
+ };
+
 extern FILE *yyin;
 
 // wasint yyparse()
@@ -208,12 +213,12 @@ bli_common_parse_file(set_yydebug)
  char * add_counted_string (tree, int);
  char * add_underscore (tree, int);
  void * find_macro(struct mymacro * s,char * name);
- char * make_macro_string(struct mymacro * m, tree r);
+ int make_macro_string(struct dsc$descriptor * dsc, struct mymacro * m, tree r);
  tree find_init_attr(tree t);
  tree find_structure_attr(tree);
  tree find_tree_code(tree, int);
- char * my_strcat(const char *, const char *, int);
- char * my_strcat_gen(const char *, const char *, int);
+ int my_strcat(struct dsc$descriptor *, int, const char *, int, const char *, int);
+ int my_strcat_gen(struct dsc$descriptor *, struct dsc$descriptor *, struct dsc$descriptor * , int);
  tree handle_preset(tree, tree, tree, tree);
  tree handle_initial(tree, tree, tree, tree);
  tree convert_field_ref_to_decl(tree,tree);
@@ -222,6 +227,7 @@ bli_common_parse_file(set_yydebug)
  tree create_temp_var();
  tree set_temp_var(tree, tree);
  tree build_our_record(tree);
+ int print_remain(struct dsc$descriptor *, tree);
 
 %}
 
@@ -547,6 +553,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> special_switch_item
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
 %type <type_node_p> built_in_name_list built_in_name select_action_with_end
+%type <type_node_p> map_name
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -643,6 +650,12 @@ allocation_unit END_EXPR
     last_expr = build_string(strlen("word"),"word");
   if ($1==integer_type_node)
     last_expr = build_string(strlen("long"),"long");
+  YYACCEPT; 
+}
+|
+',' END_EXPR 
+{
+  last_expr = tree_cons(0, 0, 0);
   YYACCEPT; 
 }
 ;
@@ -1882,7 +1895,7 @@ io_actual_parameter
 
 io_actual_parameter:
 {
-$$=0;
+  $$=build_int_2(0,0); // was 0
 }
 |
 expression
@@ -2125,7 +2138,7 @@ operator_expression:
  }
 | K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, $2, 0); }
 | opexp9 K_AND opexp9 { $$ = parser_build_binary_op (BIT_AND_EXPR, $1, $3); }
-|  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, $1, $3); }
+|  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, convert(integer_type_node,$1), convert(integer_type_node,$3)); /* temp fix */ }
 | opexp9 K_EQV opexp9 { $$ = build_unary_op(BIT_NOT_EXPR,parser_build_binary_op (BIT_XOR_EXPR, $1, $3),0); }
 | opexp9 K_XOR  opexp9 { $$ = parser_build_binary_op (BIT_XOR_EXPR, $1, $3); }
 |
@@ -3336,8 +3349,19 @@ initial_string
 
 initial_group: 
 allocation_unit '(' initial_item_list ')' /* not easy to interpret i_group */
-| K_REP replicator K_OF '(' initial_item_list ')'  { $$ = 0; }
-| K_REP replicator K_OF allocation_unit '(' initial_item_list ')'  { $$ = 0; }
+{
+  $$ = build_nt(INITIAL_GROUP, build_int_2(1,0), $1, $3);
+}
+|
+K_REP replicator K_OF '(' initial_item_list ')'
+{
+  $$ = build_nt(INITIAL_GROUP, $2, integer_type_node, $5);
+}
+|
+K_REP replicator K_OF allocation_unit '(' initial_item_list ')'
+{
+  $$ = build_nt(INITIAL_GROUP, $2, $4, $6);
+}
 ;
 
 /*
@@ -3852,7 +3876,27 @@ map_name:
 T_NAME
 ;
 
-map_item: map_name ':' attribute_list 
+map_item:
+map_name ':' attribute_list 
+{
+  tree cell, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
+  tree size=tree_cons(0,integer_type_node,0);
+
+  tree type = integer_type_node;
+  tree myattr = $3;
+  
+  cell=$1;
+
+  tree st_attr = find_structure_attr(myattr);
+  if (st_attr) {
+    /*size=*/handle_structure(cell, st_attr, 1);
+    size=handle_structure(cell, st_attr, 1);
+  }
+
+  cell_decl_p = build_external_ref ($1, yychar == '(');
+
+}
 ;
 
 structure_declaration:
@@ -4462,7 +4506,9 @@ require_declaration: K_REQUIRE T_STRING ';'
   char * brack = strchr(new,']');
   if (brack)
 	 new=brack+1;
-  char * new2 = my_strcat(new,".req",0);
+  struct dsc$descriptor dsc; 
+  my_strcat(&dsc, strlen(new), new, 4, ".req", 0);
+  char * new2 = dsc.dsc$a_pointer;
   if (!is_opened(new2))
 	 push_req_stack(new2);
 
@@ -4485,7 +4531,9 @@ library_declaration: K_LIBRARY T_STRING ';'
   if (brack)
 	 new=brack+1;
   check_lib(new);
-  char * new2 = my_strcat(new,".req",0);
+  struct dsc$descriptor dsc; 
+  my_strcat(&dsc, strlen(new), new, 4, ".req", 0);
+  char * new2 = dsc.dsc$a_pointer;
   if (!is_opened(new2))
 	 push_req_stack(new2);
 
@@ -5761,89 +5809,115 @@ find_macro(struct mymacro * s,char * name) {
   return m;
 }
 
-char *
-make_macro_string(m,r)
+int
+make_macro_string(dsc,m,r)
      struct mymacro * m;
      tree r;
+     struct dsc$descriptor * dsc;
 {
-  char * s=0;
+  struct dsc$descriptor s;
+  s.dsc$a_pointer=0;
+  s.dsc$w_length=0;
   tree b = m->body;
   tree p = m->param;
   tree t;
   int is_quote=0;
   if (m->type!=SIMP_MACRO && m->type!=KEYW_MACRO)
-	 goto other_macro;
+    goto other_macro;
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
-    char * l = TREE_STRING_POINTER(t);
-	 if (TREE_CODE(t)==IDENTIFIER_NODE)
-		l=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
-	 // check. not quite sure about doing quoting here
-	 if (is_quote) {
-		is_quote=0;
-		goto subst_out;
-	 }
-	 is_quote=(0==strcasecmp(l,"%quote"));
-	 if (is_quote)
-		continue;
-	 if (m->type==KEYW_MACRO)
-		goto keyw_macro;
+    struct dsc$descriptor l;
+    l.dsc$a_pointer = TREE_STRING_POINTER(t);
+    l.dsc$w_length = TREE_STRING_LENGTH(t);
+    if (TREE_CODE(t)==IDENTIFIER_NODE) {
+      l.dsc$a_pointer=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
+      l.dsc$w_length=IDENTIFIER_LENGTH(t);
+    }
+    // check. not quite sure about doing quoting here
+    if (is_quote) {
+      is_quote=0;
+      goto subst_out;
+    }
+    is_quote=(0==strcasecmp(l.dsc$a_pointer,"%quote"));
+    if (is_quote)
+      continue;
+    if (m->type==KEYW_MACRO)
+      goto keyw_macro;
     for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
-      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
-		  l=TREE_STRING_POINTER(new);
-		  goto subst_out;
+      if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+	l.dsc$a_pointer=TREE_STRING_POINTER(new);
+	l.dsc$w_length=TREE_STRING_LENGTH(new);
+	goto subst_out;
       }
     }
-	 goto subst_out;
+    goto subst_out;
   keyw_macro:
     for(new=r;new;new=TREE_CHAIN(new)) {
-		//fprintf(stderr,"IDD3 %x %x %x\n",l,TREE_TYPE(new),TREE_STRING_POINTER(new));
-      if (0==strcmp(l,TREE_STRING_POINTER(new))) {
-		  if (TREE_TYPE(new))
-			 l=TREE_STRING_POINTER(TREE_TYPE(new));
-		  goto subst_out;
+      //fprintf(stderr,"IDD3 %x %x %x\n",l,TREE_TYPE(new),TREE_STRING_POINTER(new));
+      if (0==strcmp(l.dsc$a_pointer,TREE_STRING_POINTER(new))) {
+	if (TREE_TYPE(new)) {
+	  l.dsc$a_pointer=TREE_STRING_POINTER(TREE_TYPE(new));
+	  l.dsc$w_length=TREE_STRING_LENGTH(TREE_TYPE(new));
+	}
+	goto subst_out;
       }
     }
     for(old=p;old;old=TREE_CHAIN(old)) {
-		//printf("IDD4 %x %x %x\n",l,TREE_VALUE(old),TREE_PURPOSE(old));
-      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+      //printf("IDD4 %x %x %x\n",l,TREE_VALUE(old),TREE_PURPOSE(old));
+      if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
 	if (TREE_PURPOSE(old)) {
-	  l=TREE_STRING_POINTER(TREE_PURPOSE(old));
+	  l.dsc$a_pointer=TREE_STRING_POINTER(TREE_PURPOSE(old));
+	  l.dsc$w_length=TREE_STRING_LENGTH(TREE_PURPOSE(old));
 	  goto subst_out;
 	} else {
-	  l=" ";
+	  l.dsc$a_pointer=" ";
+	  l.dsc$w_length=1;
 	  goto subst_out;
 	}
       }
     }
   subst_out:
-    s=my_strcat_gen(s,l,1);
+    my_strcat_gen(&s,&s,&l,1);
   }
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
-#if 0
-  if (s==0)
-    printf ("s 0\n");
-  if (s==0)
-    exit(99);
-#endif
-  return s;
+  dsc->dsc$a_pointer=s.dsc$a_pointer;
+  dsc->dsc$w_length=s.dsc$w_length;
+  return 1;
  other_macro:
   if (m->type==COND_MACRO)
-	 goto cond_macro;
+    goto cond_macro;
   extern int cond_iter_macro_count;
   cond_iter_macro_count=0;
   tree iter=m->param2;
   tree new=r;
   tree tmp=p;
   for(;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
+  extern tree remaining;
+  tmp=iter;
+  for(;remaining && tmp;remaining=TREE_CHAIN(remaining),tmp=TREE_CHAIN(tmp)) ;
   while (new) {
 	 tree par=iter;
 	 //printf("new %x\n",new);
 	 tree t;
 	 for(t=b;t;t=TREE_CHAIN(t)) {
-		char * l = TREE_STRING_POINTER(t);
+		struct dsc$descriptor l;
+		l.dsc$a_pointer = TREE_STRING_POINTER(t);
+		l.dsc$w_length = TREE_STRING_LENGTH(t);
+		if (0==strcmp(l.dsc$a_pointer,"%remaining")) {
+		  print_remain(&l,remaining);
+		  if (l.dsc$a_pointer==0)
+		    continue;
+		  goto subst_out2;
+		}
+		if (0==strcmp(l.dsc$a_pointer,"%count")) {
+		  char loc[10];
+		  sprintf(loc,"%d",cond_iter_macro_count);
+		  l.dsc$a_pointer=xstrdup(loc); // leak
+		  l.dsc$w_length=strlen(l.dsc$a_pointer);
+		  goto subst_out2;
+		}
 		tree new2=new;
 		tree par2=par;
 		for(;new2 && par2;new2=TREE_CHAIN(new2),par2=TREE_CHAIN(par2)) {
@@ -5853,41 +5927,40 @@ make_macro_string(m,r)
 			 is_quote=0;
 			 goto subst_out2;
 		  }
-		  is_quote=(0==strcasecmp(l,"%quote"));
+		  is_quote=(0==strcasecmp(l.dsc$a_pointer,"%quote"));
 		  if (is_quote)
 			 continue;
 #endif
-		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(par2)))) {
-			 l=TREE_STRING_POINTER(new2);
+		  if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(par2)))) {
+			 l.dsc$a_pointer=TREE_STRING_POINTER(new2);
+			 l.dsc$w_length=TREE_STRING_LENGTH(new2);
 			 goto subst_out2;
 		  }
 		}
 		tree old3, new3;
 		for(old3=p,new3=r;old3 && new3;old3=TREE_CHAIN(old3),new3=TREE_CHAIN(new3)) {
-		  if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old3)))) {
+		  if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(old3)))) {
 			 //fprintf(stderr,"CMP3 %s %s %s %x %x\n",l,IDENTIFIER_POINTER(TREE_VALUE(old3)),TREE_STRING_POINTER(new3),TREE_STRING_POINTER(new3),new3);
-			 l=TREE_STRING_POINTER(new3);
+			 l.dsc$a_pointer=TREE_STRING_POINTER(new3);
+			 l.dsc$w_length=TREE_STRING_LENGTH(new3);
 			 goto subst_out2;
 		  }
 		}
 	 subst_out2:
-		s = my_strcat_gen(s,l,1);
+		my_strcat_gen(&s, &s, &l, 1);
 	 } // end outer for
 	 for(tmp=iter;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
+	 for(tmp=iter;remaining && tmp;remaining=TREE_CHAIN(remaining),tmp=TREE_CHAIN(tmp)) ;
 	 if (new)
-		s = my_strcat(s,",",0); // remember to fix punctuation later
+		my_strcat_gen(&s, &s, &commadsc, 0); // remember to fix punctuation later
 	 cond_iter_macro_count++;
   } // end while
-  if (!quiet_flag) printf("ITER %x\n",s);
-  if (!quiet_flag) printf("ITER %s\n",s);
+  if (!quiet_flag) printf("ITER %x\n",s.dsc$a_pointer);
+  if (!quiet_flag) printf("ITER %s\n",s.dsc$a_pointer);
   cond_iter_macro_count=0; // reset it here because cannot in cond itself?
-#if 0
-  if (s==0)
-    printf ("s 0\n");
-  if (s==0)
-    exit(99);
-#endif
-  return s;
+  dsc->dsc$a_pointer=s.dsc$a_pointer;
+  dsc->dsc$w_length=s.dsc$w_length;
+  return 1;
  cond_macro:
   // this seems to be done just like a simple macro?
   // except for using cond_iter_macro_count? but might use it wrongly?
@@ -5900,65 +5973,73 @@ make_macro_string(m,r)
   for (formal_cnt=0, tmp=m->param; tmp; formal_cnt++, tmp=TREE_CHAIN(tmp)) ;
 #if 1
   if (actual_cnt < formal_cnt) // 16.3.3.3 1 b
-    return -1;
+    return 0;
   if (actual_cnt==0 && formal_cnt==0) // 16.3.3.3 1 c
-    return -1;
+    return 0;
 #endif
   //cond_iter_macro_count=0; // cannot do this here?
   for(t=b;t;t=TREE_CHAIN(t)) {
     tree old,new;
-    char * l = TREE_STRING_POINTER(t);
-	 if (TREE_CODE(t)==IDENTIFIER_NODE)
-		l=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
-	 // check. not quite sure about doing quoting here
-	 if (is_quote) {
-		is_quote=0;
-		goto subst_out3;
-	 }
-	 is_quote=(0==strcasecmp(l,"%quote"));
-	 if (is_quote)
-		continue;
+    struct dsc$descriptor l;
+    l.dsc$a_pointer = TREE_STRING_POINTER(t);
+    l.dsc$w_length = TREE_STRING_LENGTH(t);
+    if (TREE_CODE(t)==IDENTIFIER_NODE) {
+      l.dsc$a_pointer=IDENTIFIER_POINTER(t); // workaround in case %remaining IDENTIFIER
+      l.dsc$w_length=IDENTIFIER_LENGTH(t);
+    }
+    // check. not quite sure about doing quoting here
+    if (is_quote) {
+      is_quote=0;
+      goto subst_out3;
+    }
+    is_quote=(0==strcasecmp(l.dsc$a_pointer,"%quote"));
+    if (is_quote)
+      continue;
     for(old=p,new=r;old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
-      if (0==strcmp(l,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
-		  l=TREE_STRING_POINTER(new);
-		  goto subst_out3;
+      if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+	l.dsc$a_pointer=TREE_STRING_POINTER(new);
+	l.dsc$w_length=TREE_STRING_LENGTH(new);
+	goto subst_out3;
       }
     }
-	 goto subst_out3;
+    goto subst_out3;
   subst_out3:
-	 s = my_strcat_gen(s,l,1);
+    my_strcat_gen(&s, &s, &l, 1);
   }
   
   if (yydebug) inform ("\n%%BLS-I-NOTHING %x cond line macro expanded to %s\n",input_location.line,s);
 
   cond_iter_macro_count++;
 
-#if 0
-  if (s==0)
-    printf ("s 0\n");
-  if (s==0)
-    exit(99);
-#endif
-  return s;
+  dsc->dsc$a_pointer=s.dsc$a_pointer;
+  dsc->dsc$w_length=s.dsc$w_length;
+  return 1;
 }
 
-char *
-print_remain(r)
+int
+print_remain(dsc,r)
      tree r;
+     struct dsc$descriptor * dsc;
 {
-  char * s=0;
+  struct dsc$descriptor s;
+  s.dsc$a_pointer=0;
+  s.dsc$w_length=0;
   tree t;
   for(t=r;t;t=TREE_CHAIN(t)) {
     tree old,new;
-    char * l = TREE_STRING_POINTER(t);
-    s=my_strcat_gen(s,l,0);
+    struct dsc$descriptor l;
+    l.dsc$a_pointer = TREE_STRING_POINTER(t);
+    l.dsc$w_length = TREE_STRING_LENGTH(t);
+    my_strcat_gen(&s,&s,&l,0);
     if (TREE_CHAIN(t))
-      s=my_strcat_gen(s,",",0);
+      my_strcat_gen(&s,&s,&commadsc,0);
   }
   
   //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
-  return s;
+  dsc->dsc$a_pointer=s.dsc$a_pointer;
+  dsc->dsc$w_length=s.dsc$w_length;
+  return 1;
 }
 
 char *
@@ -6176,7 +6257,9 @@ char *
 print_tree(r)
      tree r;
 {
-  char * s=0;
+  struct dsc$descriptor s;
+  s.dsc$a_pointer=0;
+  s.dsc$w_length=0;
   tree t;
   for(t=r;t;t=TREE_CHAIN(t)) {
     tree old,new;
@@ -6185,17 +6268,20 @@ print_tree(r)
 #endif
     char l[256];
     sprintf(l,"%d",TREE_INT_CST_LOW(TREE_VALUE(t)));
-    if (s==0) s=xstrdup(l);
-    else {
-      s=my_strcat(s,l,0);  
-      s=my_strcat(s,",",0);
+    if (s.dsc$a_pointer==0) {
+      s.dsc$a_pointer=xstrdup(l);
+      s.dsc$w_length=strlen(s.dsc$a_pointer);
+    } else {
+      my_strcat(&s,s.dsc$w_length,s.dsc$a_pointer,strlen(l),l,0);  
+      my_strcat(&s,s.dsc$w_length,s.dsc$a_pointer,1,",",0);
     }
-	 s[strlen(s)]=0;
+    char * c=s.dsc$a_pointer;
+    c[strlen(c)]=0;
   }
   
   //if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
 
-  return s;
+  return s.dsc$a_pointer;
 }
 
 void
@@ -6270,37 +6356,47 @@ is_something(t)
   return IDENTIFIER_SYMBOL_VALUE(t)||IDENTIFIER_TAG_VALUE(t)||IDENTIFIER_LABEL_VALUE(t);
 }
 
-char *
-my_strcat(str1, str2, space)
+int
+my_strcat(dsc, len1, str1, len2, str2, space)
 	  const char * str1;
 	  const char * str2;
 	  int space;
+	  int len1;
+	  int len2;
+	  struct dsc$descriptor * dsc;
 {
   if (space)
 	 space=1;
-  int len1=strlen(str1);
-  int len2=strlen(str2);
   char * str = xmalloc(len1+len2+1+space);
   memcpy(str,str1,len1);
   if (space)
 	 str[len1]=32;
   memcpy(str+len1+space,str2,len2);
   str[len1+len2+space]=0;
-  return str;
+  dsc->dsc$a_pointer=str;
+  dsc->dsc$w_length=len1+len2+space;
+  return 1;
 }
 
-char *
-my_strcat_gen(str1, str2, space)
-	  const char * str1;
-	  const char * str2;
+int
+my_strcat_gen(dsc, dsc1, dsc2, space)
 	  int space;
+	  struct dsc$descriptor * dsc;
+	  struct dsc$descriptor * dsc1;
+	  struct dsc$descriptor * dsc2;
 {
-  if (str1==0)
-	 return xstrdup(str2);
+  int len1=dsc1->dsc$w_length;
+  int len2=dsc2->dsc$w_length;
+  char * str1=dsc1->dsc$a_pointer;
+  char * str2=dsc2->dsc$a_pointer;
+  if (str1==0) {
+    dsc->dsc$a_pointer=xmalloc(len2+1);
+    memcpy(dsc->dsc$a_pointer, str2, len2);
+    dsc->dsc$w_length=len2;
+    return 1;
+  }
   if (space)
 	 space=1;
-  int len1=strlen(str1);
-  int len2=strlen(str2);
   char * str = xmalloc(len1+len2+1+space);
   memcpy(str,str1,len1);
   if (space)
@@ -6308,7 +6404,9 @@ my_strcat_gen(str1, str2, space)
   memcpy(str+len1+space,str2,len2);
   str[len1+len2+space]=0;
   free(str1);
-  return str;
+  dsc->dsc$a_pointer=str;
+  dsc->dsc$w_length=len1+len2+space;
+  return 1;
 }
 
 tree
@@ -6494,7 +6592,13 @@ handle_initial(name, pres, cell_decl_p, size)
     t=TREE_OPERAND(dd,2);
 #endif
     tree value=v;
-    constructor_elements = chainon (constructor_elements, tree_cons (build_int_2(i,0), value, 0));
+    int rep=1;
+    if (TREE_CODE(value)==INITIAL_GROUP) {
+      rep=TREE_INT_CST_LOW(TREE_OPERAND(value,0));
+      value=TREE_PURPOSE(TREE_OPERAND(value,2));
+    }
+    for(;rep;rep--, i++) 
+      constructor_elements = chainon (constructor_elements, tree_cons (build_int_2(i,0), value, 0));
   }
   //    tree mytype=copy_node(integer_type_node);
   //    TREE_CODE (mytype) = RECORD_TYPE;
@@ -6636,4 +6740,10 @@ mytag (t)
     return IDENTIFIER_TAG_VALUE(t);
   else
     return 0;
+}
+
+tree
+give_char_array_type_node()
+{
+  return char_array_type_node;
 }
