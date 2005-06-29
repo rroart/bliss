@@ -201,6 +201,13 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.012
+String ch$ routines.
+Better initial attribute handling.
+Conditional macro checks alloc and formal params.
+New map support.
+And of course misc bugs fixed.
+
 0.011
 Better quote handling
 Misc cleanup and making routines of duplicated code

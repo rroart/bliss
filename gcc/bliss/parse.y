@@ -4256,7 +4256,7 @@ io_list
 {
   // mark this as static?
   void * io_list = $3;
-  void * fn;
+  tree fn;
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
   // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
