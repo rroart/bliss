@@ -2645,6 +2645,7 @@ select_type select_index
   DECL_CONTEXT (decl) = current_function_decl;
   DECL_IGNORED_P (decl) = 1;
   mylabel = decl;
+  $<type_node_p>$ = mylabel;
 #if 0
   // not yet
   tree label_decl = decl;
@@ -2676,8 +2677,13 @@ K_OF K_SET select_line_list K_TES
   $$=c_expand_expr_stmt($$);
 #endif
   // simplest right now?
+  mylabel = $<type_node_p>3;
   C_DECLARED_LABEL_FLAG (mylabel) = 1;
-  add_decl_stmt (mylabel)
+#if 0
+  add_decl_stmt (mylabel);
+#else
+  add_stmt (build_stmt (LABEL_STMT, mylabel));
+#endif
 }
 ;
 
