@@ -13,19 +13,10 @@ int yydebug=0;
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
 
-#define NEW_ROUTINE_CALL 1
-#define NEW_POINTER 1
-#define NEW_POINTER_NOT_YET 1
-
-#ifdef NEW_POINTER
 #define LVAL_ADDR(x) (fold(build_indirect_ref (convert (integer_ptr_type_node, (x)), "unary *")))
 #define RVAL_ADDR(x) (build_unary_op(ADDR_EXPR, (x), 0))
 #define UN_RVAL_ADDR(x) (fold(build_indirect_ref (convert (integer_ptr_type_node, (x)), "unary *")))
-#else
-#define LVAL_ADDR(x) (build_indirect_ref (convert (integer_ptr_type_node, (x)), "unary *"))
-#define RVAL_ADDR(x) (x)
-#define UN_RVAL_ADDR(x) (x)
-#endif
+
 int turn_off_addr_expr = 0;
 
 #include <stdio.h>
@@ -1956,9 +1947,6 @@ address maybe_field_selector
   /* if (context=='o') */ {
     tree d=$1;
     if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
-#ifndef NEW_POINTER
-      d = build_indirect_ref (d, "unary *");
-#endif
     } else {
       if (yydebug) inform("\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
       //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
@@ -3918,9 +3906,7 @@ T_NAME '['
 
   tree int_tree, parm_tree, x;
 
-#ifdef NEW_POINTER
   turn_off_addr_expr = 1;
-#endif
 
   pushlevel(0);
 #if 1
@@ -4061,9 +4047,9 @@ structure_body
 
   //$$ = build_nt (STRUCTURE_DECL, $1, $4, $7, $11, $13);
   //add_struct(&mystructs,$$); 
-#ifdef NEW_POINTER
+
   turn_off_addr_expr = 0;
-#endif
+
 }
 ;
 
@@ -6552,10 +6538,70 @@ handle_preset(name, pres, cell_decl_p, size)
     constructor_elements
       = tree_cons (field, value, constructor_elements);
 #endif
+#if 0
     constructor_elements = chainon (constructor_elements, tree_cons (field, value, 0));
+#else
+    tree tmp_node, tmp_prev, tmp_field;
+    int bit1 = TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field));
+    if (TREE_CODE(DECL_FIELD_OFFSET(field))==NON_LVALUE_EXPR)
+      bit1 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_OFFSET(field),0));
+    int bit2 = TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field));
+    if (TREE_CODE(DECL_FIELD_BIT_OFFSET(field))==NON_LVALUE_EXPR)
+      bit2 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_BIT_OFFSET(field),0));
+    int bit = bit1*32+bit2;
+    for (tmp_node = constructor_elements, tmp_prev = 0; tmp_node; tmp_prev = tmp_node, tmp_node = TREE_CHAIN(tmp_node)) {
+      tmp_field = TREE_PURPOSE(tmp_node);
+#if 0
+      if (TREE_INT_CST_LOW(DECL_FIELD_OFFSET(tmp_field))>TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)) && TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(tmp_field))>TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)))
+	break;
+#else
+      //      int tmp_bit = TREE_INT_CST_LOW(DECL_FIELD_OFFSET(tmp_field))*32+TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(tmp_field));
+      int tmp_bit1 = TREE_INT_CST_LOW(DECL_FIELD_OFFSET(tmp_field));
+      if (TREE_CODE(DECL_FIELD_OFFSET(tmp_field))==NON_LVALUE_EXPR)
+	tmp_bit1 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_OFFSET(tmp_field),0));
+      int tmp_bit2 = TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(tmp_field));
+      if (TREE_CODE(DECL_FIELD_BIT_OFFSET(tmp_field))==NON_LVALUE_EXPR)
+	tmp_bit2 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_BIT_OFFSET(tmp_field),0));
+      int tmp_bit = tmp_bit1*32+tmp_bit2;
+      if (tmp_bit>bit)
+	break;
+#endif
+    }
+    tree new = tree_cons(field, value, 0);
+    if (tmp_prev) {
+      TREE_CHAIN(tmp_prev) = new;
+    }
+    if (tmp_node) {
+      TREE_CHAIN(new) = tmp_node;
+    }
+    if (constructor_elements==0)
+      constructor_elements = new;
+#endif
   }
   //    tree mytype=copy_node(integer_type_node);
   //    TREE_CODE (mytype) = RECORD_TYPE;
+#if 1
+  tree tmp_node;
+  for (tmp_node = constructor_elements; tmp_node; tmp_node = TREE_CHAIN(tmp_node)) {
+    tree tmp_field = TREE_PURPOSE(tmp_node);
+    int tmp_bit1 = TREE_INT_CST_LOW(DECL_FIELD_OFFSET(tmp_field));
+    if (TREE_CODE(DECL_FIELD_OFFSET(tmp_field))==NON_LVALUE_EXPR)
+      tmp_bit1 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_OFFSET(tmp_field),0));
+    int tmp_bit2 = TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(tmp_field));
+    if (TREE_CODE(DECL_FIELD_BIT_OFFSET(tmp_field))==NON_LVALUE_EXPR)
+      tmp_bit2 = TREE_INT_CST_LOW(TREE_OPERAND(DECL_FIELD_BIT_OFFSET(tmp_field),0));
+    if (!quiet_flag)printf ("F %d %d\n",tmp_bit1, tmp_bit2);
+    //    printf ("F %d %d\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(tmp_field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(tmp_field)));
+  }
+#if 0
+  sleep( 5);
+#else
+  if (!quiet_flag) {
+    printf("\n");
+    sleep( 1);
+  }
+#endif
+#endif
   tree mytype=build_our_record(size);
   TREE_TYPE(cell_decl_p)=mytype;
   tree constructor = build_constructor(mytype,constructor_elements);
