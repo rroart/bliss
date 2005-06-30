@@ -2099,7 +2099,9 @@ hexdigit [0-9a-f]
       yy_switch_to_buffer(include_stack[include_stack_ptr] );
       if (include_stack_cond[include_stack_ptr] != cond_stack_ptr) {
 	if (!quiet_flag)printf("resetting cond_stack_ptr %x %x\n", include_stack_cond[include_stack_ptr], cond_stack_ptr); 
+#if 0
 	sleep (1);
+#endif
 	cond_stack_ptr = include_stack_cond[include_stack_ptr]; 
       }
       if (include_stack_act_par[include_stack_ptr] != cur_act_par) {
@@ -3184,7 +3186,9 @@ do_eof()
       yy_switch_to_buffer(include_stack[include_stack_ptr] );
       if (include_stack_cond[include_stack_ptr] != cond_stack_ptr) {
 	if (!quiet_flag)printf("resetting cond_stack_ptr %x %x\n", include_stack_cond[include_stack_ptr], cond_stack_ptr); 
+#if 0
 	sleep (1);
+#endif
 	cond_stack_ptr = include_stack_cond[include_stack_ptr]; 
       }
       if (include_stack_act_par[include_stack_ptr] != cur_act_par) {
