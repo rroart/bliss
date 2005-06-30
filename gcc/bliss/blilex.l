@@ -156,6 +156,9 @@
   char macrocomma=1;
   tree remaining=0;
 
+  int longest_string=0;
+  int add_memcpy=0;
+
   char * opened_req[100];
   char opened_req_ptr=0;
 
@@ -3113,6 +3116,9 @@ add_tree_string(t,s,len,space)
   TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len+space);
   TREE_STRING_LENGTH (t) = orig_len+len+space;
   //  free(str); leak
+  if (TREE_STRING_LENGTH (t)>longest_string)
+    longest_string = TREE_STRING_LENGTH (t);
+  add_memcpy+=orig_len;
 }
 
 void

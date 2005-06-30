@@ -229,6 +229,10 @@ bli_common_parse_file(set_yydebug)
  tree build_our_record(tree);
  int print_remain(struct dsc$descriptor *, tree);
 
+ int longest_macro=0;
+ int str1_memcpy=0;
+ int str1_memcpys=0;
+
 %}
 
 %start mystart
@@ -5884,6 +5888,8 @@ make_macro_string(dsc,m,r)
 
   dsc->dsc$a_pointer=s.dsc$a_pointer;
   dsc->dsc$w_length=s.dsc$w_length;
+  if  (dsc->dsc$w_length>longest_macro)
+    longest_macro = dsc->dsc$w_length;
   return 1;
  other_macro:
   if (m->type==COND_MACRO)
@@ -5960,6 +5966,8 @@ make_macro_string(dsc,m,r)
   cond_iter_macro_count=0; // reset it here because cannot in cond itself?
   dsc->dsc$a_pointer=s.dsc$a_pointer;
   dsc->dsc$w_length=s.dsc$w_length;
+  if  (dsc->dsc$w_length>longest_macro)
+    longest_macro = dsc->dsc$w_length;
   return 1;
  cond_macro:
   // this seems to be done just like a simple macro?
@@ -6013,6 +6021,8 @@ make_macro_string(dsc,m,r)
 
   dsc->dsc$a_pointer=s.dsc$a_pointer;
   dsc->dsc$w_length=s.dsc$w_length;
+  if  (dsc->dsc$w_length>longest_macro)
+    longest_macro = dsc->dsc$w_length;
   return 1;
 }
 
@@ -6399,6 +6409,8 @@ my_strcat_gen(dsc, dsc1, dsc2, space)
 	 space=1;
   char * str = xmalloc(len1+len2+1+space);
   memcpy(str,str1,len1);
+  str1_memcpy+=len1;
+  str1_memcpys++;
   if (space)
 	 str[len1]=32;
   memcpy(str+len1+space,str2,len2);
@@ -6746,4 +6758,17 @@ tree
 give_char_array_type_node()
 {
   return char_array_type_node;
+}
+
+void
+bli_print_statistics()
+{
+  extern int longest_string;
+  extern int add_memcpy;
+  fprintf(stderr, "\nBliss specific stats:\n");
+  fprintf(stderr, "Longest produced macro was %d bytes\n", longest_macro);
+  fprintf(stderr, "Make_macro_string unnecessary memcpy %d bytes\n", str1_memcpy);
+  fprintf(stderr, "Make_macro_string unnecessary memcpys %d\n", str1_memcpys);
+  fprintf(stderr, "Longest added string was %d bytes\n", longest_string);
+  fprintf(stderr, "Add_string unnecessary memcpy %d bytes\n", add_memcpy);
 }

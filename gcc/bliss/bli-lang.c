@@ -39,7 +39,7 @@ enum c_language_kind c_language = clk_c;
 
 extern void bli_common_parse_file(int);
 extern rtx bli_expand_expr PARAMS ((tree, rtx, enum machine_mode, int));
-
+extern void bli_print_statistics(void);
 
 /* ### When changing hooks, consider if ObjC needs changing too!! ### */
 
@@ -93,6 +93,9 @@ extern rtx bli_expand_expr PARAMS ((tree, rtx, enum machine_mode, int));
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL c_dup_lang_specific_decl
 #undef LANG_HOOKS_DECL_UNINIT
 #define LANG_HOOKS_DECL_UNINIT c_decl_uninit
+#undef LANG_HOOKS_PRINT_STATISTICS
+#define LANG_HOOKS_PRINT_STATISTICS bli_print_statistics
+
 
 #undef LANG_HOOKS_RTL_EXPAND_STMT
 #define LANG_HOOKS_RTL_EXPAND_STMT expand_stmt
