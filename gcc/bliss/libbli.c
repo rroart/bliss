@@ -64,7 +64,7 @@ static void * memset(void * s,int c,size_t count)
 long ch$allocation(int n, int cs) {
   if (cs==0)
     cs=8;
-  return 1+((n*cs)>>5);
+  return (31+n*cs)>>5;
 }
 
 // maybe ctce
