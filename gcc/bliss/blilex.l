@@ -459,6 +459,8 @@ hexdigit [0-9a-f]
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
+  if (0==strcmp("ch$allocation",yytext))
+    key = N_CH_ALLOCATION; // temp workaround
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
     {
