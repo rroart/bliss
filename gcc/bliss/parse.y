@@ -1541,6 +1541,7 @@ unlabeled_block
   //last_tree = node;
   $$ = node;
   $$ = 0;
+  $$ = body;
   //c_expand_expr_stmt($$);
   //$$ = 0;
   //  add_stmt($$);
@@ -2307,6 +2308,21 @@ executable_function_name '('  actual_parameter_list  ')'
   // check redo
   if ($1==P_REF)
     goto do_pref;
+  if (TREE_CODE($1)==IDENTIFIER_NODE && 0==strcmp("ch$allocation",IDENTIFIER_POINTER($1))) {
+    // temp workaround to ctce if par is ctce 
+    if (TREE_CHAIN($3))
+      goto no_ch_ctce;
+    tree val = TREE_VALUE($3);
+    if (TREE_CODE(val)!=INTEGER_CST)
+      goto no_ch_ctce;
+    int v=TREE_INT_CST_LOW(val);
+    $$ = build_int_2((31+v*8)>>5,0);
+    if (!quiet_flag)
+      inform("ctce ch$all %x\n",(31+v*8)>>5);
+    goto out_exec_func;
+  }
+ no_ch_ctce:
+  {}
   // copy from routine call?
   void * ref;
   if (yychar == YYEMPTY)
@@ -2336,7 +2352,9 @@ executable_function_named:
 standard_function_name
 /* standard_function_name  
 | linkage_function_name 
+*/
 | character_handling_function_name 
+/*
 | machine_specific_function_name */
 | cond_handling_function_name 
 ;
@@ -2372,7 +2390,9 @@ P_REF
 }
 ;
 
-character_handling_function_name: T_NAME 
+character_handling_function_name: 
+N_CH_ALLOCATION
+{ /* was: T_NAME */ }
 ;
 machine_specific_function_name: T_NAME 
 ;
