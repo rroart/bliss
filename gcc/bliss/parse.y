@@ -4304,7 +4304,12 @@ io_list
   // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
   start_function (tree_cons(0, integer_type_node, 0), fn, 0);
-  TREE_PUBLIC (current_function_decl) = 0;
+  if (0==strcmp("main", IDENTIFIER_POINTER($1))) {
+    DECL_EXTERNAL (current_function_decl) = 0;
+    TREE_PUBLIC (current_function_decl) = 1;
+  } else {
+    TREE_PUBLIC (current_function_decl) = 0;
+  }
   store_parm_decls ();
 }
 routine_attributes '=' save_location exp 
