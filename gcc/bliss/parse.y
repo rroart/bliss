@@ -3259,7 +3259,15 @@ compile_time_constant_expression: expression { /*nonfin*/ }
 
 addressing_mode_attribute: 
 /*K_ADDRESSING_MODE { undefmode=1; } '(' mode_16 ')' 
-  |*/{ undefmode=1; fprintf(stdout, "undefmode\n\n\n\n"); } K_ADDRESSING_MODE '('  mode_32 ')' {  undefmode=0; }
+  |*/
+{
+  undefmode=1;
+  if (!quiet_flag)inform("undefmode\n");
+}
+K_ADDRESSING_MODE '('  mode_32 ')'
+{
+  undefmode=0;
+}
 ;
 
 mode_16:
@@ -3698,10 +3706,26 @@ external_name maybe_external_attribute_list
   tree st_attr = find_structure_attr(myattr);
   if (st_attr) {
     /*size=*/handle_structure(cell, st_attr, 1);
+#if 0
     cell=make_pointer_declarator(0,cell); // check?
+#endif
   }
 
   cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 0, 0);
+
+  tree decl = cell_decl_p;
+  int extern_ref = 1; 
+
+  if (global_bindings_p())
+  {
+    TREE_PUBLIC (decl) = 1;
+		
+    TREE_STATIC (decl) = !extern_ref; // 0 
+  } else {
+    TREE_STATIC (decl) = 0;
+    TREE_PUBLIC (decl) = extern_ref; // 1
+  }
+
   DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
@@ -4604,6 +4628,20 @@ T_NAME
   cell=$1;
 
   cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 0, 0);
+
+  tree decl = cell_decl_p;
+  int extern_ref = 1; 
+
+  if (global_bindings_p())
+  {
+    TREE_PUBLIC (decl) = 1;
+		
+    TREE_STATIC (decl) = !extern_ref; // 0 
+  } else {
+    TREE_STATIC (decl) = 0;
+    TREE_PUBLIC (decl) = extern_ref; // 1
+  }
+
   DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
