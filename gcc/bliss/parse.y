@@ -766,7 +766,11 @@ common_switch	:  U_IDENT '=' T_STRING  { $$ = 0; }
 | U_LINKAGE '(' T_NAME ')'  { $$ = 0; }
 | U_LIST '(' list_option_list ')'  { $$ = 0; }
 /*| K_STRUCTURE '(' structure_attribute ')'  { $$ = 0; }*/
-| U_MAIN '=' T_NAME  { $$ = 0; }
+|
+U_MAIN '=' T_NAME  
+{
+  add_macro(IDENTIFIER_POINTER($3),SIMP_MACRO,0,0,build_string(4,"main"));
+}
 | U_OPTLEVEL '=' T_DIGITS  { $$ = 0; }
 | U_VERSION '=' T_STRING  { $$ = 0; }
 
@@ -3739,7 +3743,6 @@ external_name maybe_external_attribute_list
   if (global_bindings_p())
   {
     TREE_PUBLIC (decl) = 1;
-		
     TREE_STATIC (decl) = !extern_ref; // 0 
   } else {
     TREE_STATIC (decl) = 0;
@@ -4301,6 +4304,7 @@ io_list
   // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
   start_function (tree_cons(0, integer_type_node, 0), fn, 0);
+  TREE_PUBLIC (current_function_decl) = 0;
   store_parm_decls ();
 }
 routine_attributes '=' save_location exp 
@@ -4410,6 +4414,8 @@ io_list
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
   start_function (tree_cons(0, integer_type_node, 0), fn, 0);
+  DECL_EXTERNAL (current_function_decl) = 0;
+  TREE_PUBLIC (current_function_decl) = 1;
   store_parm_decls ();
 }
 global_routine_attributes '=' save_location exp 
@@ -4655,7 +4661,6 @@ T_NAME
   if (global_bindings_p())
   {
     TREE_PUBLIC (decl) = 1;
-		
     TREE_STATIC (decl) = !extern_ref; // 0 
   } else {
     TREE_STATIC (decl) = 0;
