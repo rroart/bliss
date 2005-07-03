@@ -1417,6 +1417,17 @@ plit: plit2 plit3 '(' plit_item_list ')'
   tree t = $4;
   while (t) {
 	 switch (TREE_CODE(t)) {
+	 case STRING_CST:
+		{
+		  char * str=TREE_STRING_POINTER(t);
+		  int len=strlen(str)-2;
+		  str++;
+		  memcpy(cur, str, len);
+		  if (len&3)
+			 len+=(4-(len&3));
+		  cur+=len;
+		}
+		break;
 	 case IDENTIFIER_NODE:
 		{
 		  char * str=IDENTIFIER_POINTER(t);
