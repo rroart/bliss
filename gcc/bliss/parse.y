@@ -1420,7 +1420,7 @@ plit: plit2 plit3 '(' plit_item_list ')'
 	 case STRING_CST:
 		{
 		  char * str=TREE_STRING_POINTER(t);
-		  int len=strlen(str)-2;
+		  int len=TREE_STRING_LENGTH(t)-2;
 		  str++;
 		  memcpy(cur, str, len);
 		  if (len&3)
