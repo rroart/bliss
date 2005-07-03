@@ -73,9 +73,11 @@ GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
 
 BLI_GENERATED = $(blibld)/parse.c $(blibld)/blilex.c
 
-BLI_EXES = bliss/blif2v$(exeext)
+BLI_EXES = 
 
-BLI_LIBS = 
+BLI_LIBS = bliss/libbli.a
+
+BLI_REQS = bliss/*.req bliss/*.r32
 
 BLI_NEW_UTIL_H = 
 
@@ -204,10 +206,20 @@ bliss.install.common.done: installdirs bliss.done bliss.check.drivers.done
 	do \
 	   if [ -f $$name ] ; then \
 	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
-	    rm $(bindir)/$$name2$(exeext) | true; \
-	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(bindir)/$$name2$(exeext); \
-	    $(INSTALL_PROGRAM) $$name$(exeext) $(bindir)/$$name2$(exeext); \
-	    chmod a+x $(bindir)/$$name2$(exeext); \
+	    rm $(libdir)/$$name2$(exeext) | true; \
+	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(libdir)/$$name2$(exeext); \
+	    $(INSTALL_PROGRAM) $$name$(exeext) $(libdir)/$$name2$(exeext); \
+	    chmod a+r $(libdir)/$$name2$(exeext); \
+	  fi ; \
+	done; \
+	for name in $(BLI_REQS); \
+	do \
+	   if [ -f $$name ] ; then \
+	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
+	    rm $(includedir)/$$name2$(exeext) | true; \
+	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(includedir)/$$name2$(exeext); \
+	    $(INSTALL_PROGRAM) $$name$(exeext) $(includedir)/$$name2$(exeext); \
+	    chmod a+r $(includedir)/$$name2$(exeext); \
 	  fi ; \
 	done
 	${STAMP} bliss.install.common.done
