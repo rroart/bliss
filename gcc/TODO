@@ -33,3 +33,4 @@ handle better the diffs between identifier and string
 p_ascid support had troubles with size less than 4, and still has some
 remember to sort the field_decls
 
+complete changeover from using strlen to dsc and other length specifics
