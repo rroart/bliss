@@ -887,7 +887,7 @@ hexdigit [0-9a-f]
 	 if (TREE_CODE(last)==IDENTIFIER_NODE)
 	   myret+=strlen(IDENTIFIER_POINTER(last))-2;
 	 if (TREE_CODE(last)==STRING_CST)
-	   myret+=strlen(TREE_STRING_POINTER(last))-2;
+	   myret+=TREE_STRING_LENGTH(last)-2;
 
 	 if (*par_end==',') {
 		par = par_end + 1;
@@ -2036,9 +2036,10 @@ hexdigit [0-9a-f]
     continue;                   /* not obvious at all...*/
   }
 #endif
-  s=strdup(yytext);
+  s=xmalloc(yyleng);
+  memcpy(s,yytext,yyleng);
   //yylval.type_node_p=copy_node(get_identifier(s));
-  yylval.type_node_p=copy_node(build_string(strlen(s),s));
+  yylval.type_node_p=copy_node(build_string(yyleng,s));
   return T_STRING;
 }
 
