@@ -4311,7 +4311,19 @@ io_list
   // mark this as static?
   void * io_list = $3;
   tree fn;
+#if 0
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
+#else
+  if (io_list==0) {
+    // temp workaround to have ap with no formals
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    tree type = integer_type_node;
+    tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
+    tree point_tree = make_pointer_declarator (0, d1);
+    tree point_int = tree_cons (int_tree, point_tree, 0);
+    io_list = tree_cons (point_int, 0, 0);
+  }
+#endif
   // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
   start_function (tree_cons(0, integer_type_node, 0), fn, 0);
@@ -4427,7 +4439,19 @@ io_list
 {
   void * io_list = $3;
   void * fn;
+#if 0
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
+#else
+  if (io_list==0) {
+    // temp workaround to have ap with no formals
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    tree type = integer_type_node;
+    tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
+    tree point_tree = make_pointer_declarator (0, d1);
+    tree point_int = tree_cons (int_tree, point_tree, 0);
+    io_list = tree_cons (point_int, 0, 0);
+  }
+#endif
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
   start_function (tree_cons(0, integer_type_node, 0), fn, 0);
   DECL_EXTERNAL (current_function_decl) = 0;
@@ -4661,6 +4685,27 @@ K_LABEL label_name_list ';'
 built_in_name:
 T_NAME
 {
+  if (0==strcmp(IDENTIFIER_POINTER($1),"ap")) {
+  tree cell, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
+  tree size=tree_cons(0,integer_type_node,0);
+
+  tree type = integer_type_node;
+  
+  cell=$1;
+
+  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 1, 0);
+
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+
+  // also needs a dummy parameter __mydummy_for_ap__ if no formals
+  init = build_unary_op (ADDR_EXPR, DECL_ARGUMENTS(current_function_decl), 1);
+  init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(1,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
+  
+  finish_decl (cell_decl_p, init, NULL_TREE);
+  } else {
+#if 0
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
@@ -4687,6 +4732,8 @@ T_NAME
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
   finish_decl (cell_decl_p, 0, NULL_TREE);
+#endif
+  }
 }
 ;
 
