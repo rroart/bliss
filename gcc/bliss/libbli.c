@@ -252,4 +252,12 @@ long ch$find_sub(int cn, char * cptr, int pn, char * pptr) {
 
 // ch$transtable ch$translate not yet
 
-
+int
+nullparameter(long * l) {
+  // check. does not work as intended,probably
+  if (l==0)
+    return 1;
+  if (*l==0)
+    return 1;
+  return 0;
+}
