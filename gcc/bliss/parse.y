@@ -3557,12 +3557,12 @@ own_name maybe_own_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr && (orig_init == 0))
+    if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
   }
 
   if (orig_init && st_attr)
-    init = handle_initial($1, orig_init, cell_decl_p, array_type);
+    init = handle_initial($1, orig_init, cell_decl_p, fold(size));
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -3674,12 +3674,12 @@ global_name maybe_global_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr && (orig_init == 0))
+    if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
   }
 
   if (orig_init && st_attr)
-    init = handle_initial($1, orig_init, cell_decl_p, array_type);
+    init = handle_initial($1, orig_init, cell_decl_p, fold(size));
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -3871,12 +3871,12 @@ local_name maybe_local_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr && (orig_init == 0))
+    if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
   }
 
   if (orig_init && st_attr)
-    init = handle_initial($1, orig_init, cell_decl_p, array_type);
+    init = handle_initial($1, orig_init, cell_decl_p, fold(size));
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -6744,6 +6744,87 @@ handle_preset(name, pres, cell_decl_p, size)
 }
 
 tree
+build_field_decl(offset, size)
+     int offset;
+     int size;
+{
+  tree field=build_decl (FIELD_DECL, 0, integer_type_node);
+  SET_DECL_C_BIT_FIELD(field);
+  DECL_BIT_FIELD(field)=1;
+
+  DECL_FIELD_BIT_OFFSET(field)=build_int_2(0,0);
+  TREE_TYPE(DECL_FIELD_BIT_OFFSET(field))=bitsizetype;
+
+  DECL_FIELD_OFFSET(field)=build_int_2(offset,0);
+
+  DECL_SIZE_UNIT(field)=build_int_2(size,0);
+  DECL_SIZE(field)=build_int_2(size<<3,0);
+  TREE_TYPE(DECL_FIELD_OFFSET(field)) = sizetype;
+  return field;
+}
+
+int
+node_type_to_int(t)
+     tree t;
+{
+  // also look at size and size_unit
+  if (t==integer_type_node)
+    return 4;
+  if (t==short_integer_type_node)
+    return 2;
+  if (t==char_type_node)
+    return 1;
+  return 4;
+}
+
+tree
+handle_initial_inner(constructor_elements, attr, offset, size)
+     tree * constructor_elements;
+     tree attr;
+     int * offset;
+     int size;
+{
+  for (;attr;attr=TREE_CHAIN(attr)) {
+    tree v=TREE_PURPOSE(attr);
+
+    // differs from local from now on
+    tree value = v;
+    int rep=1;
+    switch (TREE_CODE(value)) {
+    case STRING_CST:
+      {
+	rep=TREE_STRING_LENGTH(value)-2;
+	char * c=TREE_STRING_POINTER(value)+1;
+	for(;rep;rep--, c++, *offset+=size) {
+	  tree field=build_field_decl(*offset,size);
+	  value=build_int_2(*c,0);
+	  *constructor_elements = chainon (*constructor_elements, tree_cons (field, value, 0));
+	}
+      }
+      break;
+    case INITIAL_GROUP:
+      {
+	rep=TREE_INT_CST_LOW(TREE_OPERAND(value,0));
+	size=node_type_to_int(TREE_OPERAND(value,1));
+	value=TREE_OPERAND(value,2);
+	for(;rep;rep--)
+	  handle_initial_inner(constructor_elements, value, offset, size);
+      }
+      break;
+    default:
+      {
+	tree field=build_field_decl(*offset,size);
+	if (TREE_CODE(value)!=INTEGER_CST)
+	  DECL_BIT_FIELD(field)=0;
+	for(;rep;rep--, *offset+=size) 
+	  *constructor_elements = chainon (*constructor_elements, tree_cons (field, value, 0));
+      }
+    }
+  }
+  return 0;
+}
+
+tree
 handle_initial(name, pres, cell_decl_p, size)
      tree name;
      tree pres;
@@ -6753,52 +6834,12 @@ handle_initial(name, pres, cell_decl_p, size)
   tree init;
   tree constructor_elements=0;
   tree attr=TREE_OPERAND(pres,0);
-  int i;
-  for (i=0;attr;attr=TREE_CHAIN(attr),i++) {
-#if 0
-    tree d3=TREE_VALUE(attr);
-#endif
-    tree v=TREE_PURPOSE(attr);
-#if 0
-    tree dd;
-    // from ordinary_structure_reference:
-    tree cell__ = get_identifier(add_underscore(name, 2));
-    tree extref=RVAL_ADDR(build_external_ref (name, 0));
-    tree params = d3;
-    tree type = xref_tag(STRUCTURE_ATTR,cell__);
-    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
-    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
-    //chainon (tree_last(d3), build_tree_list(NULL_TREE, extref)); 
-    chainon (tree_last(d3), build_tree_list(NULL_TREE, build_int_2(0,0))); 
-    my_substitute(body,access,params);
-    //my_substitute_parmz(body,access,params);// extra to zero parm
-    dd=body;
-#endif
+  int offset=0;
 
-    // differs from local from now on
-#if 0
-    tree t;
-    //t=LVAL_ADDR(t);
-    t=TREE_OPERAND(dd,2);
-#endif
-    tree value=v;
-    int rep=1;
-    if (TREE_CODE(value)==INITIAL_GROUP) {
-      rep=TREE_INT_CST_LOW(TREE_OPERAND(value,0));
-      value=TREE_PURPOSE(TREE_OPERAND(value,2));
-    }
-    for(;rep;rep--, i++) 
-      constructor_elements = chainon (constructor_elements, tree_cons (build_int_2(i,0), value, 0));
-  }
-  //    tree mytype=copy_node(integer_type_node);
-  //    TREE_CODE (mytype) = RECORD_TYPE;
+  handle_initial_inner(&constructor_elements, attr, &offset, 4);
+
   tree mytype=build_our_record(size);
-  mytype=size;
-#if 0
-  mytype=build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
-  TYPE_MAIN_VARIANT(mytype)=integer_type_node;
   TREE_TYPE(cell_decl_p)=mytype;
-#endif
   tree constructor = build_constructor(mytype,constructor_elements);
   TREE_CONSTANT(constructor)=1;
   init=constructor;
