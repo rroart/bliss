@@ -57,7 +57,8 @@ int turn_off_addr_expr = 0;
  static tree myselect = 0;
  static tree mylabel = 0;
  static tree selif = 0;
- static char icc=0 ;
+ static int icc=0 ;
+ static int gsc=0 ;
  static tree ifthenelseval=0;
 
  int yyrec = 0;
@@ -219,10 +220,14 @@ bli_common_parse_file(set_yydebug)
  tree set_temp_var(tree, tree);
  tree build_our_record(tree);
  int print_remain(struct dsc$descriptor *, tree);
+ tree mytag(tree);
+ int is_str_tag(tree);
 
  int longest_macro=0;
  int str1_memcpy=0;
  int str1_memcpys=0;
+ int fields=0;
+ int fielditers=0;
 
 %}
 
@@ -1042,28 +1047,28 @@ opt_sign: { $$=0; }
 integer_literal: 
 P_B T_STRING  { 
   tree t;
-  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,2),0);
+  t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,2),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_O T_STRING  {
   tree t;
-  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,8),0);
+  t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,8),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_DECIMAL T_STRING  {
   tree t;
-  t = build_int_2(1+strtol(TREE_STRING_POINTER($2),0,10),0);
+  t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,10),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
 }
 | P_X T_STRING  {
   tree t;
-  t = build_int_2(strtol(1+TREE_STRING_POINTER($2),0,16),0);
+  t = build_int_2(strtoul(1+TREE_STRING_POINTER($2),0,16),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
   t = convert (integer_type_node, t);
   $$ = t;
@@ -1733,9 +1738,46 @@ block_value: expression
 ;
 
 structure_reference:
-  ordinary_structure_reference 
-  /*| default_structure_reference nit ye*/
-| general_structure_reference 
+  /*  ordinary_structure_reference 
+  | default_structure_reference nit ye
+  | general_structure_reference */
+T_NAME '[' access_actual_list maybe_alloc_actual_list ']' 
+{ 
+  tree tag = mytag($1);
+  if (tag && is_str_attr(tag)) {
+    char s2[32];
+    sprintf(s2,"_gsc%d",gsc++);
+    tree d2 = get_identifier(s2);
+    tree cell__ = get_identifier(add_underscore(d2, 2));
+
+    tree st = handle_structure_attribute($1, $4, 0);
+    tree segname = TREE_VALUE($3);
+    tree extref=segname; // could be RVAL_ADDR(build_external_ref (segname, 0));
+    tree params = TREE_CHAIN($3);
+    //  tree type = $1;
+    tree size = handle_structure(d2, st, 0);
+    // rest from ordinary str ref, from body =
+    tree type = xref_tag(STRUCTURE_ATTR,cell__);
+    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+    chainon (tree_last(params), build_tree_list(NULL_TREE, extref)); 
+    my_substitute(body,access,params);
+    $$=body;
+  } else {
+    tree cell__ = get_identifier(add_underscore($1, 2));
+    //tree t=build_external_ref ($1, 0);
+    tree extref=RVAL_ADDR(build_external_ref ($1, 0));
+    //tree params = chainon(copy_node(extref), $3);
+    //if (TREE_CHAIN(er)) fprintf(stdout, "\npanic %x\n",input_location.line);
+    tree params = $3;
+    tree type = xref_tag(STRUCTURE_ATTR,cell__);
+    tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+    tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+    chainon (tree_last($3), build_tree_list(NULL_TREE, extref)); 
+    my_substitute(body,access,params);
+    $$=body;
+  }
+}
 ;
 
 ordinary_structure_reference:
@@ -1803,10 +1845,18 @@ T_FIELDNAME
 
 access_part:  
 segment_expression ',' access_actual_list 
-|segment_expression  
+{ 
+  chainon($1, $3);
+}
+|
+segment_expression  
 ;
 
-segment_expression: exp 
+segment_expression:
+exp 
+{ 
+  $$ = build_tree_list (NULL_TREE, $1);
+}
 ;
 
 /*field_name      Note: See field_attribute, Section 4.1*/
@@ -1828,11 +1878,38 @@ address '[' access_actual_list ']'
 
 structure_name:
 T_NAME
+{ 
+  // was: T_NAME but got grammar problems
+}
 ;
 
 general_structure_reference:
 structure_name '[' access_part ';' alloc_actual_list ']' 
-|structure_name '[' access_part ']' 
+{ 
+  char s2[32];
+  sprintf(s2,"_gsc%d",gsc++);
+  tree d2 = get_identifier(s2);
+  tree cell__ = get_identifier(add_underscore(d2, 2));
+
+  tree st = handle_structure_attribute($1, $5, 0);
+  tree segname = TREE_VALUE($3);
+  tree extref=segname; // could be RVAL_ADDR(build_external_ref (segname, 0));
+  tree params = TREE_CHAIN($3);
+  //  tree type = $1;
+  tree size = handle_structure(d2, st, 0);
+  // rest from ordinary str ref, from body =
+  tree type = xref_tag(STRUCTURE_ATTR,cell__);
+  tree body = my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(type))))));
+  tree access = my_copy_tree(TREE_VALUE(TREE_CHAIN(TYPE_FIELDS(type))));
+  chainon (tree_last(params), build_tree_list(NULL_TREE, extref)); 
+  my_substitute(body,access,params);
+  $$=body;
+}
+|
+structure_name '[' access_part ']' 
+{
+  tree st = handle_structure_attribute($1, 0, 0);
+}
 ;
 
 alloc_actual_list: alloc_actual_list ',' alloc_actual
@@ -2074,7 +2151,9 @@ macro_actual_parameter: { $$=0; }
   
 macro_name: M_NAME;
 
-keyword_formal_name: T_NAME;
+keyword_formal_name:
+T_NAME
+;
 
 op_exp:
 primary  
@@ -3224,7 +3303,7 @@ maybe_alloc_actual_list:
   $$ = 0;
 }
 |
-'[' alloc_actual_list ']'
+';' alloc_actual_list
 {
   $$ = $2;
 }
@@ -3233,6 +3312,7 @@ maybe_alloc_actual_list:
 structure_attribute:
   K_REF T_NAME '[' alloc_actual_list ']'
 {
+  // for all 4: was T_NAME, but got grammar problems
   $$ = handle_structure_attribute($2, $4, 1);
 }
 |
@@ -4963,7 +5043,12 @@ simple_macro_definition
 ;
 
 simple_macro_definition: 
-T_NAME '(' tname_list ')'  '=' { macromode=1; } macro_body '%' 
+T_NAME '(' tname_list ')'  '='
+{
+  tnamemode=0;
+  macromode=1;
+}
+macro_body '%' 
 { 
   add_macro(IDENTIFIER_POINTER($1),SIMP_MACRO,$3,0,$7);
 }
@@ -5047,7 +5132,7 @@ keyword_pair
 ;
 
 keyword_pair:
-T_NAME '=' 
+keyword_formal_name '=' 
 {
   extern int one_lexeme;
   extern int macromode;
@@ -5060,11 +5145,27 @@ default_actual
   //$$ = build_nt(KEYWORD_PAIR, $1, $4);
 }
 |
-T_NAME 
+keyword_formal_name
 {
   $$ = build_tree_list(0, $1);
   //$$ = build_nt(KEYWORD_PAIR, $1, 0);
 }
+;
+
+macro_formal_name_list:
+macro_formal_name_list ',' macro_formal_name
+{
+  chainon ($1, build_tree_list (NULL_TREE, $3));
+}
+|
+macro_formal_name
+{
+  $$ = build_tree_list (NULL_TREE, $1);
+}
+;
+
+macro_formal_name:
+T_NAME
 ;
 
 linkage_definition_list: linkage_definition_list ',' linkage_definition 
@@ -6370,11 +6471,12 @@ register_field(char * s, tree t) {
   f->t=t;
   f->next=field_root;
   field_root=f;
+  fields++;
 }
 
 find_field(char * s) {
   struct field_struct * t = field_root;
-  for (;t;t=t->next) {
+  for (;t;t=t->next,fielditers++) {
 	 if (0==strcmp(t->name,s))
 		return t->t;
   }
@@ -6990,4 +7092,13 @@ bli_print_statistics()
   fprintf(stderr, "Make_macro_string unnecessary memcpys %d\n", str1_memcpys);
   fprintf(stderr, "Longest added string was %d bytes\n", longest_string);
   fprintf(stderr, "Add_string unnecessary memcpy %d bytes\n", add_memcpy);
+  fprintf(stderr, "Fields %d\n", fields);
+  fprintf(stderr, "Field iters %d\n", fielditers);
+}
+
+int
+is_str_attr(t)
+     tree t;
+{
+  return TREE_CODE(t)==STRUCTURE_TYPE;
 }
