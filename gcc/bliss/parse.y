@@ -553,7 +553,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> special_switch_item
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
 %type <type_node_p> built_in_name_list built_in_name select_action_with_end
-%type <type_node_p> map_name
+%type <type_node_p> map_name macro_formal_name macro_formal_name_list
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -5045,7 +5045,6 @@ simple_macro_definition
 simple_macro_definition: 
 T_NAME '(' tname_list ')'  '='
 {
-  tnamemode=0;
   macromode=1;
 }
 macro_body '%' 
