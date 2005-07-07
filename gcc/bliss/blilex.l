@@ -2043,12 +2043,6 @@ hexdigit [0-9a-f]
   return T_STRING;
 }
 
-'\0' {
-  warning("Even more illegal?\n");
-  exit(9999);
-  goto do_ill;
-}
-
 {illstring}			{
   // seems you can create illegal strings with \n etc in it
  do_ill:
