@@ -208,6 +208,7 @@ bli_common_parse_file(set_yydebug)
  int make_macro_string(struct dsc$descriptor * dsc, struct mymacro * m, tree r);
  tree find_init_attr(tree t);
  tree find_structure_attr(tree);
+ tree find_alloc_attr(tree);
  tree find_tree_code(tree, int);
  int my_strcat(struct dsc$descriptor *, int, const char *, int, const char *, int);
  int my_strcat_gen(struct dsc$descriptor *, struct dsc$descriptor *, struct dsc$descriptor * , int);
@@ -1766,7 +1767,12 @@ T_NAME '[' access_actual_list maybe_alloc_actual_list ']'
   } else {
     tree cell__ = get_identifier(add_underscore($1, 2));
     //tree t=build_external_ref ($1, 0);
+    tree extref = build_external_ref ($1, 0);
+    if (TREE_LANG_FLAG_3(extref)==0)
+      extref=RVAL_ADDR(extref);
+#if 0
     tree extref=RVAL_ADDR(build_external_ref ($1, 0));
+#endif
     //tree params = chainon(copy_node(extref), $3);
     //if (TREE_CHAIN(er)) fprintf(stdout, "\npanic %x\n",input_location.line);
     tree params = $3;
@@ -1784,7 +1790,11 @@ ordinary_structure_reference:
 segment_name '[' access_actual_list ']' {
   tree cell__ = get_identifier(add_underscore($1, 2));
   //tree t=build_external_ref ($1, 0);
+  if (TREE_LANG_FLAG_3(extref)==0)
+    extref=RVAL_ADDR(extref);
+#if 0
   tree extref=RVAL_ADDR(build_external_ref ($1, 0));
+#endif
   //tree params = chainon(copy_node(extref), $3);
   //if (TREE_CHAIN(er)) fprintf(stdout, "\npanic %x\n",input_location.line);
   tree params = $3;
@@ -2192,8 +2202,18 @@ operator_expression:
     if (TREE_OPERAND($$, 1)) TREE_OPERAND($$, 1)=fold(TREE_OPERAND($$, 1));
     if (TREE_OPERAND($$, 2)) TREE_OPERAND($$, 2)=fold(TREE_OPERAND($$, 2));
     TREE_TYPE(TREE_OPERAND($$, 2)) = ubitsizetype;
+
+    tree tmp = convert(integer_ptr_type_node, $$);
+    if (TREE_CODE(tmp)==NOP_EXPR)
+      tmp=TREE_OPERAND(tmp,0);
+    $$ = build_indirect_ref (tmp, "unary *"); 
+    $$ = fold($$);
   } else {
-    $$ = build_indirect_ref (convert(integer_ptr_type_node, $3), "unary *"); 
+    tree tmp = convert(integer_ptr_type_node, $3);
+    if (TREE_CODE(tmp)==NOP_EXPR)
+      tmp=TREE_OPERAND(tmp,0);
+    $$ = build_indirect_ref (tmp, "unary *"); 
+    $$ = fold($$);
   }
   setbitcontext('o');
   popbitstack();
@@ -2223,7 +2243,7 @@ operator_expression:
 | opexp9 infix_operator opexp9 {
   $$ = parser_build_binary_op ($2, $1, $3);
  }
-| K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, $2, 0); }
+| K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, convert(integer_type_node, $2), 0); }
 | opexp9 K_AND opexp9 { $$ = parser_build_binary_op (BIT_AND_EXPR, $1, $3); }
 |  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, convert(integer_type_node,$1), convert(integer_type_node,$3)); /* temp fix */ }
 | opexp9 K_EQV opexp9 { $$ = build_unary_op(BIT_NOT_EXPR,parser_build_binary_op (BIT_XOR_EXPR, $1, $3),0); }
@@ -2267,7 +2287,12 @@ opexp9 '=' opexp9 {
 #if 0
     $$=build_modify_expr(build_indirect_ref (convert(integer_ptr_type_node, t), "unary *"), NOP_EXPR, $3);
 #else
-	 $$=build_modify_expr(LVAL_ADDR(t), NOP_EXPR, $3);
+    tree type = TREE_TYPE(t);
+    tree ptype = build_pointer_type(type);
+    tree conv = convert (ptype, (t));
+
+    tree tmp=fold(build_indirect_ref (conv, "unary *"));
+    $$=build_modify_expr(tmp, NOP_EXPR, $3);
 #endif
   }
  bitend:
@@ -3270,7 +3295,7 @@ attribute
 }
 ;
 
-attribute:  allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+attribute:  allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); } 
 | extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
 | structure_attribute  
 | field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
@@ -3314,11 +3339,13 @@ structure_attribute:
 {
   // for all 4: was T_NAME, but got grammar problems
   $$ = handle_structure_attribute($2, $4, 1);
+  TREE_LANG_FLAG_0($$)=1;
 }
 |
   K_REF T_NAME
 {
   $$ = handle_structure_attribute($2, 0, 1);
+  TREE_LANG_FLAG_0($$)=1;
 }
 |
   T_NAME '[' alloc_actual_list ']'
@@ -3591,9 +3618,15 @@ own_name maybe_own_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
   tree myattr = $2;
   
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
+
   cell=$1;
 
   tree st_attr = find_structure_attr(myattr);
@@ -3639,6 +3672,10 @@ own_name maybe_own_attribute_list
   } else {
     if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_LANG_FLAG_3(cell_decl_p)=1;
   }
 
   if (orig_init && st_attr)
@@ -3665,7 +3702,7 @@ own_attribute
 ;
 
 own_attribute:
-allocation_unit { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
+allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); } 
 |extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
@@ -3709,8 +3746,14 @@ global_name maybe_global_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
   tree myattr = $2;
+
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
 
   cell=$1;
 
@@ -3756,6 +3799,10 @@ global_name maybe_global_attribute_list
   } else {
     if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_LANG_FLAG_3(cell_decl_p)=1;
   }
 
   if (orig_init && st_attr)
@@ -3813,9 +3860,15 @@ external_name maybe_external_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
   tree myattr = $2;
   
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
+
   cell=$1;
 
   tree st_attr = find_structure_attr(myattr);
@@ -3826,7 +3879,7 @@ external_name maybe_external_attribute_list
 #endif
   }
 
-  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 0, 0);
+  cell_decl_p = start_decl (cell, mysize, 0, 0);
 
   tree decl = cell_decl_p;
   int extern_ref = 1; 
@@ -3906,8 +3959,15 @@ local_name maybe_local_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
+  //  tree type = integer_type_node;
   tree myattr = $2;
+
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
 
   cell=$1;
 
@@ -3953,6 +4013,10 @@ local_name maybe_local_attribute_list
   } else {
     if (st_attr)
       TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
+    if (st_attr && TREE_LANG_FLAG_0(st_attr))
+      TREE_LANG_FLAG_3(cell_decl_p)=1;
   }
 
   if (orig_init && st_attr)
@@ -4019,9 +4083,15 @@ map_name ':' attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
   tree myattr = $3;
   
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
+
   cell=$1;
 
   tree st_attr = find_structure_attr(myattr);
@@ -4031,6 +4101,9 @@ map_name ':' attribute_list
   }
 
   cell_decl_p = build_external_ref ($1, yychar == '(');
+
+  if (type)
+    /*TREE_TYPE*/(TREE_TYPE(cell_decl_p))=type;
 
 }
 ;
@@ -4464,6 +4537,7 @@ formal_name
   tree type = integer_type_node;
   tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
   tree point_tree = make_pointer_declarator (0, $1);
+  point_tree = $1;
 
   tree point_int = tree_cons (int_tree, point_tree, 0);
 
@@ -4489,7 +4563,7 @@ map_declaration_attribute_list: map_declaration_attribute_list map_declaration_a
 ;
 
 map_declaration_attribute:
-allocation_unit 
+allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); }
 |extension_attribute 
 |structure_attribute 
 |field_attribute 
@@ -4919,9 +4993,15 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   tree mysize=tree_cons(0,integer_type_node,0);
   tree size=tree_cons(0,integer_type_node,0);
 
-  tree type = integer_type_node;
   tree myattr = $4;
   
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  mysize=tree_cons(0, type, 0);
+
   cell=$1;
 
   tree st_attr = find_structure_attr(myattr);
@@ -4941,7 +5021,7 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   TREE_CONSTANT(init)=1;
 #endif
 
-  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 1, 0);
+  cell_decl_p = start_decl (cell, mysize, 1, 0);
   //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
   start_init(cell_decl_p,NULL,global_bindings_p());
@@ -4974,7 +5054,7 @@ bind_data_attribute
 ;
 
 bind_data_attribute:
-allocation_unit  { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+allocation_unit  { $$ = build_nt (ALLOC_ATTR, $1); } 
 |extension_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
@@ -6550,6 +6630,13 @@ find_structure_attr(t)
 }
 
 tree
+find_alloc_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, ALLOC_ATTR);
+}
+
+tree
 is_label(t)
      tree t;
 {
@@ -6839,6 +6926,7 @@ handle_preset(name, pres, cell_decl_p, size)
   TREE_TYPE(cell_decl_p)=mytype;
   tree constructor = build_constructor(mytype,constructor_elements);
   TREE_CONSTANT(constructor)=1;
+  TREE_ADDRESSABLE(constructor)=1;
   init=constructor;
   //init=field;
   return init;
