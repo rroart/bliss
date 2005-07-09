@@ -9,4 +9,5 @@ DEFTREECODE (KEYWORD_PAIR, "keyword_pair", 't', 2)
 DEFTREECODE (PRESET_ATTR, "preset_attr", 't', 1)
 DEFTREECODE (MACRO_DEF, "macro_def", 't', 4)
 DEFTREECODE (INITIAL_GROUP, "initial_group", 't', 3)
+DEFTREECODE (ALLOC_ATTR, "alloc_attr", 't', 1)
 
