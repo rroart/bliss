@@ -7132,8 +7132,12 @@ build_binary_op (enum tree_code code, tree orig_op0, tree orig_op1,
 	     pass the copies by reference, then copy them back afterward.  */
 	  tree xop0 = op0, xop1 = op1, xresult_type = result_type;
 	  enum tree_code xresultcode = resultcode;
+#if 0
 	  tree val
 	    = shorten_compare (&xop0, &xop1, &xresult_type, &xresultcode);
+#else
+	  tree val = 0;
+#endif
 
 	  if (val != 0)
 	    return val;
