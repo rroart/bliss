@@ -1686,11 +1686,10 @@ maybe_declaration_list: { $$=0; }
 maybe_declaration_list:  { $$=NULL_TREE; }
 | maybe_declaration_list declaration {
   /*  */
-  /*
+  // check reason for the if-else part
   if ($2)
     $$ = chainon($1, $2);
   else
-  */
     $$ = $1;
  }
 ;
@@ -4985,6 +4984,7 @@ literal_item: literal_name '=' compile_time_constant_expression ':' literal_attr
   if (TREE_LANG_FLAG_4(cell)) {
     cell_decl_p=IDENTIFIER_SYMBOL_VALUE (cell);
     TREE_LANG_FLAG_4(cell)=0;
+    $$=0;
   } else
   cell_decl_p = start_decl (cell, mysize, 1, 0);
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
