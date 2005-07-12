@@ -1,29 +1,29 @@
 add something in modified files about being modified
 
-proper bitfield semantics
+proper bitfield semantics (seems so, but extension remain)
 make return exp work
-fix pointer offsets and adding
+fix pointer offsets and adding (done)
 
 check &/* to with function calls
 
-bliss if etc goes for bit 0
+bliss if etc goes for bit 0 (done)
 
-check NEQ NEQU etc
+check NEQ NEQU etc (done)
 
 check if descriptors on the call stack makes problems or should be like that
 
-make local structure work
+make local structure work (done)
 
 rval x[y] does not work properly
 
 decr loop
 
-incr/decr with implicitly declared count
+incr/decr with implicitly declared count (done)
 
 leave . with ..
 
-get a working if_then with value 
-check if block_value implementation is usable?
+get a working if_then with value (done) 
+check if block_value implementation is usable? (done)
 remember to make more temp vars to return of conditionals
 
 fix up the grammar with regard to shift/reduce reduce/reduce
@@ -31,8 +31,19 @@ fix up the grammar with regard to shift/reduce reduce/reduce
 handle better the diffs between identifier and string
 
 p_ascid support had troubles with size less than 4, and still has some
-remember to sort the field_decls
+remember to sort the field_decls (done)
 
 complete changeover from using strlen to dsc and other length specifics
 
 code gen problems with incr...do X: begin leave x; end
+
+pointer arithmetic (done)
+
+signed unsigned (done)
+
+remove static myselect deps, do it in-house instead
+
+proper size for vector[20] etc (done)
+check 0 sizes
+
+calling function pointer

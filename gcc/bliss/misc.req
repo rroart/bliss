@@ -1,0 +1,4 @@
+structure
+$bblock [o, p, s, e; n] =
+[n]
+($bblock+o)<p,s,e>;

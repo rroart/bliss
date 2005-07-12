@@ -1,0 +1,530 @@
+%( Copyright (C) 1991-1999, 2000, 2004 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  )%
+
+%( Linux version.  )%
+
+%( Options for use with `getsockopt' and `setsockopt' at the IP level.
+   The first word in the comment at the right is the data type used;
+   "bool" means a boolean value stored in an `int'.  )%
+literal IP_OPTIONS = 4;       %( ip_opts; IP per-packet options.  )%
+literal IP_HDRINCL = 3;       %( int; Header is included with data.  )%
+literal IP_TOS = 1;       %( int; IP type of service and precedence.  )%
+literal IP_TTL = 2;       %( int; IP time to live.  )%
+literal IP_RECVOPTS = 6;       %( bool; Receive all IP options w/datagram.  )%
+%( For BSD compatibility.  )%
+!literal IP_RECVRETOPTS = IP_RETOPTS;       %( bool; Receive IP options for response.  )%
+literal IP_RETOPTS = 7;       %( ip_opts; Set/get IP per-packet options.  )%
+literal IP_MULTICAST_IF = 32;	%( in_addr; set/get IP multicast i/f )%
+literal IP_MULTICAST_TTL = 33;	%( u_char; set/get IP multicast ttl )%
+literal IP_MULTICAST_LOOP = 34;	%( i_char; set/get IP multicast loopback )%
+literal IP_ADD_MEMBERSHIP = 35;	%( ip_mreq; add an IP group membership )%
+literal IP_DROP_MEMBERSHIP = 36;	%( ip_mreq; drop an IP group membership )%
+literal IP_UNBLOCK_SOURCE = 37;	%( ip_mreq_source: unblock data from source )%
+literal IP_BLOCK_SOURCE = 38;	%( ip_mreq_source: block data from source )%
+literal IP_ADD_SOURCE_MEMBERSHIP = 39; %( ip_mreq_source: join source group )%
+literal IP_DROP_SOURCE_MEMBERSHIP = 40; %( ip_mreq_source: leave source group )%
+literal IP_MSFILTER = 41;
+literal MCAST_JOIN_GROUP = 42;	%( group_req: join any-source group )%
+literal MCAST_BLOCK_SOURCE = 43;	%( group_source_req: block from given group )%
+literal MCAST_UNBLOCK_SOURCE = 44;	%( group_source_req: unblock from given group)%
+literal MCAST_LEAVE_GROUP = 45;	%( group_req: leave any-source group )%
+literal MCAST_JOIN_SOURCE_GROUP = 46; %( group_source_req: join source-spec gr )%
+literal MCAST_LEAVE_SOURCE_GROUP = 47; %( group_source_req: leave source-spec gr)%
+literal MCAST_MSFILTER = 48;
+
+literal MCAST_EXCLUDE = 0;
+literal MCAST_INCLUDE = 1;
+
+literal IP_ROUTER_ALERT = 5;	%( bool )%
+literal IP_PKTINFO = 8;	%( bool )%
+literal IP_PKTOPTIONS = 9;
+literal IP_PMTUDISC = 10;	%( obsolete name? )%
+literal IP_MTU_DISCOVER = 10;	%( int; see below )%
+literal IP_RECVERR = 11;	%( bool )%
+literal IP_RECVTTL = 12;	%( bool )%
+literal IP_RECVTOS = 13;	%( bool )%
+
+
+%( IP_MTU_DISCOVER arguments.  )%
+literal IP_PMTUDISC_DONT = 0;	%( Never send DF frames.  )%
+literal IP_PMTUDISC_WANT = 1;	%( Use per route hints.  )%
+literal IP_PMTUDISC_DO = 2;	%( Always DF.  )%
+
+%( To select the IP level.  )%
+literal SOL_IP = 0;
+
+literal IP_DEFAULT_MULTICAST_TTL = 1;
+literal IP_DEFAULT_MULTICAST_LOOP = 1;
+literal IP_MAX_MEMBERSHIPS = 20;
+
+%( Structure used to describe IP options for IP_OPTIONS and IP_RETOPTS.
+   The `ip_dst' field is used for the first-hop gateway when using a
+   source route (this gets put into the header proper).  )%
+macro ip_dst = 0,0,32,0 %;	%( First hop; zero without source route.  )%
+!    char ip_opts[40];		%( Actually variable in size.  )%
+
+%( Like `struct ip_mreq' but including interface specification by index.  )%
+macro imr_multiaddr = 0,0,32,0%;	%( IP multicast address of group )%
+macro imr_address = 4,0,32,0%;		%( local IP address of interface )%
+macro imr_ifindex = 8,0,32,0%;			%( Interface index )%
+
+%( Structure used for IP_PKTINFO.  )%
+macro ipi_ifindex = 0,0,32,0%;			%( Interface index  )%
+macro ipi_spec_dst = 4,0,32,0%;	%( Routing destination address  )%
+macro ipi_addr = 8,0,32,0%;		%( Header destination address  )%
+
+%( Options for use with `getsockopt' and `setsockopt' at the IPv6 level.
+   The first word in the comment at the right is the data type used;
+   "bool" means a boolean value stored in an `int'.  )%
+literal IPV6_ADDRFORM = 1;
+literal IPV6_PKTINFO = 2;
+literal IPV6_HOPOPTS = 3;
+literal IPV6_DSTOPTS = 4;
+literal IPV6_RTHDR = 5;
+literal IPV6_PKTOPTIONS = 6;
+literal IPV6_CHECKSUM = 7;
+literal IPV6_HOPLIMIT = 8;
+
+!literal SCM_SRCRT = IPV6_RXSRCRT;
+
+literal IPV6_NEXTHOP = 9;
+literal IPV6_AUTHHDR = 10;
+literal IPV6_UNICAST_HOPS = 16;
+literal IPV6_MULTICAST_IF = 17;
+literal IPV6_MULTICAST_HOPS = 18;
+literal IPV6_MULTICAST_LOOP = 19;
+literal IPV6_JOIN_GROUP = 20;
+literal IPV6_LEAVE_GROUP = 21;
+literal IPV6_ROUTER_ALERT = 22;
+literal IPV6_MTU_DISCOVER = 23;
+literal IPV6_MTU = 24;
+literal IPV6_RECVERR = 25;
+literal IPV6_V6ONLY = 26;
+literal IPV6_JOIN_ANYCAST = 27;
+literal IPV6_LEAVE_ANYCAST = 28;
+literal IPV6_IPSEC_POLICY = 34;
+literal IPV6_XFRM_POLICY = 35;
+
+%( Obsolete synonyms for the above.  )%
+literal IPV6_ADD_MEMBERSHIP = IPV6_JOIN_GROUP;
+literal IPV6_DROP_MEMBERSHIP = IPV6_LEAVE_GROUP;
+literal IPV6_RXHOPOPTS = IPV6_HOPOPTS;
+literal IPV6_RXDSTOPTS = IPV6_DSTOPTS;
+
+%( IPV6_MTU_DISCOVER values.  )%
+literal IPV6_PMTUDISC_DONT = 0;	%( Never send DF frames.  )%
+literal IPV6_PMTUDISC_WANT = 1;	%( Use per route hints.  )%
+literal IPV6_PMTUDISC_DO = 2;	%( Always DF.  )%
+
+%( Socket level values for IPv6.  )%
+literal SOL_IPV6 = 41;
+literal SOL_ICMPV6 = 58;
+
+%( Routing header options for IPv6.  )%
+literal IPV6_RTHDR_LOOSE = 0;	%( Hop doesn't need to be neighbour. )%
+literal IPV6_RTHDR_STRICT = 1;	%( Hop must be a neighbour.  )%
+
+literal IPV6_RTHDR_TYPE_0 = 0;	%( IPv6 Routing header type 0.  )%
+%( Copyright (C) 1991-2001, 2003, 2004 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  )%
+
+%if not %declared(%quote _NETINET_IN_H) %then
+literal	_NETINET_IN_H	= 1;
+
+%( Standard well-defined IP protocols.  )%
+literal    IPPROTO_IP = 0;	   %( Dummy protocol for TCP.  )%
+literal    IPPROTO_HOPOPTS = 0;   %( IPv6 Hop-by-Hop options.  )%
+literal    IPPROTO_ICMP = 1;	   %( Internet Control Message Protocol.  )%
+literal    IPPROTO_IGMP = 2;	   %( Internet Group Management Protocol. )%
+literal    IPPROTO_IPIP = 4;	   %( IPIP tunnels (older KA9Q tunnels use 94).  )%
+literal    IPPROTO_TCP = 6;	   %( Transmission Control Protocol.  )%
+literal    IPPROTO_EGP = 8;	   %( Exterior Gateway Protocol.  )%
+literal    IPPROTO_PUP = 12;	   %( PUP protocol.  )%
+literal    IPPROTO_UDP = 17;	   %( User Datagram Protocol.  )%
+literal    IPPROTO_IDP = 22;	   %( XNS IDP protocol.  )%
+literal    IPPROTO_TP = 29;	   %( SO Transport Protocol Class 4.  )%
+literal    IPPROTO_IPV6 = 41;     %( IPv6 header.  )%
+literal    IPPROTO_ROUTING = 43;  %( IPv6 routing header.  )%
+literal    IPPROTO_FRAGMENT = 44; %( IPv6 fragmentation header.  )%
+literal    IPPROTO_RSVP = 46;	   %( Reservation Protocol.  )%
+literal    IPPROTO_GRE = 47;	   %( General Routing Encapsulation.  )%
+literal    IPPROTO_ESP = 50;      %( encapsulating security payload.  )%
+literal    IPPROTO_AH = 51;       %( authentication header.  )%
+literal    IPPROTO_ICMPV6 = 58;   %( ICMPv6.  )%
+literal    IPPROTO_NONE = 59;     %( IPv6 no next header.  )%
+literal    IPPROTO_DSTOPTS = 60;  %( IPv6 destination options.  )%
+literal    IPPROTO_MTP = 92;	   %( Multicast Transport Protocol.  )%
+literal    IPPROTO_ENCAP = 98;	   %( Encapsulation Header.  )%
+literal    IPPROTO_PIM = 103;	   %( Protocol Independent Multicast.  )%
+literal    IPPROTO_COMP = 108;	   %( Compression Header Protocol.  )%
+literal    IPPROTO_SCTP = 132;	   %( Stream Control Transmission Protocol.  )%
+literal    IPPROTO_RAW = 255;	   %( Raw IP packets.  )%
+literal    IPPROTO_MAX = 256; ! check
+
+%( Standard well-known ports.  )%
+literal    IPPORT_ECHO = 7;		%( Echo service.  )%
+literal    IPPORT_DISCARD = 9;		%( Discard transmissions service.  )%
+literal    IPPORT_SYSTAT = 11;		%( System status service.  )%
+literal    IPPORT_DAYTIME = 13;	%( Time of day service.  )%
+literal    IPPORT_NETSTAT = 15;	%( Network status service.  )%
+literal    IPPORT_FTP = 21;		%( File Transfer Protocol.  )%
+literal    IPPORT_TELNET = 23;		%( Telnet protocol.  )%
+literal    IPPORT_SMTP = 25;		%( Simple Mail Transfer Protocol.  )%
+literal    IPPORT_TIMESERVER = 37;	%( Timeserver service.  )%
+literal    IPPORT_NAMESERVER = 42;	%( Domain Name Service.  )%
+literal    IPPORT_WHOIS = 43;		%( Internet Whois service.  )%
+literal    IPPORT_MTP = 57;
+
+literal    IPPORT_TFTP = 69;		%( Trivial File Transfer Protocol.  )%
+literal    IPPORT_RJE = 77;
+literal    IPPORT_FINGER = 79;		%( Finger service.  )%
+literal    IPPORT_TTYLINK = 87;
+literal    IPPORT_SUPDUP = 95;		%( SUPDUP protocol.  )%
+
+literal    IPPORT_EXECSERVER = 512;	%( execd service.  )%
+literal    IPPORT_LOGINSERVER = 513;	%( rlogind service.  )%
+literal    IPPORT_CMDSERVER = 514;
+literal    IPPORT_EFSSERVER = 520;
+
+    %( UDP ports.  )%
+literal    IPPORT_BIFFUDP = 512;
+literal    IPPORT_WHOSERVER = 513;
+literal    IPPORT_ROUTESERVER = 520;
+
+    %( Ports less than this value are reserved for privileged processes.  )%
+literal    IPPORT_RESERVED = 1024;
+
+    %( Ports greater this value are reserved for (non-privileged) servers.  )%
+literal    IPPORT_USERRESERVED = 5000;
+
+%( Internet address.  )%
+macro s_addr = 0,0,32,0%;
+
+%( Definitions of the bits in an Internet address integer.
+
+   On subnets, host and network parts are found according to
+   the subnet mask, not these masks.  )%
+
+macro	IN_CLASSA(a)	=	(((a) AND %x'80000000') eql 0);
+literal	IN_CLASSA_NET	=	%x'ff000000';
+literal	IN_CLASSA_NSHIFT=	24;
+macro	IN_CLASSA_HOST	=	(%x'ffffffff' AND NOT IN_CLASSA_NET);
+literal	IN_CLASSA_MAX	=	128;
+
+macro	IN_CLASSB(a)	=	(((a) AND %x'c0000000') eql %x'80000000');
+literal	IN_CLASSB_NET	=	%x'ffff0000';
+literal	IN_CLASSB_NSHIFT=	16;
+macro	IN_CLASSB_HOST	=	(%x'ffffffff' AND NOT IN_CLASSB_NET);
+literal	IN_CLASSB_MAX	=	65536;
+
+macro	IN_CLASSC(a)	=	(((a) AND %x'e0000000') eql %x'c0000000');
+literal	IN_CLASSC_NET	=	%x'ffffff00';
+literal	IN_CLASSC_NSHIFT=	8;
+macro	IN_CLASSC_HOST	=	(%x'ffffffff' AND NOT IN_CLASSC_NET);
+
+macro	IN_CLASSD(a)	=	(((a) AND %x'f0000000') eql %x'e0000000');
+macro	IN_MULTICAST(a)	=	IN_CLASSD(a);
+
+macro	IN_EXPERIMENTAL(a)=	(((a)) AND %x'e0000000') eql %x'e0000000');
+macro	IN_BADCLASS(a)	=	(((a)) AND %x'f0000000') eql %x'f0000000');
+
+%( Address to accept any incoming messages.  )%
+literal	INADDR_ANY	=	%x'00000000';
+%( Address to send to all hosts.  )%
+literal	INADDR_BROADCAST=	%x'ffffffff';
+%( Address indicating an error return.  )%
+literal	INADDR_NONE	=	%x'ffffffff';
+
+%( Network number for local host loopback.  )%
+literal	IN_LOOPBACKNET	=	127;
+%( Address to loopback in software to local host.  )%
+literal INADDR_LOOPBACK	= %x'7f000001'; %( Inet 127.0.0.1.  )%
+
+%( Defines for Multicast INADDR.  )%
+literal INADDR_UNSPEC_GROUP	= %x'e0000000'; %( 224.0.0.0 )%
+literal INADDR_ALLHOSTS_GROUP	= %x'e0000001'; %( 224.0.0.1 )%
+literal INADDR_ALLRTRS_GROUP    = %x'e0000002'; %( 224.0.0.2 )%
+literal INADDR_MAX_LOCAL_GROUP  = %x'e00000ff'; %( 224.0.0.255 )%
+
+%( IPv6 address )%
+macro u6_addr8 = 0,0,0,0%;
+macro u6_addr16 = 0,0,0,0%;
+macro u6_addr32 = 0,0,0,0%;
+
+external in6addr_any;        %( :: )%
+external in6addr_loopback;   %( ::1 )%
+!define IN6ADDR_ANY_INIT { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } } }
+!define IN6ADDR_LOOPBACK_INIT { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 } } }
+
+literal INET_ADDRSTRLEN = 16;
+literal INET6_ADDRSTRLEN = 46;
+
+%( Get the definition of the macro to define the common sockaddr members.  )%
+
+%( Structure describing an Internet socket address.  )%
+literal sin$c_length = 16;
+literal sin$k_length = 16;
+literal sin$s_sockaddrin = 16;
+macro sin_family = 0,0,16,0%;
+macro sin_port = 2,0,16,0%;			%( Port number.  )%
+macro sin_addr = 4,0,32,0%;		%( Internet address.  )%
+macro sin$w_family = 0,0,16,0 %;        !  address family
+macro sin$w_port = 2,0,16,0 %;
+macro sin$l_addr = 4,0,32,0 %;
+macro sin$t_zero = 8,0,0,0 %;
+
+    %( Pad to size of `struct sockaddr'.  )%
+
+%( Ditto, for IPv6.  )%
+literal sin6$k_length = 28;
+literal sin6$c_length = 28;
+literal sin6$s_sockaddrin6 = 28;
+macro sin6_family = 0,0,16,0%;
+macro sin6_port = 2,0,16,0%;	%( Transport layer port # )%
+macro sin6_flowinfo = 4,0,32,0%;	%( IPv6 flow information )%
+macro sin6_addr = 8,0,0,0%;	%( IPv6 address )%
+macro sin6_scope_id = 24,0,32,0%;	%( IPv6 scope-id )%
+macro sin6$b_len = 0,0,8,0 %;
+macro sin6$b_family = 1,0,8,0 %;
+macro sin6$w_port = 2,0,16,0 %;
+macro sin6$l_flowlabel = 4,0,32,0 %;
+macro sin6$t_addr = 8,0,0,0 %;
+literal sin6$s_addr = 16;
+macro sin6$b_sa6_addr = 8,0,0,0 %;
+literal sin6$s_sa6_addr = 16;
+macro sin6$w_sa6_waddr = 8,0,0,0 %;
+literal sin6$s_sa6_waddr = 16;
+macro sin6$l_sa6_laddr = 8,0,0,0 %;
+literal sin6$s_sa6_laddr = 16;
+macro sin6$q_sa6_qaddr = 8,0,0,0 %;
+literal sin6$s_sa6_qaddr = 16;
+macro sin6$l_scope_id = 24,0,32,0 %;
+
+%( IPv4 multicast request.  )%
+!macro imr_multiaddr = 0,0,32,0%;
+
+    %( Local IP address of interface.  )%
+!macro imr_interface = 4,0,32,0%;
+
+    %( IP multicast address of group.  )%
+!macro imr_multiaddr = 0,0,32,0%;
+
+    %( IP address of source.  )%
+!macro imr_interface = 4,0,32,0%;
+
+    %( IP address of interface.  )%
+!macro imr_sourceaddr = 8,0,32,0%;
+
+%( Likewise, for IPv6.  )%
+    %( IPv6 multicast address of group )%
+macro ipv6mr_multiaddr = 0,0,0,0%;
+
+    %( local interface )%
+macro ipv6mr_interface = 16,0,32,0%;
+
+%( Multicast group request.  )%
+    %( Interface index.  )%
+macro gr_interface = 0,0,32,0%;
+
+    %( Group address.  )%
+macro gr_group = 4,0,0,0%;
+
+    %( Interface index.  )%
+macro gsr_interface = 0,0,32,0%;
+
+    %( Group address.  )%
+macro gsr_group = 4,0,32,0 %;
+
+    %( Source address.  )%
+macro gsr_source = 132,0,0,0%; ! check. 128 size. _ss_size
+
+%( Full-state filter operations.  )%
+literal imsf$c_length = 20;
+literal imsf$k_length = 20;
+    %( IP multicast address of group.  )%
+macro imsf_multiaddr = 0,0,32,0 %;
+
+    %( Local IP address of interface.  )%
+macro imsf_interface = 4,0,32,0%;
+
+    %( Filter mode.  )%
+macro imsf_fmode = 8,0,32,0%;
+
+    %( Number of source addresses.  )%
+macro imsf_numsrc = 12,0,32,0%;
+    %( Source addresses.  )%
+macro imsf_slist = 16,0,32,0%;
+
+macro IP_MSFILTER_SIZE(numsrc) = (imsf$c_length) - 4 + (numsrc) * 4)%;
+
+literal gf$c_length = 268;
+literal gf$k_length = 268;
+    %( Interface index.  )%
+macro gf_interface = 0,0,32,0%;
+
+    %( Group address.  )%
+macro gf_group = 4,0,0,0%;
+
+    %( Filter mode.  )%
+macro gf_fmode = 132,0,32,0 %;
+
+    %( Number of source addresses.  )%
+macro gf_numsrc = 136,0,32,0 %;
+    %( Source addresses.  )%
+macro gf_slist = 140,0,0,0 %;
+
+macro GROUP_FILTER_SIZE(numsrc) = (gf$c_length - 128 + ((numsrc) * 128))%;
+
+%( Functions to convert between host and network byte order.
+
+   Please note that these functions normally take `unsigned long int' or
+   `unsigned short int' values as arguments and also return them.  But
+   this was a short-sighted decision since on different systems the types
+   may have different representations but the values are always the same.  )%
+
+external routine ntohl : bliss addressing_mode (general);
+external routine ntohs : bliss addressing_mode (general);
+external routine htonl : bliss addressing_mode (general);
+external routine htons : bliss addressing_mode (general);
+
+%( Get machine dependent optimized versions of byte swapping functions.  )%
+!include <bits/byteswap.h>
+
+%if $cpu_le eql 0 %then
+%( The host byte order is the same as network byte order,
+   so these functions are all just identity.  )%
+macro ntohl(x) =	(x)%;
+macro ntohs(x) =	(x)%;
+macro htonl(x) =	(x)%;
+macro htons(x) =	(x)%;
+%else
+macro ntohl(x) =	__bswap_32 (x)%;
+macro ntohs(x) =	__bswap_16 (x)%;
+macro htonl(x) =	__bswap_32 (x)%;
+macro htons(x) =	__bswap_16 (x)%;
+%fi
+
+%if 0 %then
+macro IN6_IS_ADDR_UNSPECIFIED(a)
+	(((__const uint32_t *) (a))[0] eql 0				      
+	 AND ((__const uint32_t *) (a))[1] eql 0				      
+	 AND ((__const uint32_t *) (a))[2] eql 0				      
+	 AND ((__const uint32_t *) (a))[3] eql 0)
+
+define IN6_IS_ADDR_LOOPBACK(a) 
+	(((__const uint32_t *) (a))[0] eql 0				      
+	 AND ((__const uint32_t *) (a))[1] eql 0				      
+	 AND ((__const uint32_t *) (a))[2] eql 0				      
+	 AND ((__const uint32_t *) (a))[3] eql htonl (1))
+
+define IN6_IS_ADDR_MULTICAST(a) (((__const uint8_t *) (a))[0] eql %x'ff')
+
+define IN6_IS_ADDR_LINKLOCAL(a) 
+	((((__const uint32_t *) (a))[0] AND htonl (%x'ffc00000'))		      
+	 eql htonl (%x'fe800000'))
+
+define IN6_IS_ADDR_SITELOCAL(a) 
+	((((__const uint32_t *) (a))[0] AND htonl (%x'ffc00000'))		      
+	 eql htonl (%x'fec00000'))
+
+define IN6_IS_ADDR_V4MAPPED(a) 
+	((((__const uint32_t *) (a))[0] eql 0)				      
+	 AND (((__const uint32_t *) (a))[1] eql 0)			      
+	 AND (((__const uint32_t *) (a))[2] eql htonl (%x'ffff')))
+
+define IN6_IS_ADDR_V4COMPAT(a) 
+	((((__const uint32_t *) (a))[0] eql 0)				      
+	 AND (((__const uint32_t *) (a))[1] eql 0)			      
+	 AND (((__const uint32_t *) (a))[2] eql 0)			      
+	 AND (ntohl (((__const uint32_t *) (a))[3]) > 1))
+
+define IN6_ARE_ADDR_EQUAL(a,b) 
+	((((__const uint32_t *) (a))[0] eql ((__const uint32_t *) (b))[0])     
+	 AND (((__const uint32_t *) (a))[1] eql ((__const uint32_t *) (b))[1])  
+	 AND (((__const uint32_t *) (a))[2] eql ((__const uint32_t *) (b))[2])  
+	 AND (((__const uint32_t *) (a))[3] eql ((__const uint32_t *) (b))[3]))
+
+%( Bind socket to a privileged IP port.  )%
+external routine bindresvport : bliss addressing_mode (general);
+
+%( The IPv6 version of this function.  )%
+external routine bindresvport6 : bliss addressing_mode (general);
+
+define IN6_IS_ADDR_MC_NODELOCAL(a) 
+	(IN6_IS_ADDR_MULTICAST(a)					      
+	 AND ((((__const uint8_t *) (a))[1] AND %x'f') eql %x'1'))
+
+define IN6_IS_ADDR_MC_LINKLOCAL(a) 
+	(IN6_IS_ADDR_MULTICAST(a)					      
+	 AND ((((__const uint8_t *) (a))[1] AND %x'f') eql %x'2'))
+
+define IN6_IS_ADDR_MC_SITELOCAL(a) 
+	(IN6_IS_ADDR_MULTICAST(a)					      
+	 AND ((((__const uint8_t *) (a))[1] AND %x'f') eql %x'5'))
+
+define IN6_IS_ADDR_MC_ORGLOCAL(a) 
+	(IN6_IS_ADDR_MULTICAST(a)					      
+	 AND ((((__const uint8_t *) (a))[1] AND %x'f') eql %x'8'))
+
+define IN6_IS_ADDR_MC_GLOBAL(a) 
+	(IN6_IS_ADDR_MULTICAST(a)					      
+	 AND ((((__const uint8_t *) (a))[1] AND %x'f') eql %x'e'))
+%fi
+
+%( IPv6 packet information.  )%
+macro ipi6_addr = 0,0,0,0%;    %( src/dst IPv6 address )%
+macro ipi6_ifindex = 16,0,32,0%; %( send/recv interface index )%
+
+%( Hop-by-Hop and Destination Options Processing.  )%
+external routine inet6_option_space : bliss addressing_mode (general);
+external routine inet6_option_init : bliss addressing_mode (general);
+external routine inet6_option_append : bliss addressing_mode (general);
+external routine inet6_option_alloc : bliss addressing_mode (general);
+external routine inet6_option_next : bliss addressing_mode (general);
+external routine inet6_option_find : bliss addressing_mode (general);
+
+%( Multicast source filter support.  )%
+
+%( Get IPv4 source filter.  )%
+external routine getipv4sourcefilter : bliss addressing_mode (general);
+
+%( Set IPv4 source filter.  )%
+external routine setipv4sourcefilter : bliss addressing_mode (general);
+
+%( Get source filter.  )%
+external routine getsourcefilter : bliss addressing_mode (general);
+
+%( Set source filter.  )%
+external routine setsourcefilter : bliss addressing_mode (general);
+
+%fi	%( netinet/in.h )%
