@@ -1972,6 +1972,12 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
 tree
 parser_build_binary_op (enum tree_code code, tree arg1, tree arg2)
 {
+  if (code==PLUS_EXPR || code==MINUS_EXPR) {
+    if (POINTER_TYPE_CHECK(arg1))
+      arg1 = convert (integer_type_node, arg1);
+    if (POINTER_TYPE_CHECK(arg2))
+      arg2 = convert (integer_type_node, arg2);
+  }
   tree result = build_binary_op (code, arg1, arg2, 1);
 
   char class;
@@ -4221,11 +4227,13 @@ digest_init (tree type, tree init, int require_constant)
 	= convert_for_assignment (type, init, _("initialization"),
 				  NULL_TREE, NULL_TREE, 0);
 
+#if 0
       if (require_constant && ! TREE_CONSTANT (inside_init))
 	{
 	  error_init ("initializer element is not constant");
 	  inside_init = error_mark_node;
 	}
+#endif
 #if 0
       else if (require_constant
 	       && initializer_constant_valid_p (inside_init, TREE_TYPE (inside_init)) == 0)
