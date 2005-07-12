@@ -1776,7 +1776,7 @@ T_NAME '[' access_actual_list maybe_alloc_actual_list ']'
     tree cell__ = get_identifier(add_underscore($1, 2));
     //tree t=build_external_ref ($1, 0);
     tree extref = build_external_ref ($1, 0);
-    if (TREE_LANG_FLAG_3(extref)==0)
+    if (TREE_LANG_FLAG_3(extref)==0 && TREE_LANG_FLAG_0(extref)==0)
       extref=RVAL_ADDR(extref);
 #if 0
     tree extref=RVAL_ADDR(build_external_ref ($1, 0));
@@ -1798,7 +1798,7 @@ ordinary_structure_reference:
 segment_name '[' access_actual_list ']' {
   tree cell__ = get_identifier(add_underscore($1, 2));
   //tree t=build_external_ref ($1, 0);
-  if (TREE_LANG_FLAG_3(extref)==0)
+  if (TREE_LANG_FLAG_3(extref)==0 && TREE_LANG_FLAG_0(extref)==0)
     extref=RVAL_ADDR(extref);
 #if 0
   tree extref=RVAL_ADDR(build_external_ref ($1, 0));
@@ -1845,7 +1845,8 @@ access_actual:
 |
 expression  
 {
-  $$ = build_tree_list (NULL_TREE, $1);
+  $$ = build_tree_list (NULL_TREE, convert (integer_type_node, $1));
+  // convert primarily to have (bind?) byte in a strucure ref
 }
 |
 T_FIELDNAME 
@@ -2246,9 +2247,31 @@ operator_expression:
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
 | opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
 | opexp9 '/' opexp9 { $$ = parser_build_binary_op (TRUNC_DIV_EXPR, $1, $3); }
-| opexp9 '+' opexp9 { $$ = parser_build_binary_op (PLUS_EXPR, $1, $3); }
-| opexp9 '-' opexp9 { $$ = parser_build_binary_op (MINUS_EXPR, $1, $3); }
-| opexp9 infix_operator opexp9 {
+|
+opexp9 '+' opexp9
+{
+  tree left = $1;
+  tree right = $3;
+  if (POINTER_TYPE_CHECK(left))
+    left = convert (integer_type_node, left);
+  if (POINTER_TYPE_CHECK(right))
+    right = convert (integer_type_node, right);
+  $$ = parser_build_binary_op (PLUS_EXPR, left, right);
+}
+|
+opexp9 '-' opexp9
+{
+  tree left = $1;
+  tree right = $3;
+  if (POINTER_TYPE_CHECK(left))
+    left = convert (integer_type_node, left);
+  if (POINTER_TYPE_CHECK(right))
+    right = convert (integer_type_node, right);
+  $$ = parser_build_binary_op (MINUS_EXPR, left, right); 
+}
+|
+opexp9 infix_operator opexp9
+{
   tree left = $1;
   tree right = $3;
   tree myop = $2;
@@ -2308,10 +2331,19 @@ opexp9 '=' opexp9 {
     $$=build_modify_expr(build_indirect_ref (convert(integer_ptr_type_node, t), "unary *"), NOP_EXPR, $3);
 #else
     tree type = TREE_TYPE(t);
-    tree ptype = build_pointer_type(type);
-    tree conv = convert (ptype, (t));
-
+    tree ptype;
+    tree conv;
+    if (TREE_CODE(type)==POINTER_TYPE) {
+      conv = t;
+    } else {
+      ptype = build_pointer_type(type);
+      conv = convert (ptype, (t));
+    }
     tree tmp=fold(build_indirect_ref (conv, "unary *"));
+#if 1
+    if (TREE_CODE(tmp)==FUNCTION_DECL)
+      tmp =  build_indirect_ref(convert(integer_ptr_type_node, build_unary_op (ADDR_EXPR, tmp, 1)), "unary *") ;
+#endif
     $$=build_modify_expr(tmp, NOP_EXPR, $3);
 #endif
   }
@@ -3485,6 +3517,7 @@ allocation_unit
     i=16;
   if ($1==integer_type_node)
     i=32;
+  i=i>>3;
   if (i)
     $$=build_int_2(i,0);
 }
@@ -4898,7 +4931,7 @@ T_NAME
 
   // also needs a dummy parameter __mydummy_for_ap__ if no formals
   init = build_unary_op (ADDR_EXPR, DECL_ARGUMENTS(current_function_decl), 1);
-  init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(1,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
+  init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(4,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
   
   finish_decl (cell_decl_p, init, NULL_TREE);
   } else {
@@ -5082,6 +5115,8 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   if (st_attr) {
     /*size=*/handle_structure(cell, st_attr, 1);
     size=handle_structure(cell, st_attr, 1);
+  } else {
+    cell = make_pointer_declarator(0, cell);
   }
 
   init = $3;
@@ -6855,6 +6890,9 @@ restore_last_tree(t)
 tree build_our_record(size)
      tree size;
 {
+  my_fold(size);
+  if (TREE_CODE(size)==NON_LVALUE_EXPR)
+    size=TREE_OPERAND(size,0);
   tree rt = make_node(RECORD_TYPE);
   TREE_TYPE(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=integer_type_node;
@@ -6879,10 +6917,16 @@ convert_field_ref_to_decl(ref, value)
   TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
   DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
   DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
-  my_fold(DECL_FIELD_OFFSET(field));
   DECL_SIZE_UNIT(field)=build_int_2(4,0);
   DECL_SIZE(field)=fold(TREE_OPERAND(t,1));//build_int_2(8,0);
-  if (!quiet_flag) printf("off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
+  my_fold(DECL_FIELD_OFFSET(field));
+  my_fold(DECL_FIELD_OFFSET(field));
+  my_fold(DECL_FIELD_BIT_OFFSET(field));
+  my_fold(DECL_SIZE(field));
+  STRIP_TYPE_NOPS(DECL_FIELD_OFFSET(field));
+  STRIP_TYPE_NOPS(DECL_FIELD_BIT_OFFSET(field));
+  STRIP_TYPE_NOPS(DECL_SIZE(field));
+if (!quiet_flag) printf("off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
   TREE_TYPE(DECL_FIELD_OFFSET(field)) = sizetype;
   return field;
 }
@@ -6971,6 +7015,7 @@ handle_preset(name, pres, cell_decl_p, size)
 	value = i;
     }
 #if 0
+    // check. look later upon synching with sister routine
     if (TREE_CODE(value)!=INTEGER_CST)
       DECL_BIT_FIELD(field)=0;
 #endif
@@ -7130,8 +7175,10 @@ handle_initial_inner(constructor_elements, attr, offset, size)
 	  if (TREE_CODE(i)==INTEGER_CST)
 	    value = i;
 	}
+#if 1
 	if (TREE_CODE(value)!=INTEGER_CST)
 	  DECL_BIT_FIELD(field)=0;
+#endif
 	for(;rep;rep--, *offset+=size) 
 	  *constructor_elements = chainon (*constructor_elements, tree_cons (field, value, 0));
       }
