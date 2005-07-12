@@ -3724,15 +3724,11 @@ own_name maybe_own_attribute_list
 
   tree array_type;
 
-  if (orig_init && st_attr) {
-    //    tree t = build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
-    tree t = build_array_declarator(build_int_2(10,0),0/*tree_cons(0,integer_type_node,0)*/,0,0);
-    set_array_declarator_type(t, cell, 0);
-    cell_decl_p = start_decl (t, mysize, do_init, 0);
-    array_type = TREE_TYPE(cell_decl_p);
-  } else {
-    cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  if (st_attr) {
+    mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
+  cell_decl_p = start_decl (cell, mysize, do_init, 0);
+
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
 
   start_init(cell_decl_p,NULL,global_bindings_p());
@@ -3742,8 +3738,6 @@ own_name maybe_own_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr)
-      TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
       TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
@@ -3851,17 +3845,10 @@ global_name maybe_global_attribute_list
     do_init=1;
   }
 
-  tree array_type;
-
-  if (orig_init && st_attr) {
-    //    tree t = build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
-    tree t = build_array_declarator(build_int_2(10,0),0/*tree_cons(0,integer_type_node,0)*/,0,0);
-    set_array_declarator_type(t, cell, 0);
-    cell_decl_p = start_decl (t, mysize, do_init, 0);
-    array_type = TREE_TYPE(cell_decl_p);
-  } else {
-    cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  if (st_attr) {
+    mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
+  cell_decl_p = start_decl (cell, mysize, do_init, 0);
 
   start_init(cell_decl_p,NULL,1);
   finish_init();
@@ -3870,8 +3857,6 @@ global_name maybe_global_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr)
-      TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
       TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
@@ -4069,15 +4054,10 @@ local_name maybe_local_attribute_list
 
   tree array_type;
 
-  if (orig_init && st_attr) {
-    //    tree t = build_array_declarator(size,tree_cons(0,integer_type_node,0),0,0);
-    tree t = build_array_declarator(build_int_2(10,0),0/*tree_cons(0,integer_type_node,0)*/,0,0);
-    set_array_declarator_type(t, cell, 0);
-    cell_decl_p = start_decl (t, mysize, do_init, 0);
-    array_type = TREE_TYPE(cell_decl_p);
-  } else {
-    cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  if (st_attr) {
+    mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
+  cell_decl_p = start_decl (cell, mysize, do_init, 0);
 
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
@@ -4086,8 +4066,6 @@ local_name maybe_local_attribute_list
   if (pres) {
     init = handle_preset($1, pres, cell_decl_p, fold(size));
   } else {
-    if (st_attr)
-      TREE_TYPE(cell_decl_p)=build_our_record(fold(size));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
       TREE_TYPE(cell_decl_p)=build_pointer_type(TREE_TYPE(cell_decl_p));
     if (st_attr && TREE_LANG_FLAG_0(st_attr))
