@@ -6,7 +6,7 @@ begin
 local l;
 local i;
 i=4;
-while i gtr 2 do
+while i gtru 2 do
 begin
 l=0;
 exitloop;
