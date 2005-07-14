@@ -2208,14 +2208,24 @@ operator_expression:
 '.' opexp9 %prec '.'  { 
   if (TREE_CODE($3)==BIT_FIELD_REFS) {
     $$ = TREE_OPERAND ($3, 1);
+
+    tree tmp = convert(integer_ptr_type_node, TREE_OPERAND($$, 0));
+#if 0
+    if (TREE_CODE(tmp)==NOP_EXPR)
+      tmp=TREE_OPERAND(tmp,0);
+#endif
+    TREE_OPERAND($$, 0) = build_indirect_ref (tmp, "unary *"); 
+
     if (TREE_OPERAND($$, 1)) TREE_OPERAND($$, 1)=fold(TREE_OPERAND($$, 1));
     if (TREE_OPERAND($$, 2)) TREE_OPERAND($$, 2)=fold(TREE_OPERAND($$, 2));
     TREE_TYPE(TREE_OPERAND($$, 2)) = ubitsizetype;
 
+#if 0
     tree tmp = convert(integer_ptr_type_node, $$);
     if (TREE_CODE(tmp)==NOP_EXPR)
       tmp=TREE_OPERAND(tmp,0);
     $$ = build_indirect_ref (tmp, "unary *"); 
+#endif
     $$ = fold($$);
   } else {
     tree tmp = convert(integer_ptr_type_node, $3);
@@ -3722,8 +3732,6 @@ own_name maybe_own_attribute_list
     do_init=1;
   }
 
-  tree array_type;
-
   if (st_attr) {
     mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
@@ -4051,8 +4059,6 @@ local_name maybe_local_attribute_list
   if (pres2) {
     do_init=1;//diff here
   }
-
-  tree array_type;
 
   if (st_attr) {
     mysize = tree_cons(0, build_our_record(fold(size)), 0);
