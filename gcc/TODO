@@ -47,3 +47,7 @@ proper size for vector[20] etc (done)
 check 0 sizes
 
 calling function pointer
+
+bblock with [8,40,24,0] etc
+
+bit shift direction check

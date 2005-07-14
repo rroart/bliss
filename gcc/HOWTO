@@ -211,8 +211,11 @@ Bliss req-files with Linux support (may work on other LE Unix).
 Sign support.
 Some undeclare support (in literal).
 Bliss pointer arithmetic support (was C before).
-And of course misc bugs fixed (preset needed sorted constructors, select was
-missing a label and could not be nested, more correct handling of external, maybe better handling for builtin
+And of course misc bugs fixed (
+Preset needed sorted constructors
+Select was missing a label and could not be nested
+More correct handling of external
+Maybe better handling for builtin
 ch$allocation as ctce,
 ch$alloaction computing error
 labeled block must return value
@@ -221,7 +224,7 @@ proper global non-global routine support
 missing string_cst for plit
 signed limit problem with %h, %o, %h
 no good use of ref structure
-giving . indirect ref everywhere
+giving . indirect ref with .n<>
 not got pointer.
 old literal and bind implementation bugged and had to be changed
 allocation unit returned size in bits, should be bytes.
