@@ -2,16 +2,14 @@ module m=
 begin
 
 own a;
-own l;
+bind l=a;
 
 routine main=
 begin
 
-l=1;
 a=1;
-(a+1)=0;
 
-.l
+.l-1
 end;
 
 end
