@@ -4532,8 +4532,7 @@ io_list
     tree d1 = get_identifier("__mydummy_for_ap__");
     tree type = integer_type_node;
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
-    tree point_tree = make_pointer_declarator (0, d1);
-    tree point_int = tree_cons (int_tree, point_tree, 0);
+    tree point_int = tree_cons (int_tree, d1, 0);
     io_list = tree_cons (point_int, 0, 0);
   }
 #endif
