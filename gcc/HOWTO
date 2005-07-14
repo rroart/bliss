@@ -207,30 +207,29 @@ Less for builtin nullparamater.
 Proper initial attribute support.
 General structure reference support.
 Handle allocation attribute again.
-Bliss req-files with Linux support (may work on other LE Unix).
+Bliss req-files with Linux support (may work on other 32-bit LE Unix).
 Sign support.
 Some undeclare support (in literal).
 Bliss pointer arithmetic support (was C before).
-And of course misc bugs fixed (
-Preset needed sorted constructors
-Select was missing a label and could not be nested
-More correct handling of external
-Maybe better handling for builtin
-ch$allocation as ctce,
-ch$alloaction computing error
-labeled block must return value
-missing main
-proper global non-global routine support
-missing string_cst for plit
-signed limit problem with %h, %o, %h
-no good use of ref structure
-giving . indirect ref with .n<>
-not got pointer.
-old literal and bind implementation bugged and had to be changed
-allocation unit returned size in bits, should be bytes.
-some places missed folds.
-proper structure sizes now set. 
-).
+And of course misc bugs fixed:
+Preset needed sorted constructors.
+Select was missing a label and could not be nested.
+More correct handling of external.
+Maybe better handling for builtin.
+Ch$allocation as ctce.
+Hh$alloaction computing error.
+Labeled block must return value.
+Missing main.
+Proper global non-global routine support.
+Pissing string_cst for plit.
+Signed limit problem with %h, %o, %h.
+No good use of ref structure.
+Giving . indirect ref with .n<>.
+Not got pointer.
+Old literal and bind implementation bugged and had to be changed.
+Allocation unit returned size in bits, should be bytes.
+Some places missed folds.
+Proper structure sizes now set. 
 
 0.012
 String ch$ routines.
