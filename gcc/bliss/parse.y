@@ -2038,33 +2038,14 @@ address maybe_field_selector
     op0 = parser_build_binary_op (PLUS_EXPR, $1, t);
   }
   /*if (context=='f') */ {
-    tree i, t;
-    if (TREE_CODE(TREE_TYPE($1))==POINTER_TYPE) {
-      i = build_indirect_ref ($1, "unary *");
-    } else {
-		if (yydebug) inform ("\n%%BLS32-I-NOTHING fetch arg not ptr (probably in structure?) %x\n",input_location.line);
-      //i = build_indirect_ref (convert(build_pointer_type (integer_type_node), $1), "unary *");
-      //i = build_indirect_ref ($1, "unary *");
-      //goto fetch_end;
-      i=$1;
-    }
-    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, size_int (size->int_cst.int_cst.low), bitsize_int (pos->int_cst.int_cst.low));
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), i, size, pos);
+    tree d=$1;
+    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     t=stabilize_reference(t);
     op1 = t; 
-  fetch_end:
-	 {}
   }
   /* if (context=='o') */ {
     tree d=$1;
-    if (TREE_CODE(TREE_TYPE(d))==POINTER_TYPE) {
-    } else {
-      if (yydebug) inform("\n%%BLS32-I-NOTHING not pointer for field ref? %x\n", input_location.line);
-      //d = build_indirect_ref (convert(build_pointer_type (integer_type_node), d), "unary *");
-      //d = build_indirect_ref (d, "unary *");
-    }
-    //tree t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size_int (size->int_cst.int_cst.low), bitsize_int (pos->int_cst.int_cst.low));
     t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     t=stabilize_reference(t);
