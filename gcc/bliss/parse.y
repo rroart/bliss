@@ -2287,40 +2287,15 @@ opexp9 '=' opexp9 {
   tree t=$1;
   tree b=TREE_OPERAND (t, 2);
   if (TREE_CODE(t) == BIT_FIELD_REFS && b && TREE_CODE(b) == BIT_FIELD_REF) {
-    tree newop0, op0=TREE_OPERAND(b, 0);
+    tree op0=TREE_OPERAND(b, 0);
     if (TREE_OPERAND(b, 1)) TREE_OPERAND(b, 1)=fold(TREE_OPERAND(b, 1));
     if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
     TREE_TYPE(TREE_OPERAND(b, 2)) = ubitsizetype;
-    if (TREE_CODE(op0)==INDIRECT_REF) {
-      newop0=op0;
-      op0=TREE_OPERAND(op0, 0);
-#if 0
-      if (TREE_CODE(op0)==PLUS_EXPR && TREE_CODE(TREE_TYPE(op0))==POINTER_TYPE) {
-	fprintf(stdout, "\n\nxyz %x\n\n",input_location.line);
-	TREE_TYPE(op0)==integer_type_node;
-      }
-#endif
-    } else {
-      tree tt=make_pointer_declarator(0,op0);
-      TREE_TYPE(tt)=build_pointer_type(integer_type_node);
-      TREE_TYPE(tt)=integer_type_node;
-      //tree i = build_unary_op (ADDR_EXPR, op0, 1);
-      //newop0=build_indirect_ref (convert(build_pointer_type (integer_type_node),op0), "unary *");
-      //newop0=build_indirect_ref (i, "unary *");
-      TREE_OPERAND(b, 0)=newop0;
-      TREE_OPERAND(b, 0)=tt;
-    }
+    tree tt=make_pointer_declarator(0,op0);
+    TREE_TYPE(tt)=integer_type_node;
+    TREE_OPERAND(b, 0)=tt;
     $$=build_modify_expr(b, NOP_EXPR, $3);
-    goto bitend;
-  }
-  if (TREE_CODE(t) == INTEGER_CST || (TREE_CODE(t)==NON_LVALUE_EXPR && TREE_CODE(TREE_OPERAND(t, 0))==INTEGER_CST )) {
-    t=make_pointer_declarator(0,$1);
-    TREE_TYPE(t)=build_pointer_type(integer_type_node);
-    $$=build_modify_expr(t, NOP_EXPR, $3); // check. no LVAL_ADDR?
   } else {
-#if 0
-    $$=build_modify_expr(build_indirect_ref (convert(integer_ptr_type_node, t), "unary *"), NOP_EXPR, $3);
-#else
     tree type = TREE_TYPE(t);
     tree ptype;
     tree conv;
@@ -2336,17 +2311,7 @@ opexp9 '=' opexp9 {
       tmp =  build_indirect_ref(convert(integer_ptr_type_node, build_unary_op (ADDR_EXPR, tmp, 1)), "unary *") ;
 #endif
     $$=build_modify_expr(tmp, NOP_EXPR, $3);
-#endif
   }
- bitend:
-#if 0
- setbitcontext('o');
- popbitstack();
-{ pushbitstack();
- setbitcontext('a');
- $$=0;
-} 
-#endif
 }
 ;
 
