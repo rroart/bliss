@@ -1,0 +1,9 @@
+; Please try to keep this file in ASCII collating order.
+
+Language
+BLISS
+
+fminimum-actuals=
+BLISS RejectNegative Joined UInteger
+Minimum actuals for calling a routine
+
