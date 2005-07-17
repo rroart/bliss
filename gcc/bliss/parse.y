@@ -62,6 +62,8 @@ int turn_off_addr_expr = 0;
  static int gsc=0 ;
  static tree ifthenelseval=0;
 
+ int opt_minimum_actuals = 0;
+
  int yyrec = 0;
 
 extern tree  build_modify_expr (tree, enum tree_code, tree);
@@ -211,6 +213,9 @@ bli_common_parse_file(set_yydebug)
  tree find_structure_attr(tree);
  tree find_alloc_attr(tree);
  tree find_extension_attr(tree);
+ tree find_linkage_attr(tree);
+ tree find_novalue_attr(tree);
+ int is_counted(tree);
  int unsigned_attr(tree);
  tree sign_convert(tree,tree);
  tree conv_unsign(tree);
@@ -229,6 +234,8 @@ bli_common_parse_file(set_yydebug)
  tree mytag(tree);
  int is_str_tag(tree);
  tree strip_literal(tree);
+ tree find_linkage(char * name);
+ void add_linkage (char *,int);
 
  int longest_macro=0;
  int str1_memcpy=0;
@@ -259,7 +266,7 @@ bli_common_parse_file(set_yydebug)
 %token <type_node_p> T_NAME T_STRING T_IDIGITS LEXEME M_NAME T_LABELNAME
 %token <type_node_p> P_SOFTERROR P_SOFTERROR2 P_SOFTERROR3 P_SOFTERROR4
 %token <type_node_p> START_CTCE START_LEX START_EXPR END_EXPR END_BUILTIN
-%token <type_node_p> T_FIELDNAME
+%token <type_node_p> T_FIELDNAME T_LINKAGENAME
 
 /*%light uplus uminus*/
 %right <type_node_code> '='
@@ -561,6 +568,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
 %type <type_node_p> built_in_name_list built_in_name select_action_with_end
 %type <type_node_p> map_name macro_formal_name macro_formal_name_list
+%type <type_node_p> maybe_ext_routine_attribute_list
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -1965,6 +1973,16 @@ routine_designator /*T_NAME*/ '(' io_list3 ')' {
     ref = decl;
   }
   //    ref= build_decl( FUNCTION_DECL, build_unary_op (ADDR_EXPR, ref, 0), integer_type_node);
+  int count=0;
+  tree tmp;
+  for (tmp=$3; tmp; tmp=TREE_CHAIN(tmp), count++) ;
+  if (TREE_LANG_FLAG_5(ref)) {
+    $3 = chainon(build_tree_list (NULL_TREE, build_int_2(count,0)), $3);
+  } else {
+    if (!quiet_flag) fprintf(stderr, "f %x %x\n", count,opt_minimum_actuals);
+    for(;count<opt_minimum_actuals;count++)
+      chainon ($3, build_tree_list(0, build_int_2(0,0)));
+  }
   $$ = build_function_call (ref, $3); 
 }
 /*nonfin should be routine_designator, but it did not work*/
@@ -2448,13 +2466,26 @@ executable_function_name '('  actual_parameter_list  ')'
       inform("ctce ch$all %x\n",(31+v*8)>>5);
     goto out_exec_func;
   }
+
+  if (TREE_CODE($1)==IDENTIFIER_NODE && 0==strcmp("nullparameter",IDENTIFIER_POINTER($1))) {
+    tree decl = current_function_decl;
+    tree arg = DECL_ARGUMENTS(decl);
+    tree val = DECL_NAME(TREE_OPERAND(TREE_VALUE($3),0));
+    int count=1;
+    tree tmp;
+    for (tmp=arg; tmp && DECL_NAME(tmp) != val; tmp=TREE_CHAIN(tmp), count++) ;
+    int counted = TREE_LANG_FLAG_5(current_function_decl);
+    tree arg2 = arg;
+    $3 = chainon (build_tree_list(0, arg2),$3);
+    $3 = chainon(build_tree_list (0, build_int_2(count, 0)), $3);
+    $3 = chainon(build_tree_list (0, build_int_2(counted, 0)), $3);
+  }
  no_ch_ctce:
   {}
   // copy from routine call?
-  void * ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
-  ref = build_external_ref ($1, 1);
+  tree ref = build_external_ref ($1, 1);
   $$ = build_function_call (ref, $3); 
   goto out_exec_func;
 
@@ -2477,9 +2508,9 @@ executable_function_name '('  actual_parameter_list  ')'
 
 executable_function_named:
 standard_function_name
-/* standard_function_name  
-| linkage_function_name 
-*/
+/* standard_function_name  */
+| 
+linkage_function_name 
 | character_handling_function_name 
 /*
 | machine_specific_function_name */
@@ -3406,10 +3437,19 @@ psect_allocation: K_PSECT
 volatile_attribute: K_VOLATILE { $$ = 0; }
 ;
 
-novalue_attribute: K_NOVALUE { $$ = 0; }
+novalue_attribute:
+K_NOVALUE
+{ 
+  $$ = build_nt(NOVALUE_ATTR);
+}
 ;
-linkage_attribute: T_NAME 
+linkage_attribute: /*T_NAME*/
+T_LINKAGENAME
+{
+  $$ = build_nt(LINKAGE_ATTR, $1);
+}
 ;
+
 range_attribute: K_SIGNED compile_time_constant_expression { $$ = 0; }
 |K_UNSIGNED compile_time_constant_expression { $$ = 0; }
 ;
@@ -4465,10 +4505,17 @@ routine_definition
 routine_definition: routine_name
 {
 }
-io_list 
+io_list routine_attributes 
 {
   // mark this as static?
-  void * io_list = $3;
+  tree io_list = $3;
+  tree myattr = $4;
+  int do_counted_arg = is_counted(myattr);
+  int is_void = find_novalue_attr(myattr);
+  tree mytype = integer_type_node;
+  if (is_void)
+    mytype = void_type_node;
+  mytype = tree_cons (0, mytype, 0);
   tree fn;
 #if 0
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
@@ -4484,16 +4531,17 @@ io_list
 #endif
   // check. why CALL_EXPR?
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
-  start_function (tree_cons(0, integer_type_node, 0), fn, 0);
+  start_function (mytype, fn, 0);
   if (0==strcmp("main", IDENTIFIER_POINTER($1))) {
     DECL_EXTERNAL (current_function_decl) = 0;
     TREE_PUBLIC (current_function_decl) = 1;
   } else {
     TREE_PUBLIC (current_function_decl) = 0;
   }
+  TREE_LANG_FLAG_5(current_function_decl)=do_counted_arg;
   store_parm_decls ();
 }
-routine_attributes '=' save_location exp 
+'=' save_location exp 
 { 
   tree block_value = $8; 
   if (block_value) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$8))); $$=0;
@@ -4552,10 +4600,19 @@ formal_name
 
 }
 ;
+
 routine_attribute_list:
 routine_attribute_list routine_attribute 
-|routine_attribute 
+{
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
+|
+routine_attribute 
+{ 
+  $$ = tree_cons (NULL_TREE, $1, 0); 
+}
 ;
+
 formal_attribute_list:  map_declaration_attribute_list  
 ;
 /*
@@ -4577,7 +4634,7 @@ allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); }
 routine_attribute: novalue_attribute 
 |linkage_attribute 
 |psect_allocation 
-|addressing_mode_attribute { $$ = 0; }
+|addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |weak_attribute 
 ;
 
@@ -4594,10 +4651,17 @@ global_routine_definition:
 routine_name
 {
 }
-io_list 
+io_list global_routine_attributes 
 {
-  void * io_list = $3;
-  void * fn;
+  tree io_list = $3;
+  tree myattr = $4;
+  int do_counted_arg = is_counted(myattr);
+  int is_void = find_novalue_attr(myattr);
+  tree mytype = integer_type_node;
+  if (is_void)
+    mytype = void_type_node;
+  mytype = tree_cons (0, mytype, 0);
+  tree fn;
 #if 0
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
 #else
@@ -4612,12 +4676,13 @@ io_list
   }
 #endif
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
-  start_function (tree_cons(0, integer_type_node, 0), fn, 0);
+  start_function (mytype, fn, 0);
   DECL_EXTERNAL (current_function_decl) = 0;
   TREE_PUBLIC (current_function_decl) = 1;
+  TREE_LANG_FLAG_5(current_function_decl)=do_counted_arg;
   store_parm_decls ();
 }
-global_routine_attributes '=' save_location exp 
+'=' save_location exp 
 { 
   tree block_value = $8; 
   if (block_value) $$ = c_expand_return (build_compound_expr(build_tree_list(NULL_TREE,$8))); $$=0;
@@ -4642,14 +4707,26 @@ io_list ':'  global_routine_attribute_list
 |io_list  
 ;
 
-global_routine_attribute_list: { $$=0; }
-|global_routine_attribute_list global_routine_attribute 
-|global_routine_attribute 
+global_routine_attribute_list:
+{
+  $$=0;
+}
+|
+global_routine_attribute_list global_routine_attribute 
+{
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
+|
+global_routine_attribute 
+{ 
+  $$ = tree_cons (NULL_TREE, $1, 0); 
+}
 ;
+
 global_routine_attribute: novalue_attribute 
 |linkage_attribute 
 |psect_allocation 
-|addressing_mode_attribute { $$ = 0; }
+|addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |weak_attribute 
 ;
 
@@ -4669,7 +4746,11 @@ forward_routine_item:
 routine_name maybe_forward_routine_attribute_list 
 /*|T_NAME  */
 {
-  tree decl = build_decl (FUNCTION_DECL, $1, default_function_type);
+  tree myattr = $2;
+  tree mytype = default_function_type;
+  if (find_novalue_attr(myattr))
+    mytype = build_function_type (void_type_node, 0);
+  tree decl = build_decl (FUNCTION_DECL, $1, mytype);
   DECL_EXTERNAL (decl) = 1;
   decl = pushdecl (decl);
   $$ = 0;
@@ -4681,12 +4762,20 @@ maybe_forward_routine_attribute_list: { $$=0; }
 ;
 forward_routine_attribute_list:
 forward_routine_attribute_list forward_routine_attribute 
-|forward_routine_attribute 
+{
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
+|
+forward_routine_attribute 
+{ 
+  $$ = tree_cons (NULL_TREE, $1, 0); 
+}
 ;
+
 forward_routine_attribute: novalue_attribute 
 |linkage_attribute 
 |psect_allocation 
-|addressing_mode_attribute { $$ = 0; }
+|addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 ;
 external_routine_declaration:
 K_EXTERNAL K_ROUTINE external_routine_item_list ';' { $$ = 0; }
@@ -4697,26 +4786,44 @@ external_routine_item_list: external_routine_item_list ',' external_routine_item
 ;
 
 maybe_ext_routine_attribute_list:
+{
+  $$ = 0;
+}
 |
 ':' ext_routine_attribute_list
+{
+  $$ = $2;
+}
 ;
 
-external_routine_item: routine_name maybe_ext_routine_attribute_list 
+external_routine_item:
+routine_name maybe_ext_routine_attribute_list 
 { 
   if (yychar == YYEMPTY)
     yychar = YYLEX;
+  tree myattr = $2;
   $$ = build_external_ref ($1, 1);
+  if (is_counted(myattr))
+    TREE_LANG_FLAG_5($$)=1;
 }
 ;
 
 ext_routine_attribute_list:
 ext_routine_attribute_list ext_routine_attribute 
-|ext_routine_attribute 
+{
+  $$= tree_cons (NULL_TREE, $2, $1);
+}
+|
+ext_routine_attribute 
+{ 
+  $$ = tree_cons (NULL_TREE, $1, 0); 
+}
 ;
+
 ext_routine_attribute: novalue_attribute 
 |linkage_attribute 
 |psect_allocation 
-|addressing_mode_attribute { $$ = 0; }
+|addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |weak_attribute 
 ;
 linkage_declaration: K_LINKAGE linkage_definition_list ';' { $$ = 0; }
@@ -4860,7 +4967,8 @@ T_NAME
 
   // also needs a dummy parameter __mydummy_for_ap__ if no formals
   init = build_unary_op (ADDR_EXPR, DECL_ARGUMENTS(current_function_decl), 1);
-  init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(4,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
+  if (TREE_LANG_FLAG_5(current_function_decl)==0)
+    init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(4,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
   
   finish_decl (cell_decl_p, init, NULL_TREE);
   } else {
@@ -4894,6 +5002,8 @@ T_NAME
 #endif
   }
 }
+|
+B_NULLPARAMETER
 ;
 
 built_in_name_list:
@@ -5283,11 +5393,25 @@ T_NAME
 linkage_definition_list: linkage_definition_list ',' linkage_definition 
 |linkage_definition 
 ;
-linkage_definition: linkage_name '=' linkage_type linkage_type_stuff maybe_linkage_option
+linkage_definition:
+linkage_name '='
+{
+  undefmode = 1;
+}
+linkage_type
+{
+  undefmode = 0;
+  add_linkage(IDENTIFIER_POINTER($1), $4);
+}
+linkage_type_stuff maybe_linkage_option
 ;
 
-linkage_type: U_CALL  { $$ = 0; }
-| T_NAME 
+linkage_type:
+U_CALL
+|
+U_JSB
+|
+U_INTERRUPT
 ;
 
 linkage_type_stuff:
@@ -5424,7 +5548,7 @@ U_READ { $$ = 0; }
 |K_GLOBAL  { $$ = 0; }
 |U_VECTOR  { $$ = 0; }
 |alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-|addressing_mode_attribute { $$ = 0; }
+|addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 ;
 
 
@@ -5460,10 +5584,12 @@ builtin_name: T_NAME
 machine_specific_function: T_NAME
 ;
 
-linkage_function: T_NAME
+linkage_function: /* was: T_NAME */
+B_NULLPARAMETER
 ;
 
-linkage_function_name: T_NAME 
+linkage_function_name: /* was: T_NAME */
+B_NULLPARAMETER
 ;
 
 pushlevel:  /* empty 7 */
@@ -6516,12 +6642,18 @@ char * bliss_builtin_struct_4 = "structure blockvector[i, o, p, s, e; n, bs, uni
 // was bblock. starlet lets $$block be block_byte
 char * bliss_builtin_struct_5 = "structure block_byte [o, p, s, e; n] = [n] (block_byte + o) <p, s, e>;";
 
+char * bliss_builtin_linkage_1 = "linkage bliss = jsb;";
+
+char * bliss_builtin_linkage_2 = "linkage call = call;";
+
 void add_builtin(void) {
   parse_this(bliss_builtin_struct_1);
   parse_this(bliss_builtin_struct_2);
   parse_this(bliss_builtin_struct_3);
   parse_this(bliss_builtin_struct_4);
   parse_this(bliss_builtin_struct_5);
+  parse_this(bliss_builtin_linkage_1);
+  parse_this(bliss_builtin_linkage_2);
 
   if (check_little_endian()) // had to do some of my own extensions
     parse_this("compiletime $cpu_le = 1;");
@@ -6649,6 +6781,20 @@ find_extension_attr(t)
 	  tree t;
 {
   return find_tree_code(t, EXTENSION_ATTR);
+}
+
+tree
+find_linkage_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, LINKAGE_ATTR);
+}
+
+tree
+find_novalue_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, NOVALUE_ATTR);
 }
 
 int
@@ -7184,4 +7330,40 @@ strip_literal(t)
       t = i;
   }
   return t;
+}
+
+void
+add_linkage(char * name, int type) {
+  tree i = get_identifier(name);
+  tree t = build_nt(LINKAGE, type);
+  pushtag(i, t);
+}
+
+tree
+find_linkage(char * name) {
+  tree id=maybe_get_identifier(name);
+
+  if (id==0)
+    return 0;
+
+  tree tag = IDENTIFIER_TAG_VALUE (id);
+
+  if (tag==0)
+    return 0;
+
+  if (tag==0 || TREE_CODE (tag) != LINKAGE)
+    return 0;
+
+  return tag;
+}
+
+int
+is_counted(t)
+     tree t;
+{
+  t = find_linkage_attr(t);
+  if (t==0)
+    return 0;
+  t = find_linkage(IDENTIFIER_POINTER(TREE_VALUE(t)));
+  return 0==strcmp("call",IDENTIFIER_POINTER(TREE_OPERAND(t,0)));
 }
