@@ -201,6 +201,11 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.101
+
+Bugs fixed:
+Was one left in bit field ref (one indirect was removed).
+
 0.100
 Probably more proper support for builtin ap.
 Less for builtin nullparamater.

@@ -1810,6 +1810,7 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
       tree type = typetail ? TREE_VALUE (typetail) : 0;
       tree val = TREE_VALUE (valtail);
 
+#if 0
       if (type == void_type_node)
 	{
 	  if (name)
@@ -1819,6 +1820,7 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
 	    error ("too many arguments to function");
 	  break;
 	}
+#endif
 
       /* Strip NON_LVALUE_EXPRs since we aren't using as an lvalue.  */
       /* Do not use STRIP_NOPS here!  We do not want an enumerator with value 0
@@ -1835,6 +1837,8 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
 	  /* Formal parm type is specified by a function prototype.  */
 	  tree parmval;
 
+	  if (!COMPLETE_TYPE_P (type))
+	    type = integer_type_node;
 	  if (!COMPLETE_TYPE_P (type))
 	    {
 	      error ("type of formal parameter %d is incomplete", parmnum + 1);

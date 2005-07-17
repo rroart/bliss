@@ -357,3 +357,5 @@ bliss.tags:
 bliss.html:
 	texi2html -verbose -menu -split_chapter -number -I $(blisrc) $(blisrc)/bliss.texi
 	mv bliss*.html $(blisrc)
+
+lang_opt_files += bliss/lang.opt

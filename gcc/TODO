@@ -53,3 +53,7 @@ bblock with [8,40,24,0] etc
 bit shift direction check
 
 handle nullparameter
+
+redo stuff with pushtag
+
+change $cpu_le to something with blissbe and blissle

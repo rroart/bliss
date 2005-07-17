@@ -461,6 +461,8 @@ hexdigit [0-9a-f]
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
   if (0==strcmp("ch$allocation",yytext))
     key = N_CH_ALLOCATION; // temp workaround
+  if (0==strcmp("nullparameter",yytext))
+    key = B_NULLPARAMETER; // temp workaround
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
     {
@@ -495,6 +497,8 @@ hexdigit [0-9a-f]
       tree field = find_field (s);
       opexpcnt++; // for unary op workaround
       if (m==0 && field) return T_FIELDNAME; // workaround, temp
+      tree link = find_linkage (s);
+      if (m==0 && link) return T_LINKAGENAME; // workaround, temp
       if (m==0) return T_NAME;
     }
   /*yylval.type_str=strdup(yytext);*/

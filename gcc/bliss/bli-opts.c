@@ -190,7 +190,7 @@ defer_opt (enum opt_code code, const char *arg)
 unsigned int
 c_common_init_options (unsigned int argc, const char **argv)
 {
-  static const unsigned int lang_flags[] = {CL_C, CL_ObjC, CL_CXX, CL_ObjCXX};
+  static const unsigned int lang_flags[] = {CL_BLISS, CL_C, CL_ObjC, CL_CXX, CL_ObjCXX};
   unsigned int i, result;
 
   /* This is conditionalized only because that is the way the front
@@ -231,7 +231,7 @@ c_common_init_options (unsigned int argc, const char **argv)
 	  /* If preprocessing assembly language, accept any of the C-family
 	     front end options since the driver may pass them through.  */
 	  if (! strcmp (argv[i], "-lang-asm"))
-	    result |= CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
+	    result |= CL_BLISS | CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
 #ifdef CL_F77
 	  /* If potentially preprocessing Fortran we have to accept its
 	     front end options since the driver may them through.  */
@@ -1059,6 +1059,13 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_v:
       verbose = true;
       break;
+
+    case OPT_fminimum_actuals_:
+      {
+	extern int opt_minimum_actuals;
+	opt_minimum_actuals=atoi(arg);
+      }
+      break;
     }
 
   return result;
@@ -1521,10 +1528,12 @@ static void
 cb_file_change (cpp_reader *pfile ATTRIBUTE_UNUSED,
 		const struct line_map *new_map)
 {
+#if 0
   if (flag_preprocess_only)
     pp_file_change (new_map);
   else
     fe_file_change (new_map);
+#endif
 
   if (new_map == 0 || (new_map->reason == LC_LEAVE && MAIN_FILE_P (new_map)))
     push_command_line_include ();

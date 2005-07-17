@@ -12,4 +12,7 @@ DEFTREECODE (INITIAL_GROUP, "initial_group", 't', 3)
 DEFTREECODE (ALLOC_ATTR, "alloc_attr", 't', 1)
 DEFTREECODE (EXTENSION_ATTR, "extension_attr", 't', 1)
 DEFTREECODE (MYSIGN, "myop", 't', 2)
+DEFTREECODE (LINKAGE, "linkage", 't', 2)
+DEFTREECODE (LINKAGE_ATTR, "linkage_attr", 't', 2)
+DEFTREECODE (NOVALUE_ATTR, "novalue_attr", 't', 0)
 
