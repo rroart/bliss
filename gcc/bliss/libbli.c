@@ -253,11 +253,20 @@ long ch$find_sub(int cn, char * cptr, int pn, char * pptr) {
 // ch$transtable ch$translate not yet
 
 int
-nullparameter(long * l) {
-  // check. does not work as intended,probably
-  if (l==0)
-    return 1;
-  if (*l==0)
-    return 1;
-  return 0;
+nullparameter(int counted, int num, int * argnum, long * l) {
+  // check 
+
+#if 0  
+  int argnumd = 0; //argnum ? *argnum : 0;
+  int ld = l ? *l : 0;
+  printf("npp %x %x %x %x %x %x \n",counted,num,argnum,argnumd,l,ld);
+#endif
+  if (!counted) {
+    if (l==0)
+      return 1;
+    if (*l==0)
+      return 1;
+    return 0;
+  }
+  return num>argnum;
 }
