@@ -1575,7 +1575,7 @@ build_external_ref (tree id, int fun)
   tree decl = lookup_name (id);
   tree objc_ivar = lookup_objc_ivar (id);
 
-  if (decl && decl != error_mark_node)
+  if (decl && decl != error_mark_node && TREE_LANG_FLAG_4(id)==0)
     {
       /* Properly declared variable or function reference.  */
       if (!objc_ivar)
@@ -1600,8 +1600,11 @@ build_external_ref (tree id, int fun)
     return error_mark_node;
   else
     {
+#if 0
       undeclared_variable (id);
       return error_mark_node;
+#endif
+      ref = build_external (id, 0);
     }
 
   if (TREE_TYPE (ref) == error_mark_node)
