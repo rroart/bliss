@@ -64,6 +64,12 @@ int turn_off_addr_expr = 0;
 
  int opt_minimum_actuals = 0;
 
+ tree default_global_section = 0;
+ tree default_global_align = 0;
+ 
+ tree default_own_section = 0;
+ tree default_own_align = 0;
+ 
  int yyrec = 0;
 
 extern tree  build_modify_expr (tree, enum tree_code, tree);
@@ -130,6 +136,13 @@ struct mymacro {
    dsc$w_length : 1,
    dsc$a_pointer : ","
  };
+
+ struct dsc$descriptor semidsc = {
+   dsc$w_length : 1,
+   dsc$a_pointer : ";"
+ };
+
+ int default_punct = ',';
 
 extern FILE *yyin;
 
@@ -215,6 +228,11 @@ bli_common_parse_file(set_yydebug)
  tree find_extension_attr(tree);
  tree find_linkage_attr(tree);
  tree find_novalue_attr(tree);
+ tree find_volatile_attr(tree);
+ tree find_external_name_attr(tree);
+ tree find_alignment_attr(tree);
+ tree get_alignment(tree);
+ void set_external_name(tree,tree);
  int is_counted(tree);
  int unsigned_attr(tree);
  tree sign_convert(tree,tree);
@@ -236,6 +254,7 @@ bli_common_parse_file(set_yydebug)
  tree strip_literal(tree);
  tree find_linkage(char * name);
  void add_linkage (char *,int);
+ tree convert_string_literal_to_integer(tree);
 
  int longest_macro=0;
  int str1_memcpy=0;
@@ -308,7 +327,7 @@ bli_common_parse_file(set_yydebug)
 %token K_SELECTU K_SET K_SHOW K_SIGNED K_STACKLOCAL K_STRUCTURE
 %token K_SWITCHES K_TES K_THEN K_TO K_UNDECLARE K_UNSIGNED K_UNTIL
 %token K_UPLIT K_VOLATILE K_WEAK K_WHILE K_WITH K_WORD K_XOR
-%token K_SIGNAL K_STOP K_SETUNWIND
+%token K_SIGNAL K_STOP K_SETUNWIND K_EXTERNAL_NAME
 /* These tokens are reserved keywords with a leading percent */  
 %token P_ALLOCATION P_ASCIC P_ASCID P_ASCII P_ASCIZ P_ASSIGN P_B
 %token P_BLISS P_BLISS16 P_BLISS32 P_BLISS36 P_BPADDR P_BPUNIT P_BPVAL
@@ -568,7 +587,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> expr_list maybe_ref maybe_alloc_actual_list structure_name
 %type <type_node_p> built_in_name_list built_in_name select_action_with_end
 %type <type_node_p> map_name macro_formal_name macro_formal_name_list
-%type <type_node_p> maybe_ext_routine_attribute_list
+%type <type_node_p> maybe_ext_routine_attribute_list forward_name
+%type <type_node_p> external_name_attribute
 /*%type <type_node_p> test tok*/
 %type <location> save_location
 
@@ -680,6 +700,8 @@ expr_list ',' expression
 {
   chainon ($1, build_tree_list (NULL_TREE, $3));
 }
+|
+expr_list ','
 |
 expression
 {
@@ -1007,8 +1029,15 @@ numeric_literal
     $$=TREE_TYPE($1);
     goto myout;
   }
-  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
-    $$=get_identifier(TREE_TYPE($1));
+  if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && (TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE || TREE_CONSTANT(TREE_TYPE($1)))) {
+    if (TREE_CODE(TREE_TYPE($1))==STRING_CST) {
+      $$=convert_string_literal_to_integer(TREE_TYPE($1));
+      goto myout;
+    }
+    if (TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE)
+      $$=get_identifier(TREE_TYPE($1));
+    else
+      $$=TREE_TYPE($1);
     goto myout;
   }
   if (yychar == YYEMPTY)
@@ -1679,11 +1708,14 @@ K_BEGIN block_body K_END
 
 block_body: 
 maybe_declaration_list 
+{
+  default_punct = ',';
+}
 /* { $$ = bli_begin_compound_stmt (); } */
 maybe_block_action_list 
 maybe_block_value 
 {
-  $$=$3;
+  $$=$4;
 }
 ;
 /*
@@ -1692,11 +1724,17 @@ maybe_declaration_list: { $$=0; }
 ;
 */
 maybe_declaration_list:  { $$=NULL_TREE; }
-| maybe_declaration_list declaration {
+|
+maybe_declaration_list
+{
+  default_punct = ',';
+}
+ declaration {
   /*  */
   // check reason for the if-else part
-  if ($2)
-    $$ = chainon($1, $2);
+  default_punct = ';';
+  if ($3 && !chain_member($3, $1))
+    $$ = chainon($1, $3);
   else
     $$ = $1;
  }
@@ -2254,7 +2292,7 @@ operator_expression:
   }
 }
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
-| opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, $3); }
+| opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, convert(integer_type_node, $3)); }
 | opexp9 '/' opexp9 { $$ = parser_build_binary_op (TRUNC_DIV_EXPR, $1, $3); }
 |
 opexp9 '+' opexp9
@@ -2328,6 +2366,8 @@ opexp9 '=' opexp9 {
     if (TREE_CODE(tmp)==FUNCTION_DECL)
       tmp =  build_indirect_ref(convert(integer_ptr_type_node, build_unary_op (ADDR_EXPR, tmp, 1)), "unary *") ;
 #endif
+    if (TREE_CODE($3)==STRING_CST)
+      $3 = convert_string_literal_to_integer($3);
     $$=build_modify_expr(tmp, NOP_EXPR, $3);
   }
 }
@@ -3354,16 +3394,18 @@ attribute:  allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); }
 | extension_attribute { $$ = build_nt (EXTENSION_ATTR, $1); } 
 | structure_attribute  
 | field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-| alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+| alignment_attribute
 | initial_attribute 
 | preset_attribute 
 | { undefmode=1; } psect_allocation{ undefmode=0; $$=$2; }
-| volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
+| volatile_attribute
 | novalue_attribute 
 | linkage_attribute  
 | range_attribute 
 | { undefmode=1; if (yydebug) inform("undefmode\n\n\n\n"); } addressing_mode_attribute { undefmode=0; $$=$2; } 
 | weak_attribute  
+|
+external_name_attribute
 ;
 /*
   allocation_unit:  K_LONG | K_WORD | K_BYTE 
@@ -3423,8 +3465,13 @@ K_UNSIGNED
   field_attribute: K_FIELD 
   ;
 */
-alignment_attribute: K_ALIGN  compile_time_constant_expression { $$ = 0; }
+alignment_attribute:
+K_ALIGN '(' compile_time_constant_expression ')'
+{
+  $$ = build_nt (ALIGNMENT_ATTR, $3);
+}
 ;
+
 /*
   preset_attribute: K_PRESET 
   ;
@@ -3434,7 +3481,11 @@ psect_allocation: K_PSECT
 ;
 */
 
-volatile_attribute: K_VOLATILE { $$ = 0; }
+volatile_attribute:
+K_VOLATILE
+{ 
+  $$ = build_nt(VOLATILE_ATTR);
+}
 ;
 
 novalue_attribute:
@@ -3721,9 +3772,45 @@ own_name maybe_own_attribute_list
   if (st_attr) {
     mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
-  cell_decl_p = start_decl (cell, mysize, do_init, 0);
-
+  tree cell2;
+  if (TREE_LANG_FLAG_4(cell)) {
+    cell_decl_p=IDENTIFIER_SYMBOL_VALUE (cell);
+    cell2 = get_identifier(add_underscore(DECL_ASSEMBLER_NAME(cell_decl_p), 1));
+#if 0
+    SET_DECL_ASSEMBLER_NAME(cell_decl_p,cell2);
+#endif
+    IDENTIFIER_SYMBOL_VALUE (cell) = 0;
+#if 0
+    TREE_LANG_FLAG_4(cell)=0;
+    $$=0;
+#endif
+  }
+  tree myname = 0;
+  if (IDENTIFIER_SYMBOL_VALUE(cell))
+    myname = DECL_ASSEMBLER_NAME(IDENTIFIER_SYMBOL_VALUE(cell));
+  tree c_attr = default_own_section;
+  tree c_align = get_alignment(myattr);
+  if (c_align == 0)
+    c_align = default_global_align;
+  c_attr = chainon(c_attr, c_align);
+  cell_decl_p = start_decl (cell, mysize, do_init, c_attr);
+#if 0
+  if (default_own_section)
+    DECL_SECTION_NAME(cell_decl_p)=default_own_section;
+#endif
+  if (myname)
+    SET_DECL_ASSEMBLER_NAME(cell_decl_p,myname);
+  if (TREE_LANG_FLAG_4(cell)) {
+    //tree cell2 = get_identifier(add_underscore(DECL_ASSEMBLER_NAME(cell_decl_p), 1));
+    SET_DECL_ASSEMBLER_NAME(cell_decl_p,cell2);
+#if 0
+    IDENTIFIER_SYMBOL_VALUE (cell) = 0;
+#endif
+    TREE_LANG_FLAG_4(cell)=0;
+    $$=0;
+  }
   TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+  TREE_PUBLIC(cell_decl_p)=0;
 
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
@@ -3766,11 +3853,11 @@ allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); }
 |extension_attribute { $$ = build_nt (EXTENSION_ATTR, $1); } 
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-|alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+|alignment_attribute
 |initial_attribute 
 |preset_attribute 
 |psect_allocation 
-|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
+|volatile_attribute
 ;
 
 global_declaration: K_GLOBAL global_item_list  ';' { $$ = 0; }
@@ -3842,7 +3929,16 @@ global_name maybe_global_attribute_list
   if (st_attr) {
     mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
-  cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  tree c_attr = default_global_section;
+  tree c_align = get_alignment(myattr);
+  if (c_align == 0)
+    c_align = default_global_align;
+  c_attr = chainon(c_attr, c_align);
+  cell_decl_p = start_decl (cell, mysize, do_init, c_attr);
+#if 0
+  if (default_global_section)
+    DECL_SECTION_NAME(cell_decl_p)=default_global_section;
+#endif
 
   start_init(cell_decl_p,NULL,1);
   finish_init();
@@ -3861,6 +3957,7 @@ global_name maybe_global_attribute_list
     init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize));
 
   finish_decl (cell_decl_p, init, NULL_TREE);
+  set_external_name(cell_decl_p, myattr);
 }
 ;
 
@@ -3958,6 +4055,7 @@ external_name maybe_external_attribute_list
 #else
   finish_decl (cell_decl_p, 0, NULL_TREE);
 #endif
+  set_external_name(cell_decl_p, myattr);
 }
 ;
 
@@ -3968,7 +4066,60 @@ forward_name:
 T_NAME
 ;
 
-forward_item: forward_name ':' attribute_list 
+forward_item:
+forward_name maybe_local_attribute_list 
+{
+  tree cell, decl_p , cell_decl, init, t, cell_decl_p;
+  tree mysize=tree_cons(0,integer_type_node,0);
+  tree size=tree_cons(0,integer_type_node,0);
+
+  tree myattr = $2;
+  
+  tree type = find_alloc_attr(myattr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  type=sign_convert(type,myattr);
+  mysize=tree_cons(0, type, 0);
+
+  cell=$1;
+
+  tree st_attr = find_structure_attr(myattr);
+  if (st_attr) {
+    /*size=*/handle_structure(cell, st_attr, 1);
+#if 0
+    cell=make_pointer_declarator(0,cell); // check?
+#endif
+  }
+
+  cell_decl_p = start_decl (cell, mysize, 0, 0);
+
+  tree decl = cell_decl_p;
+  int extern_ref = 1; 
+
+  if (global_bindings_p())
+  {
+    TREE_PUBLIC (decl) = 1;
+    TREE_STATIC (decl) = !extern_ref; // 0 
+  } else {
+    TREE_STATIC (decl) = 0;
+    TREE_PUBLIC (decl) = extern_ref; // 1
+  }
+
+  DECL_EXTERNAL (cell_decl_p) = 1; // differs from bind here
+  //TREE_STATIC(cell_decl_p)=1; // same as local, except for STATIC?
+
+#if 0
+  // not like bind here
+  start_init(cell_decl_p,NULL,global_bindings_p());
+  finish_init();
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+  TREE_LANG_FLAG_0($1)=1;
+#else
+  finish_decl (cell_decl_p, 0, NULL_TREE);
+#endif
+}
 ;
 
 forward_item_list: forward_item_list forward_item 
@@ -4049,7 +4200,9 @@ local_name maybe_local_attribute_list
   if (st_attr) {
     mysize = tree_cons(0, build_our_record(fold(size)), 0);
   }
-  cell_decl_p = start_decl (cell, mysize, do_init, 0);
+  tree c_attr = 0;
+  c_attr = chainon(c_attr, get_alignment(myattr));
+  cell_decl_p = start_decl (cell, mysize, do_init, c_attr);
 
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
@@ -4068,6 +4221,7 @@ local_name maybe_local_attribute_list
     init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize));
 
   finish_decl (cell_decl_p, init, NULL_TREE);
+  TREE_THIS_VOLATILE(cell_decl_p)=find_volatile_attr(myattr)!=0;
 }
 ;
 
@@ -4629,7 +4783,7 @@ allocation_unit { $$ = build_nt (ALLOC_ATTR, $1); }
 |extension_attribute { $$ = build_nt (EXTENSION_ATTR, $1); } 
 |structure_attribute 
 |field_attribute 
-|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
+|volatile_attribute
 ;
 routine_attribute: novalue_attribute 
 |linkage_attribute 
@@ -4680,6 +4834,7 @@ io_list global_routine_attributes
   DECL_EXTERNAL (current_function_decl) = 0;
   TREE_PUBLIC (current_function_decl) = 1;
   TREE_LANG_FLAG_5(current_function_decl)=do_counted_arg;
+  set_external_name(current_function_decl, myattr);
   store_parm_decls ();
 }
 '=' save_location exp 
@@ -4728,6 +4883,8 @@ global_routine_attribute: novalue_attribute
 |psect_allocation 
 |addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |weak_attribute 
+|
+external_name_attribute
 ;
 
 forward_routine_declaration:
@@ -4805,6 +4962,7 @@ routine_name maybe_ext_routine_attribute_list
   $$ = build_external_ref ($1, 1);
   if (is_counted(myattr))
     TREE_LANG_FLAG_5($$)=1;
+  set_external_name($$, myattr);
 }
 ;
 
@@ -4825,7 +4983,10 @@ ext_routine_attribute: novalue_attribute
 |psect_allocation 
 |addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 |weak_attribute 
+|
+external_name_attribute
 ;
+
 linkage_declaration: K_LINKAGE linkage_definition_list ';' { $$ = 0; }
 ;
 enable_declaration: K_ENABLE T_NAME '(' tname_list ')' ';'  { $$ = 0; }
@@ -5021,9 +5182,13 @@ undeclare_declaration:
 K_UNDECLARE tname_list ';'
 { 
   $$ = 0;
-  tree t = TREE_VALUE($2);
-  TREE_LANG_FLAG_4(t) = 1;
-  //  IDENTIFIER_SYMBOL_VALUE (t) = 0;
+  tree tmp = $2;
+  for(;tmp;tmp=TREE_CHAIN(tmp))
+    TREE_LANG_FLAG_4(TREE_VALUE(tmp)) = 1;
+#if 0
+  if (TREE_READONLY(t)==0)
+    IDENTIFIER_SYMBOL_VALUE (t) = 0;
+#endif
 }
 ;
 
@@ -5201,7 +5366,7 @@ allocation_unit  { $$ = build_nt (ALLOC_ATTR, $1); }
 |extension_attribute { $$ = build_nt (EXTENSION_ATTR, $1); } 
 |structure_attribute 
 |field_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
-|volatile_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }  
+|volatile_attribute
 |weak_attribute 
 ;
 
@@ -5502,8 +5667,16 @@ psect_item_list: psect_item_list ',' psect_item
 |psect_item 
 ;
 
-psect_attribute_list: psect_attribute_list ',' psect_attribute 
-|psect_attribute { $$ = 0; }
+psect_attribute_list:
+psect_attribute_list ',' psect_attribute 
+{
+  $$ = tree_cons (NULL_TREE, $3, $1);
+}
+|
+psect_attribute
+{
+  $$ = tree_cons (NULL_TREE, $1, 0);
+}
 ;
 
 psect_item:
@@ -5514,14 +5687,52 @@ storage_class '=' T_NAME
 '(' psect_attribute_list ')'  
 { 
   undefmode=0;
+  if ($1==K_OWN) {
+#if 1
+    tree val1 = tree_cons(0, build_string(IDENTIFIER_LENGTH($3),IDENTIFIER_POINTER($3)), 0);
+    tree val2 = tree_cons(get_identifier("section"), val1, 0);
+    default_own_section=val2;
+#else
+    default_own_section=$3;
+    default_own_align=get_alignment($6);
+#endif
+  }
+  if ($1==K_GLOBAL) {
+#if 1
+    tree val1 = tree_cons(0, build_string(IDENTIFIER_LENGTH($3),IDENTIFIER_POINTER($3)), 0);
+    tree val2 = tree_cons(get_identifier("section"), val1, 0);
+    default_global_section=val2;
+    default_global_align=get_alignment($6);
+#else
+    default_global_section=$3;
+#endif
+  }
   $$ = $3;
 }
-|storage_class '=' T_NAME { $$ = $3; }
+|
+storage_class '=' T_NAME
+{
+  if ($1==K_OWN && 0==strcmp("$own",IDENTIFIER_POINTER($3))) {
+    default_own_section=0;
+    default_own_align=0;
+  }
+  if ($1==K_GLOBAL && 0==strcmp("$global$",IDENTIFIER_POINTER($3)))
+    default_global_section=0;
+    default_global_align=0;
+  $$ = $3;
+}
 ;
 
 storage_class:
-K_OWN 
-|K_GLOBAL 
+K_OWN
+{ 
+  $$ = K_OWN;
+} 
+|
+K_GLOBAL 
+{ 
+  $$ = K_GLOBAL;
+}
 |K_PLIT 
 |U_CODE 
 |U_NODEFAULT 
@@ -5547,10 +5758,16 @@ U_READ { $$ = 0; }
 |K_LOCAL  { $$ = 0; }
 |K_GLOBAL  { $$ = 0; }
 |U_VECTOR  { $$ = 0; }
-|alignment_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); } 
+|alignment_attribute
 |addressing_mode_attribute { $$ = tree_cons(NULL_TREE, $1, NULL_TREE); }
 ;
 
+external_name_attribute:
+K_EXTERNAL_NAME '(' T_STRING ')'
+{
+  $$ = build_nt(EXTERNAL_NAME_ATTR, $3);
+}
+;
 
 /**** 5.0 LEXICAL PROCESSING FACILITIES *****************************/
 
@@ -6286,6 +6503,13 @@ make_macro_string(dsc,m,r)
 	goto subst_out;
       }
     }
+    for(;old;old=TREE_CHAIN(old)) {
+      if (0==strcmp(l.dsc$a_pointer,IDENTIFIER_POINTER(TREE_VALUE(old)))) {
+	l.dsc$a_pointer=0;
+	l.dsc$w_length=0;
+	goto subst_out;
+      }
+    }
     goto subst_out;
   keyw_macro:
     for(new=r;new;new=TREE_CHAIN(new)) {
@@ -6316,7 +6540,7 @@ make_macro_string(dsc,m,r)
     my_strcat_gen(&s,&s,&l,1);
   }
   
-  if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s);
+  if (yydebug) inform ("\n%%BLS-I-NOTHING %x line macro expanded to %s\n",input_location.line,s.dsc$a_pointer);
 
   dsc->dsc$a_pointer=s.dsc$a_pointer;
   dsc->dsc$w_length=s.dsc$w_length;
@@ -6389,8 +6613,11 @@ make_macro_string(dsc,m,r)
 	 } // end outer for
 	 for(tmp=iter;new && tmp;new=TREE_CHAIN(new),tmp=TREE_CHAIN(tmp)) ;
 	 for(tmp=iter;remaining && tmp;remaining=TREE_CHAIN(remaining),tmp=TREE_CHAIN(tmp)) ;
+	 struct dsc$descriptor * dsc = &commadsc;
+	 if (default_punct==';')
+	   dsc = &semidsc;
 	 if (new)
-		my_strcat_gen(&s, &s, &commadsc, 0); // remember to fix punctuation later
+		my_strcat_gen(&s, &s, dsc, 0); // remember to fix punctuation later
 	 cond_iter_macro_count++;
   } // end while
   if (!quiet_flag) printf("ITER %x\n",s.dsc$a_pointer);
@@ -6447,7 +6674,7 @@ make_macro_string(dsc,m,r)
     my_strcat_gen(&s, &s, &l, 1);
   }
   
-  if (yydebug) inform ("\n%%BLS-I-NOTHING %x cond line macro expanded to %s\n",input_location.line,s);
+  if (yydebug) inform ("\n%%BLS-I-NOTHING %x cond line macro expanded to %s\n",input_location.line,s.dsc$a_pointer);
 
   cond_iter_macro_count++;
 
@@ -6481,6 +6708,7 @@ print_remain(dsc,r)
 
   dsc->dsc$a_pointer=s.dsc$a_pointer;
   dsc->dsc$w_length=s.dsc$w_length;
+  if (!quiet_flag) printf("pr %x %s\n",s.dsc$w_length,s.dsc$a_pointer);
   return 1;
 }
 
@@ -6795,6 +7023,57 @@ find_novalue_attr(t)
 	  tree t;
 {
   return find_tree_code(t, NOVALUE_ATTR);
+}
+
+tree
+find_volatile_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, VOLATILE_ATTR);
+}
+
+tree
+find_external_name_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, EXTERNAL_NAME_ATTR);
+}
+
+tree
+find_alignment_attr(t)
+	  tree t;
+{
+  return find_tree_code(t, ALIGNMENT_ATTR);
+}
+
+tree
+get_alignment(t)
+     tree t;
+{
+  t = find_alignment_attr(t);
+  if (t==0)
+    return 0;
+  t = TREE_OPERAND(t,0);
+  int i = TREE_INT_CST_LOW(t);
+  tree val1 = tree_cons(0, build_int_2(1<<i,0), 0);
+  tree val2 = tree_cons(get_identifier("__aligned__"), val1, 0);
+  return val2;
+}
+
+void
+set_external_name(decl, attr)
+     tree decl;
+     tree attr;
+{
+  tree t = find_external_name_attr(attr);
+  if (t==0)
+    return;
+  tree str = TREE_OPERAND(t, 0);
+  char c[255];
+  memcpy(c, TREE_STRING_POINTER(str)+1, TREE_STRING_LENGTH(str)-2);
+  c[TREE_STRING_LENGTH(str)-2]=0;
+  tree name=get_identifier(c);
+  SET_DECL_ASSEMBLER_NAME(decl, name);
 }
 
 int
@@ -7366,4 +7645,59 @@ is_counted(t)
     return 0;
   t = find_linkage(IDENTIFIER_POINTER(TREE_VALUE(t)));
   return 0==strcmp("call",IDENTIFIER_POINTER(TREE_OPERAND(t,0)));
+}
+
+tree
+build_external(id, attr)
+     tree id;
+     tree attr;
+{
+  tree decl;
+  tree size;
+  tree id_ = 0;
+
+  tree type = find_alloc_attr(attr);
+  if (type==0)
+    type = integer_type_node;
+  else
+    type=TREE_OPERAND(type,0);
+  type=sign_convert(type,attr);
+  size=tree_cons(0, type, 0);
+
+  tree st_attr = find_structure_attr(attr);
+  if (st_attr) {
+    handle_structure(id, st_attr, 1);
+  }
+
+  if (TREE_LANG_FLAG_4(id)) {
+    tree decl = IDENTIFIER_SYMBOL_VALUE (id);
+    id_ = get_identifier(add_underscore(DECL_ASSEMBLER_NAME(decl), 1));
+    IDENTIFIER_SYMBOL_VALUE (id) = 0;
+  }
+  decl = start_decl (id, size, 0, 0);
+  if (TREE_LANG_FLAG_4(id)) {
+    SET_DECL_ASSEMBLER_NAME(decl, id_);
+    TREE_LANG_FLAG_4(id)=0;
+  }
+
+  TREE_PUBLIC (decl) = 1;
+  TREE_STATIC (decl) = 0;
+
+  DECL_EXTERNAL (decl) = 1; // differs from bind here
+  finish_decl (decl, 0, NULL_TREE);
+  return decl;
+}
+
+tree
+convert_string_literal_to_integer(t)
+     tree t;
+{
+  long val = 0;
+  if (TREE_CODE(t)==STRING_CST) {
+    if (TREE_STRING_LENGTH(t)>6)
+      warning("%%BLS32-W-TEXT, String literal too long for use outside a PLIT");
+    else
+      memcpy(&val,TREE_STRING_POINTER(t)+1,TREE_STRING_LENGTH(t)-2);
+  }
+  return build_int_2(val, 0);
 }
