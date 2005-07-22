@@ -131,6 +131,7 @@
   int include_stack_start[MAX_INCLUDE_DEPTH];
   int include_stack_cond[MAX_INCLUDE_DEPTH];
   int include_stack_act_par[MAX_INCLUDE_DEPTH];
+  int include_stack_rem[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -155,6 +156,7 @@
   tree macroact=0;
   char macrocomma=1;
   tree remaining=0;
+  tree old_remain=0;
 
   int longest_string=0;
   int add_memcpy=0;
@@ -181,12 +183,12 @@
       char * new=dsc->dsc$a_pointer;
       if (new==0)
         new=empty;
-		strip_par(new);
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0; 
       include_stack_start[include_stack_ptr] = YY_START; 
       include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
       include_stack_act_par[include_stack_ptr] = cur_act_par; 
+      include_stack_rem[include_stack_ptr] = old_remain; 
       include_stack_ptr++;
 
       yy_switch_to_buffer(yy_scan_bytes(new, dsc->dsc$w_length));
@@ -216,6 +218,7 @@
       include_stack_start[include_stack_ptr] = YY_START;
       include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
       include_stack_act_par[include_stack_ptr] = 0; 
+      include_stack_rem[include_stack_ptr] = remaining; 
       include_stack_ptr++;
       downcase(new);
       opened_req[opened_req_ptr++]=xstrdup(new);
@@ -342,7 +345,7 @@ hexdigit [0-9a-f]
 	 yyless(yyleng);
     break;
   }
-
+  
   if (macromode==3 && one_lexeme) {
     // was this balancing defined in the grammar?
 	 // check this. more to balance?
@@ -643,14 +646,14 @@ hexdigit [0-9a-f]
   case P_ALLOCATION: {
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
 	 while(!my_isletter(*my_yytext))
 	   my_yytext++;
 	 while(!my_isletter(*my_end))
 	   my_end--;
 	 my_end++;
-	 int my_yyleng=1+my_end-my_yytext;
+	 int my_yyleng=my_end-my_yytext;
 	 char myline[255];
 	 if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 	 memcpy(myline,my_yytext,my_end-my_yytext);
@@ -714,7 +717,7 @@ hexdigit [0-9a-f]
   case P_ASSIGN: {
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
@@ -731,7 +734,7 @@ hexdigit [0-9a-f]
 	 while (!my_isblank(*ct_end) && *ct_end!=',') // or my_isletter
 		ct_end++;
 
-	 int my_yyleng=1+my_end-my_yytext;
+	 int my_yyleng=my_end-my_yytext;
 	 char myline[255];
 	 memset(myline, 0, 255);
 	 memcpy(myline,ct,ct_end-ct);
@@ -739,13 +742,9 @@ hexdigit [0-9a-f]
 	 char * second = ct_end + 1;
 	 while (my_isblank(*second) || *second==',')
 		second++;
-	 char what[255];
-	 memset(what, 0, 255);
-	 memcpy(what, second, my_end - second);
-
 	 //printf("setcti %s %s %d\n",myline,what,input_location.line);
 
-	 parse_this(what);
+	 parse_this_range(second,my_end);
 
 	 set_cti(get_identifier(strdup(myline)), fold(mylast()));
 
@@ -756,20 +755,20 @@ hexdigit [0-9a-f]
   case P_BLISS: {
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
-	 int my_yyleng=1+my_end-my_yytext;
-	 *my_end=0;
+	 int my_yyleng=my_end-my_yytext;
+	 *(my_end-1)=0;
 	 int is32v=my_strcasestr(my_yytext,"32v");
 	 int is32=strstr(my_yytext,"32"); // shortcut
 	 if (is32v)
 		is32=0;
-	 *my_end=')';
+	 *(my_end-1)=')';
 	 char myline[255];
 	 if (!quiet_flag) printf("my %x %x %x\n",my_end,my_yytext,my_yyleng);
 	 memcpy(myline,my_yytext,my_end-my_yytext);
 	 myline[my_end-my_yytext]=0;
 	 //yyless(my_yyleng);
 	 //  yytext=my_yytext+=my_yyleng;
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
 	 myline[1]=0;
 	 if (is32)
@@ -808,12 +807,15 @@ hexdigit [0-9a-f]
   case P_CHAR: {
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+	   my_end--;
+
 	 char myret[255];
 	 memset(myret, 0, 255);
 	 myret[0]=39;
@@ -861,14 +863,14 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
 		goto do_break;
+
+	 while (*my_end!=')')
+		my_end--;
   
 	 int myret = 0;
 	 char myline[255];
@@ -917,15 +919,15 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+		my_end--;
+
 	 int tmp;
 	 int myret = 1;
 	 char myline[255];
@@ -973,15 +975,15 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+		my_end--;
+
 	 int myret = 0;
 	 int mylinep = 0;
 	 char myline[255];
@@ -1031,6 +1033,7 @@ hexdigit [0-9a-f]
 	 include_stack_start[include_stack_ptr] = YY_START;
 	 include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
 	 include_stack_act_par[include_stack_ptr] = cur_act_par; 
+	 include_stack_rem[include_stack_ptr] = remaining; 
 	 yy_switch_to_buffer(yy_scan_string(myline2));
 	 if (!quiet_flag) printf("myexp %s\n",myline2);
 
@@ -1050,15 +1053,15 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
 
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+		my_end--;
+
 	 char myret[255];
 	 int myretp=0;
 	 memset(myret, 0, 255);
@@ -1126,7 +1129,7 @@ hexdigit [0-9a-f]
 	 if (TREE_CODE(t)==IDENTIFIER_NODE) start=IDENTIFIER_POINTER(t);
 	 if (TREE_CODE(t)==STRING_CST) start=TREE_STRING_POINTER(t);
 
-	 if (key==P_NAME && (TREE_CODE(t)==IDENTIFIER_NODE || TREE_CODE(t)==STRING_CST) && *start!=39) {
+	 if (key==P_NAME && ((TREE_CODE(t)==IDENTIFIER_NODE || TREE_CODE(t)==STRING_CST)) && *start!=39) {
 		int len;
 		if (TREE_CODE(t)==IDENTIFIER_NODE)
 		  len=IDENTIFIER_LENGTH(t);
@@ -1137,11 +1140,13 @@ hexdigit [0-9a-f]
 		goto str_out;
 	 }
 
-	 start++;
-	 char * end = strchr(start,39);
+	 char * end = strchr(start+1,39);
 
 	 if (end) {
-	   memcpy(&myret[myretp],start,end-start);
+	   memcpy(&myret[myretp],start+1,end-start-1);
+	   myretp+=strlen(&myret[myretp]);
+	 } else {
+	   memcpy(&myret[myretp],start,strlen(start));
 	   myretp+=strlen(&myret[myretp]);
 	 }
 
@@ -1210,15 +1215,15 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
   
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+		my_end--;
+
 	 char * p1 = my_yytext + 1;
 	 while (my_isblank(*p1))
 		p1++;
@@ -1344,11 +1349,8 @@ hexdigit [0-9a-f]
 	 my_yytext=strchr(my_yytext,'(');
 	 my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-	 while (*my_end!=')')
-		my_end--;
-
 #if 0
-	 int len=my_end-yytext+1;
+	 int len=my_end-yytext;
 	 yyless(len);
 #else
 	 //  yyless(7);
@@ -1359,6 +1361,9 @@ hexdigit [0-9a-f]
 	 if (do_skip)
 		goto do_break;
   
+	 while (*my_end!=')')
+		my_end--;
+
 #if 1
 	 *my_yytext=' ';
 	 *my_end=' ';
@@ -1397,8 +1402,12 @@ hexdigit [0-9a-f]
 	 //  my_yytext;
 	 char * tmp_end = strchr(my_yytext+1,end_char);
 
+#if 0
 	 if (tmp_end!=my_end)
 		goto no_remove;
+#endif
+	 if (*my_end!=end_char)
+	   goto no_remove;
 
 	 *my_yytext=' ';
 	 *my_end=' ';
@@ -1436,11 +1445,11 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
+		int len=my_end-yytext;
+		yyless(len);
+
 		while (*my_end!=')')
 		  my_end--;
-
-		int len=my_end-yytext+1;
-		yyless(len);
 
 		if (do_skip)
 		  goto do_break;
@@ -1452,14 +1461,16 @@ hexdigit [0-9a-f]
 		my_end--;
 		while (my_isblank(*my_end))
 		  my_end--;
+		my_end++;
 
 		int myret = 0;
 		char myline[255];
 		memset(myline, 0, 255);
-		memcpy(myline,my_yytext,1+my_end-my_yytext);
+		memcpy(myline,my_yytext,my_end-my_yytext);
 
 #if 1
 		if (!quiet_flag) printf("decl0 %s\n",myline);
+		strip_par(myline);
 		tree n = parse_this(myline);
 		char * myline2=0;
 		if (TREE_CODE(n)==IDENTIFIER_NODE) myline2=IDENTIFIER_POINTER(n);
@@ -1473,8 +1484,11 @@ hexdigit [0-9a-f]
 			 myline2++;
 		}
 #endif
+		tree is_there = 0;
+		if (myline2==0)
+		  goto skip_myline2;
 		downcase(myline2);
-		tree is_there = maybe_get_identifier(myline2);
+		is_there = maybe_get_identifier(myline2);
 		if (is_there==0)
 		  find_macro(0,myline2);
 		if (is_there)
@@ -1483,6 +1497,7 @@ hexdigit [0-9a-f]
 		  is_there = find_field(myline2);
 		if (!quiet_flag) printf("decl %s %x\n",myline2,is_there);
 
+	 skip_myline2:
 		myline[1]=0;
 		if (is_there)
 		  is_there=1;
@@ -1506,12 +1521,12 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
+		int len=my_end-yytext;
+		yyless(len);
+  
 		while (*my_end!=')')
 		  my_end--;
 
-		int len=my_end-yytext+1;
-		yyless(len);
-  
 		if (do_skip)
 		  goto do_break;
   
@@ -1576,15 +1591,15 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-		while (*my_end!=')')
-		  my_end--;
-
-		int len=my_end-yytext+1;
+		int len=my_end-yytext;
 		yyless(len);
   
 		if (do_skip)
 		  goto do_break;
   
+		while (*my_end!=')')
+		  my_end--;
+
 		char * p1 = my_yytext + 1;
 		while (my_isblank(*p1))
 		  p1++;
@@ -1598,9 +1613,6 @@ hexdigit [0-9a-f]
 		  p2++;
 
 		char * p2_end = my_strstrendbal(p2, my_end, 0, 1);
-		if (*p2_end!=')')
-		  p2_end++; // bad workaround?
-
 		char myline1[255];
 		char myline2[255];
 		memset(myline1,0,255);
@@ -1611,17 +1623,26 @@ hexdigit [0-9a-f]
 		char myline[255];
 
 		if (!quiet_flag) printf("IDENT %s %s\n",myline1,myline2);
-#if 0
+#if 1
 		tree t1=parse_this(myline1);
 		tree t2=parse_this(myline2);
 		if (!quiet_flag) printf("IDENT %x %x\n",t1,t2);
+		if (t1==t2) {
+		  myline[0]='1';
+		  goto id_found;
+		}
+		if (TREE_CODE(t1)==STRING_CST && TREE_CODE(t2)==STRING_CST && 0==strcmp(TREE_STRING_POINTER(t1),TREE_STRING_POINTER(t2))) {
+		  myline[0]='1';
+		  goto id_found;
+		}
 #endif
 		if (0==strcmp(myline1,myline2))
 		  myline[0]='1';
 		else
 		  myline[0]='0';
 		myline[1]=0;
-
+	 id_found:
+		{}
 		char * s = strdup(myline);
 		if (!quiet_flag) printf("ident %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
@@ -1640,12 +1661,12 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
+		int len=my_end-yytext;
+		yyless(len);
+  
 		while (*my_end!=')')
 		  my_end--;
 
-		int len=my_end-yytext+1;
-		yyless(len);
-  
 		if (do_skip)
 		  goto do_break;
   
@@ -1701,12 +1722,12 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
+		int len=my_end-yytext+0;
+		yyless(len);
+  
 		while (*my_end!=')')
 		  my_end--;
 
-		int len=my_end-yytext+1;
-		yyless(len);
-  
 		if (do_skip)
 		  goto do_break;
   
@@ -1772,6 +1793,7 @@ hexdigit [0-9a-f]
 		include_stack_start[include_stack_ptr] = YY_START;
 		include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
 		include_stack_act_par[include_stack_ptr] = cur_act_par; 
+		include_stack_rem[include_stack_ptr] = remaining; 
 		include_stack_ptr++;
 		yy_switch_to_buffer(yy_scan_string(p));
 
@@ -1813,15 +1835,15 @@ hexdigit [0-9a-f]
 		my_yytext=strchr(my_yytext,'(');
 		my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-		while (*my_end!=')')
-		  my_end--;
-
-		int len=my_end-yytext+1;
+		int len=my_end-yytext;
 		yyless(len);
 
 		if (do_skip)
 		  goto do_break;
   
+		while (*my_end!=')')
+		  my_end--;
+
 		my_yytext++;
 		my_end--;
 
@@ -1922,14 +1944,14 @@ hexdigit [0-9a-f]
       my_yytext=strchr(my_yytext,'(');
       my_end=my_strstrendbal(my_yytext, 0, 0, 1);
 
-      while (*my_end!=')')
-	my_end--;
-
-      int len=my_end-yytext+1;
+      int len=my_end-yytext;
       yyless(len);
       
       if (do_skip)
 	goto do_break;
+
+      while (*my_end!=')')
+	my_end--;
 
       char myline[255];
       myline[0]='0';
@@ -2109,6 +2131,7 @@ hexdigit [0-9a-f]
 	if (!quiet_flag)printf("setting cur_act_par %x %x\n", include_stack_act_par[include_stack_ptr], cur_act_par); 
 	cur_act_par = include_stack_act_par[include_stack_ptr]; 
       }
+      remaining = include_stack_rem[include_stack_ptr]; 
       if (include_stack_state[include_stack_ptr])
 	BEGIN(include_stack_start[include_stack_ptr]);
     }
@@ -2268,6 +2291,7 @@ hexdigit [0-9a-f]
         a = TREE_CHAIN(a);
         p = TREE_CHAIN(p);
       }
+      old_remain = remaining;
       if (p==0)
         remaining=a;
       struct dsc$descriptor dsc;
@@ -2537,6 +2561,7 @@ struct dict keywords[] =
 	 { "eqv", K_EQV },
 	 { "exitloop", K_EXITLOOP },
 	 { "external", K_EXTERNAL },
+	 { "external_name", K_EXTERNAL_NAME },
 	 { "field", K_FIELD },
 	 { "forward", K_FORWARD },
 	 { "from", K_FROM },
@@ -2925,6 +2950,7 @@ tree parse_this (char * this) {
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
+  include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_string(this));
   BEGIN(0);
@@ -2941,6 +2967,7 @@ tree parse_this_n (char * this, int n) {
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
+  include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,n));
   BEGIN(0);
@@ -2954,7 +2981,8 @@ tree parse_this_range (char * this, char * end) {
   skip_me: {}
     char myline[255];
     memset(myline, 0, 255);
-    memcpy(myline,this,end-this);
+    int len = end - this;
+    memcpy(myline,this,len>250 ? 250 : len);
     if (!quiet_flag) printf("parse_this_range %s\n",myline);
   }
   expr_parse++;
@@ -2963,6 +2991,7 @@ tree parse_this_range (char * this, char * end) {
   include_stack_start[include_stack_ptr] = YY_START;
   include_stack_cond[include_stack_ptr] = cond_stack_ptr; 
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
+  include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
   yy_switch_to_buffer(yy_scan_bytes(this,end-this));
   BEGIN(0);
@@ -3080,9 +3109,9 @@ char * my_strstrendbal(const char * s, const char * end, char t, int bal) {
 		if (*c==')' || *c==']' || *c=='>') {
 		  mybalcnt--;
 		  if (mybalcnt<0)
-			 return c-1; // check
+			 return c; // check
 		  if (mybalcnt==0 && t==0) // bad shortcut
-			 return c;
+			 return c+1;
 		}
 		if (t && t==*c && mybalcnt==0) // bad shortcut
 		  return c;
@@ -3133,6 +3162,24 @@ strip_par (s)
 #endif
   int end = strlen(s)-1;
   int start = 0;
+  int alt_end = start+1;
+  while (my_isblank(s[end]))
+    end--;
+  for (;alt_end<end;alt_end++)
+    if (s[alt_end]==')')
+      return;
+  for (;start<end;start++,end--) {
+    while (my_isblank(s[start]))
+      start++;
+    while (my_isblank(s[end]))
+      end--;
+    if (s[start]=='(' && s[end]==')')
+      s[start]=s[end]=' ';
+    else
+      return;
+  }
+  return;
+#if 0
   if (my_isblank(s[start]))
 	 start++;
   if (my_isblank(s[end]))
@@ -3143,6 +3190,7 @@ strip_par (s)
       return;
   if (s[start]=='(' && s[end]==')')
 	 s[start]=s[end]=' ';
+#endif
 }
 
 void
@@ -3196,6 +3244,7 @@ do_eof()
 	if (!quiet_flag)printf("setting cur_act_par %x %x\n", include_stack_act_par[include_stack_ptr], cur_act_par); 
 	cur_act_par = include_stack_act_par[include_stack_ptr]; 
       }
+      remaining = include_stack_rem[include_stack_ptr]; 
       if (include_stack_state[include_stack_ptr])
 	BEGIN(include_stack_start[include_stack_ptr]);
     }
