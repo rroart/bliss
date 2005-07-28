@@ -3791,7 +3791,7 @@ own_name maybe_own_attribute_list
   tree c_attr = default_own_section;
   tree c_align = get_alignment(myattr);
   if (c_align == 0)
-    c_align = default_global_align;
+    c_align = default_own_align;
   c_attr = chainon(c_attr, c_align);
   cell_decl_p = start_decl (cell, mysize, do_init, c_attr);
 #if 0
@@ -7219,10 +7219,9 @@ tree build_our_record(size)
     size=TREE_OPERAND(size,0);
   tree rt = make_node(RECORD_TYPE);
   TREE_TYPE(rt)=integer_type_node;
-  TYPE_SIZE_UNIT(rt)=integer_type_node;
   TYPE_SIZE_UNIT(rt)=size;
   TYPE_SIZE(rt)=size;
-  TYPE_MODE(rt)=SImode;
+  TYPE_MODE(rt)=BLKmode;
   return rt;
 }
 
