@@ -1003,9 +1003,11 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	}
       else
 	{
+#if 0
 	  error ("%Jconflicting types for '%D'", newdecl, newdecl);
 	  diagnose_arglist_conflict (newdecl, olddecl, newtype, oldtype);
 	  locate_old_decl (olddecl, error);
+#endif
 	  return false;
 	}
     }
@@ -1119,8 +1121,11 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
       /* Multiple initialized definitions are not allowed (6.9p3,5).  */
       if (DECL_INITIAL (newdecl) && DECL_INITIAL (olddecl))
 	{
+#if 0
 	  error ("%Jredefinition of '%D'", newdecl, newdecl);
 	  locate_old_decl (olddecl, error);
+#endif
+	  warning ("%%BLS32-W-TEXT, Name already declared in this block: %D",newdecl);
 	  return false;
 	}
 
@@ -1148,6 +1153,7 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
       else if (DECL_CONTEXT (newdecl) == DECL_CONTEXT (olddecl)
 	       && (!DECL_EXTERNAL (newdecl) || !DECL_EXTERNAL (olddecl)))
 	{
+#if 0
 	  if (DECL_EXTERNAL (newdecl))
 	    error ("%Jextern declaration of '%D' follows "
 		   "declaration with no linkage", newdecl, newdecl);
@@ -1157,8 +1163,9 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	  else
 	    error ("%Jredeclaration of '%D' with no linkage",
 		   newdecl, newdecl);
+#endif
 
-	  locate_old_decl (olddecl, error);
+	  locate_old_decl (olddecl, warning);
 	  return false;
 	}
     }
@@ -2841,7 +2848,7 @@ finish_decl (tree decl, tree init, tree asmspec_tree)
 
       if (DECL_FILE_SCOPE_P (decl))
 	{
-	  if (DECL_INITIAL (decl) == NULL_TREE
+	  if (0/*DECL_INITIAL (decl) == NULL_TREE*/
 	      || DECL_INITIAL (decl) == error_mark_node)
 	    /* Don't output anything
 	       when a tentative file-scope definition is seen.
