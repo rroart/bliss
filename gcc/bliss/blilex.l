@@ -668,17 +668,31 @@ hexdigit [0-9a-f]
 	 tree t=get_identifier(myline);
 	 tree cell__ = maybe_get_identifier(add_underscore(myline, 2));
 #endif
+#if 0
 	 myline[my_end-my_yytext]='_';
 	 myline[1+my_end-my_yytext]='_';
 	 myline[2+my_end-my_yytext]=0;
+#else
+	 myline[my_end-my_yytext]=0;
+#endif
+	 downcase(myline);
 	 if (!quiet_flag) printf("my %s\n",myline);
 	 tree t=maybe_get_identifier(myline);
+#if 0
 	 if (t)
 	   t=mytag(t);
+#else
+	 if (t)
+	   t=is_symbol(t);
+#endif
 	 if (t) {
 	   //	   tree size=my_copy_tree(TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))))));
+#if 0
 	   tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(t))));
 	   size=fold(size);
+#else
+	   tree size = DECL_SIZE(t);
+#endif
 
 	   int val=TREE_INT_CST_LOW(size);
 	   sprintf(myline,"%d",val);
