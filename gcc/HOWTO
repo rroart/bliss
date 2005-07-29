@@ -201,10 +201,30 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
-0.101
+0.110
+Novalue, external_name, alignment attribute.
+Linking with argument count.
+Compiler qualifier -fminimum-actuals= which can circumvent non-counted 
+argument problems. If less fill with 0s.
+Nullparameter implementation change; can also use counted arguments or
+it must be used with -fminimum-actuals=.
+Implicit declarations.
+Psect support.
+Forward declaration.
 
 Bugs fixed:
 Was one left in bit field ref (one indirect was removed).
+Extra parenthesis stripping caused problems.
+Remaining was lost sometimes.
+Inconsistent return from strstrendbal.
+Remove some overflows.
+%string did not return right sometimes.
+%identical to also parse contents. 
+String was not used as int with assignments.
+Own not properly done as own.
+Undeclare not handling list.
+Have empty unused macro actuals in simple macro.
+Record_type had wrong type_mode, and this lead to local stack problems.
 
 0.100
 Probably more proper support for builtin ap.

@@ -57,3 +57,11 @@ handle nullparameter
 redo stuff with pushtag
 
 change $cpu_le to something with blissbe and blissle
+
+macro punctuation etc
+
+lookup upon precompiling, or find faster cpu?
+
+convert STRING_CST and other non-integer to integer when doing operands?
+
+routine parameters with attrs.
