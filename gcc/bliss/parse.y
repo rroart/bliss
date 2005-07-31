@@ -2526,6 +2526,8 @@ executable_function_name '('  actual_parameter_list  ')'
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   tree ref = build_external_ref ($1, 1);
+  if (0==strcmp("signal",IDENTIFIER_POINTER($1)))
+    SET_DECL_ASSEMBLER_NAME(ref, get_identifier("bli_signal"));
   $$ = build_function_call (ref, $3); 
   goto out_exec_func;
 
@@ -2538,7 +2540,7 @@ executable_function_name '('  actual_parameter_list  ')'
 |executable_function_name '(' ')' 
 {
   // copy from routine call?
-  void * ref;
+  tree ref;
   if (yychar == YYEMPTY)
     yychar = YYLEX;
   ref = build_external_ref ($1, 1);

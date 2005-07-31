@@ -270,3 +270,9 @@ nullparameter(int counted, int num, int * argnum, long * l) {
   }
   return num>argnum;
 }
+
+void bli_signal(int sig) {
+  // use this until messaging is properly implemented
+  if (sig&4)
+    exit(sig);
+}
