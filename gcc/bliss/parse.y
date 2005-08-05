@@ -241,7 +241,7 @@ bli_common_parse_file(set_yydebug)
  int my_strcat(struct dsc$descriptor *, int, const char *, int, const char *, int);
  int my_strcat_gen(struct dsc$descriptor *, struct dsc$descriptor *, struct dsc$descriptor * , int);
  tree handle_preset(tree, tree, tree, tree);
- tree handle_initial(tree, tree, tree, tree);
+ tree handle_initial(tree, tree, tree, tree, int);
  tree convert_field_ref_to_decl(tree,tree);
  tree handle_structure(tree, tree, int);
  tree handle_structure_attribute(tree, tree, int);
@@ -642,23 +642,26 @@ save_location
 expression END_EXPR { last_expr = $1; YYACCEPT; }
 */
 |
-maybe_declaration_list END_EXPR { last_expr = $1; YYACCEPT; }
+maybe_declaration_list END_EXPR { last_expr = tree_cons(0, $1, 0); YYACCEPT; }
 |
 T_NAME END_EXPR 
 {
-  last_expr = $1;
+  last_expr = tree_cons (0, $1, 0);
+#if 1
   if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==INTEGER_CST) {
-    last_expr=TREE_TYPE($1);
+    last_expr=tree_cons(0, TREE_TYPE($1), 0);
   }
   if (TREE_CODE($1)==IDENTIFIER_NODE && TREE_TYPE($1) && TREE_CODE(TREE_TYPE($1))==IDENTIFIER_NODE) {
-    last_expr=get_identifier(TREE_TYPE($1));
+    last_expr=tree_cons(0, get_identifier(TREE_TYPE($1)), 0);
   }
+#endif
   YYACCEPT; 
 }
 |
 expr_list END_EXPR 
 {
   // not quite finished? to catch parse(%remaining)
+#if 0
   tree d1=$1;
   d1=TREE_VALUE(d1);
   last_expr = d1;
@@ -668,12 +671,14 @@ expr_list END_EXPR
   if (TREE_CODE(d1)==IDENTIFIER_NODE && TREE_TYPE(d1) && TREE_CODE(TREE_TYPE(d1))==IDENTIFIER_NODE) {
     last_expr=get_identifier(TREE_TYPE(d1));
   }
+#endif
+  last_expr = $1;
   YYACCEPT; 
 }
 |
 T_FIELDNAME END_EXPR 
 {
-  last_expr = $1;
+  last_expr = tree_cons(0, $1, 0);
   YYACCEPT; 
 }
 |
@@ -685,6 +690,7 @@ allocation_unit END_EXPR
     last_expr = build_string(strlen("word"),"word");
   if ($1==integer_type_node)
     last_expr = build_string(strlen("long"),"long");
+  last_expr = tree_cons (0, last_expr, 0);
   YYACCEPT; 
 }
 |
@@ -1458,48 +1464,52 @@ plit: plit2 plit3 '(' plit_item_list ')'
 {
   int counted = $1; // == K_PLIT;
   long page[1024];
-  long size=0;
+  int offset = 0;
+  int size=4;
   char * start = page;
   char * cur = start;
   memset(page, 0, 4096);
+  if ($2)
+    size=node_type_to_int($2);
   if (counted)
 	 cur+=4;
-  tree t = $4;
-  while (t) {
-	 switch (TREE_CODE(t)) {
+  tree t = handle_initial(0, build_nt(INIT_ATTR, $4), 0, 0, size);
+#if 0
+  for (; t; t = TREE_CHAIN(t)) {
+    tree v=TREE_PURPOSE(t);
+	 switch (TREE_CODE(v)) {
 	 case STRING_CST:
 		{
-		  char * str=TREE_STRING_POINTER(t);
-		  int len=TREE_STRING_LENGTH(t)-2;
+		  char * str=TREE_STRING_POINTER(v);
+		  int len=TREE_STRING_LENGTH(v)-2;
 		  str++;
 		  memcpy(cur, str, len);
-		  if (len&3)
-			 len+=(4-(len&3));
+		  if (len&(size-1))
+			 len+=(size-(len&(size-1)));
 		  cur+=len;
 		}
 		break;
 	 case IDENTIFIER_NODE:
 		{
-		  char * str=IDENTIFIER_POINTER(t);
+		  char * str=IDENTIFIER_POINTER(v);
 		  int len=strlen(str)-2;
 		  str++;
 		  memcpy(cur, str, len);
-		  if (len&3)
-			 len+=(4-(len&3));
+		  if (len&(size-1))
+			 len+=(size-(len&(size-1)));
 		  cur+=len;
 		}
 		break;
 	 case INTEGER_CST:
 		{
-		  int low=TREE_INT_CST_LOW(t);
-		  memcpy(cur, &low, 4);
-		  cur+=4;
+		  int low=TREE_INT_CST_LOW(v);
+		  memcpy(cur, &low, size);
+		  cur+=size;
 		}
 		break;
 	 default:
 		break;
 	 }
-	 t = TREE_CHAIN(t);
   }
   if (counted) {
 	 page[0]=((cur-start)>>2)-1;
@@ -1512,8 +1522,36 @@ plit: plit2 plit3 '(' plit_item_list ')'
 #else
   tree addr = build_unary_op (ADDR_EXPR, string, 0);
 #endif
-  addr = convert (integer_type_node, addr);
+#endif
+
+#if 0
+  tree addr = create_temp_var();
+  TREE_STATIC(addr)=1;
+  set_temp_var(addr, t);
   $$ = addr;
+#endif
+
+  static int myplit=0;
+  char pl[256];
+  sprintf(pl,"plit%x",myplit);
+  tree cell=get_identifier(pl);
+  myplit++;
+
+  tree init = t; //handle_initial(0, $4, 0, 0, size);
+  tree mysize = tree_cons(0, TREE_TYPE(init), 0);
+
+  tree c_attr = 0;
+
+  tree cell_decl_p = start_decl (cell, mysize, 1, c_attr);
+  TREE_STATIC(cell_decl_p)=1;
+  TREE_PUBLIC(cell_decl_p)=0;
+
+  start_init(cell_decl_p,NULL,1);
+  finish_init();
+
+  finish_decl (cell_decl_p, init, NULL_TREE);
+
+  $$ = build_unary_op (ADDR_EXPR, cell_decl_p, 0);
 }
 ;
 
@@ -1529,14 +1567,36 @@ psect_name: T_NAME
 
 plit_item: 
 plit_group  
-| plit_expression 
-| plit_string 
+{
+  $$ = tree_cons($1, 0, 0);
+}
+|
+plit_expression 
+{
+  $$ = tree_cons($1, 0, 0);
+}
+|
+plit_string 
+{
+  $$ = tree_cons($1, 0, 0);
+}
 ;
 
 plit_group: 
-allocation_unit 
-| K_REP replicator K_OF  { $$ = 0; }
-| K_REP replicator K_OF allocation_unit  { $$ = 0; }
+allocation_unit '(' plit_item_list ')' /* not easy to interpret p_group */
+{
+  $$ = build_nt(PLIT_GROUP, build_int_2(1,0), $1, $3);
+}
+|
+K_REP replicator K_OF '(' plit_item_list ')' 
+{
+  $$ = build_nt(PLIT_GROUP, $2, integer_type_node, $5);
+}
+|
+K_REP replicator K_OF allocation_unit '(' plit_item_list ')' 
+{
+  $$ = build_nt(PLIT_GROUP, $2, $4, $6);
+}
 ;
 
 allocation_unit:  K_LONG   { $$ = integer_type_node; }
@@ -3828,7 +3888,7 @@ own_name maybe_own_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize));
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -3956,7 +4016,7 @@ global_name maybe_global_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize));
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
 
   finish_decl (cell_decl_p, init, NULL_TREE);
   set_external_name(cell_decl_p, myattr);
@@ -4220,7 +4280,7 @@ local_name maybe_local_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize));
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
 
   finish_decl (cell_decl_p, init, NULL_TREE);
   TREE_THIS_VOLATILE(cell_decl_p)=find_volatile_attr(myattr)!=0;
@@ -6791,6 +6851,7 @@ set_cti(tree id, tree val) {
     memset (myline, 0, 255);
     sprintf(myline, "(1 * %s)",IDENTIFIER_POINTER(val));
     val=parse_this(myline);
+    val=TREE_VALUE(val);
   }
   if (TREE_CODE(val)==NON_LVALUE_EXPR)
     val=TREE_OPERAND(val, 0);
@@ -7404,13 +7465,17 @@ handle_initial_inner(constructor_elements, attr, offset, size)
       {
 	rep=TREE_STRING_LENGTH(value)-2;
 	char * c=TREE_STRING_POINTER(value)+1;
-	for(;rep;rep--, c++, *offset+=size) {
-	  tree field=build_field_decl(*offset,size);
+	for(;rep;rep--, c++, *offset+=1 /* not size, it seems*/) {
+	  tree field=build_field_decl(*offset,1/*size*/);
 	  value=build_int_2(*c,0);
 	  *constructor_elements = chainon (*constructor_elements, tree_cons (field, value, 0));
 	}
+	rep=TREE_STRING_LENGTH(value)-2;
+	*offset+=size-1;
+	*offset&=~(size-1);
       }
       break;
+    case PLIT_GROUP:
     case INITIAL_GROUP:
       {
 	rep=TREE_INT_CST_LOW(TREE_OPERAND(value,0));
@@ -7441,19 +7506,22 @@ handle_initial_inner(constructor_elements, attr, offset, size)
 }
 
 tree
-handle_initial(name, pres, cell_decl_p, mytype)
+handle_initial(name, pres, cell_decl_p, mytype, size)
      tree name;
      tree pres;
      tree cell_decl_p;
      tree mytype;
+     int size;
 {
   tree init;
   tree constructor_elements=0;
   tree attr=TREE_OPERAND(pres,0);
   int offset=0;
 
-  handle_initial_inner(&constructor_elements, attr, &offset, 4);
+  handle_initial_inner(&constructor_elements, attr, &offset, size);
 
+  if (mytype==0)
+    mytype = build_our_record(build_int_2(offset+size,0));
   tree constructor = build_constructor(mytype,constructor_elements);
   TREE_CONSTANT(constructor)=1;
   init=constructor;
@@ -7701,4 +7769,16 @@ convert_string_literal_to_integer(t)
       memcpy(&val,TREE_STRING_POINTER(t)+1,TREE_STRING_LENGTH(t)-2);
   }
   return build_int_2(val, 0);
+}
+
+tree
+get_value(t)
+     tree t;
+{
+  if (TREE_CODE(t)==IDENTIFIER_NODE) {
+    tree s = is_symbol(t);
+    if (s && TREE_CODE(s)==VAR_DECL && TREE_READONLY(s) && DECL_INITIAL(s))
+      return DECL_INITIAL(s);
+  }
+  return t;
 }
