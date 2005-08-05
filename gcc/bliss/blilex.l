@@ -587,9 +587,10 @@ hexdigit [0-9a-f]
 		//yyless(my_yyleng);
 		if (!quiet_flag) printf("skipp %x %x %x\n",base_skip_mode,skip_mode,cond_stack_ptr);
 		if (skip_mode==0) {
-		  parse_this(myline);
+		  tree t = parse_this(myline);
+		  t = TREE_VALUE(t);
 		  push_cond_stack(0);
-		  skip_mode=get_cond_stack()|integer_zerop(fold(parser_build_binary_op(BIT_AND_EXPR,mylast(),build_int_2(1,0))));
+		  skip_mode=get_cond_stack()|integer_zerop(fold(parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0))));
 		  push_cond_stack(0);
 		} else {
 		  push_cond_stack(0);
@@ -758,9 +759,10 @@ hexdigit [0-9a-f]
 		second++;
 	 //printf("setcti %s %s %d\n",myline,what,input_location.line);
 
-	 parse_this_range(second,my_end);
+	 tree t = parse_this_range(second,my_end);
+	 t = TREE_VALUE(t);
 
-	 set_cti(get_identifier(strdup(myline)), fold(mylast()));
+	 set_cti(get_identifier(strdup(myline)), fold(t));
 
 	 goto myout;
 	 break;
@@ -847,10 +849,11 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 parse_this(myline);
 	 if (!quiet_flag) printf("myretp %s\n",myline);
-
-	 myret[myretp++]=TREE_INT_CST_LOW(fold(mylast()));
+	 tree t = parse_this(myline);
+	 t = TREE_VALUE(t);
+	 t = get_value(t);
+	 myret[myretp++]=TREE_INT_CST_LOW(fold(t));
 
 	 if (*par_end==',') {
 		par = par_end + 1;
@@ -900,14 +903,15 @@ hexdigit [0-9a-f]
 	 memset(myline, 0, 255);
 	 memcpy(myline,par,par_end-par);
 
-	 parse_this(myline);
 	 if (!quiet_flag) printf("myretp %s\n",myline);
-
-	 tree last=fold(mylast());
-	 if (TREE_CODE(last)==IDENTIFIER_NODE)
-	   myret+=strlen(IDENTIFIER_POINTER(last))-2;
-	 if (TREE_CODE(last)==STRING_CST)
-	   myret+=TREE_STRING_LENGTH(last)-2;
+	 tree t = parse_this(myline);
+	 for (;t ; t=TREE_CHAIN(t)) {
+	   tree last=fold(TREE_VALUE(t));
+	   if (TREE_CODE(last)==IDENTIFIER_NODE)
+	     myret+=strlen(IDENTIFIER_POINTER(last))-2;
+	   if (TREE_CODE(last)==STRING_CST)
+	     myret+=TREE_STRING_LENGTH(last)-2;
+	 }
 
 	 if (*par_end==',') {
 		par = par_end + 1;
@@ -958,10 +962,11 @@ hexdigit [0-9a-f]
 	 memcpy(myline,par,par_end-par);
 
 	 if (!quiet_flag) printf("myretp %s\n",myline);
-	 parse_this(myline);
+	 tree t = parse_this(myline);
+	 t = TREE_VALUE(t);
 
 	 tmp=0;
-	 if (TREE_TYPE(TREE_OPERAND(fold(mylast()),0))==INTEGER_CST)
+	 if (TREE_TYPE(TREE_OPERAND(fold(t),0))==INTEGER_CST)
 		tmp=1;
 	 myret*=tmp;
 
@@ -1102,6 +1107,7 @@ hexdigit [0-9a-f]
 	 strip_par(myline);
 	 if (!quiet_flag) printf("myretsp %s\n",myline);
 	 tree t=parse_this(myline);
+	 t = TREE_VALUE(t);
 	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
 	 char * c = &v;
@@ -1255,10 +1261,12 @@ hexdigit [0-9a-f]
 		p2_end++;
 
 	 tree n = parse_this_range(p1, p1_end);
+	 n = TREE_VALUE(n);
 	 n=fold(n);
 	 int number=TREE_INT_CST_LOW(n);
 
 	 tree f = parse_this_range(p2, p2_end);
+	 f = TREE_VALUE(f);
 	 f=fold(f);
 	 int fill=TREE_INT_CST_LOW(f);
 
@@ -1282,9 +1290,10 @@ hexdigit [0-9a-f]
 	 memcpy(myline,par,par_end-par);
 
 	 if (!quiet_flag) printf("myretsp %s\n",myline);
-	 parse_this(myline);
+	 tree t = parse_this(myline);
+	 t = TREE_VALUE(t);
 
-	 tree t=fold(mylast());
+	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
 	 char * c = &v;
 	 int i;
@@ -1486,6 +1495,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("decl0 %s\n",myline);
 		strip_par(myline);
 		tree n = parse_this(myline);
+		n = TREE_VALUE(n);
 		char * myline2=0;
 		if (TREE_CODE(n)==IDENTIFIER_NODE) myline2=IDENTIFIER_POINTER(n);
 		if (TREE_CODE(n)==STRING_CST) myline2=TREE_STRING_POINTER(n);
@@ -1564,6 +1574,7 @@ hexdigit [0-9a-f]
 		strip_par(myline);
 		if (!quiet_flag) printf("null parse this %s\n",myline);
 		tree t=parse_this(myline);
+		t = TREE_VALUE(t);
 		if (t) // check
 		  myret++;
 #if 0
@@ -1640,6 +1651,8 @@ hexdigit [0-9a-f]
 #if 1
 		tree t1=parse_this(myline1);
 		tree t2=parse_this(myline2);
+		t1 = TREE_VALUE(t1);
+		t2 = TREE_VALUE(t2);
 		if (!quiet_flag) printf("IDENT %x %x\n",t1,t2);
 		if (t1==t2) {
 		  myline[0]='1';
@@ -1696,6 +1709,7 @@ hexdigit [0-9a-f]
 		  par_end++;
 
 		tree t = parse_this_range(par, par_end);
+		t = TREE_VALUE(t);
 
 		t = fold(t);
 
@@ -1784,6 +1798,7 @@ hexdigit [0-9a-f]
 		if (p2) {
 		  memcpy(myline2,p2,p2_end-p2);
 		  tree t=fold(parse_this_range(p2,p2_end));
+		  t = TREE_VALUE(t);
 		  v=TREE_INT_CST_LOW(t);
 		}
 
@@ -1862,6 +1877,7 @@ hexdigit [0-9a-f]
 		my_end--;
 
 		tree t = parse_this_range(my_yytext,my_end);
+		t = TREE_VALUE(t);
 		t=fold(t);
 		int v=0;
 
