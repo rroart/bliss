@@ -1474,62 +1474,6 @@ plit: plit2 plit3 '(' plit_item_list ')'
   if (counted)
 	 cur+=4;
   tree t = handle_initial(0, build_nt(INIT_ATTR, $4), 0, 0, size);
-#if 0
-  for (; t; t = TREE_CHAIN(t)) {
-    tree v=TREE_PURPOSE(t);
-	 switch (TREE_CODE(v)) {
-	 case STRING_CST:
-		{
-		  char * str=TREE_STRING_POINTER(v);
-		  int len=TREE_STRING_LENGTH(v)-2;
-		  str++;
-		  memcpy(cur, str, len);
-		  if (len&(size-1))
-			 len+=(size-(len&(size-1)));
-		  cur+=len;
-		}
-		break;
-	 case IDENTIFIER_NODE:
-		{
-		  char * str=IDENTIFIER_POINTER(v);
-		  int len=strlen(str)-2;
-		  str++;
-		  memcpy(cur, str, len);
-		  if (len&(size-1))
-			 len+=(size-(len&(size-1)));
-		  cur+=len;
-		}
-		break;
-	 case INTEGER_CST:
-		{
-		  int low=TREE_INT_CST_LOW(v);
-		  memcpy(cur, &low, size);
-		  cur+=size;
-		}
-		break;
-	 default:
-		break;
-	 }
-  }
-  if (counted) {
-	 page[0]=((cur-start)>>2)-1;
-  }
-
-  tree string = build_string(cur-start, page);
-  TREE_TYPE(string) = /*string*/char_array_type_node; // or char_array?
-#if 0
-  tree addr = string;
-#else
-  tree addr = build_unary_op (ADDR_EXPR, string, 0);
-#endif
-#endif
-
-#if 0
-  tree addr = create_temp_var();
-  TREE_STATIC(addr)=1;
-  set_temp_var(addr, t);
-  $$ = addr;
-#endif
 
   static int myplit=0;
   char pl[256];
