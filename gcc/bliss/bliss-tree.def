@@ -18,4 +18,5 @@ DEFTREECODE (NOVALUE_ATTR, "novalue_attr", 't', 0)
 DEFTREECODE (VOLATILE_ATTR, "volatile_attr", 't', 0)
 DEFTREECODE (EXTERNAL_NAME_ATTR, "external_name_attr", 't', 1)
 DEFTREECODE (ALIGNMENT_ATTR, "alignment_attr", 't', 1)
+DEFTREECODE (PLIT_GROUP, "plit_group", 't', 3)
 
