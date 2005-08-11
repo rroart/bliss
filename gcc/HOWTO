@@ -201,6 +201,16 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.111
+New minimal signal routine.
+More proper uplit support (not yet counted plit).
+
+Bugs fixed:
+%allocation did not work properly with mixed casing.
+Signal collided with Unix signal, it now calls new minimal routine instead.
+One lexical function lost some content, another one misinterpreted it.
+Plit strings generated wrongly.
+
 0.110
 Novalue, external_name, alignment attribute.
 Linking with argument count.
