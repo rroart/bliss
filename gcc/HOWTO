@@ -201,6 +201,10 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.112
+Bugs fixed:
+Calling routine "variable" did not dereference.
+
 0.111
 New minimal signal routine.
 More proper uplit support (not yet counted plit).
