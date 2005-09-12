@@ -2090,6 +2090,16 @@ address maybe_field_selector
   tree t, op0=0, op1=0, op2=0; 
   tree pos = TREE_OPERAND($2, 0);
   tree size = TREE_OPERAND($2, 1);
+  tree ext = TREE_OPERAND($2, 2);
+  tree unsign = 1;
+  if (ext==0 || (ext && TREE_CONSTANT(ext))) {
+    tree sign=0;
+    if (ext)
+      sign = tree_low_cst (ext, 0);
+    unsign=!sign;
+    if (unsign)
+      unsign = 1;
+  }
   char context=getbitcontext();
   /* if (context=='o') */ {
     // 32 hardcoded
@@ -2103,14 +2113,18 @@ address maybe_field_selector
     tree d=$1;
     t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
+    TREE_UNSIGNED(t)=unsign;
     t=stabilize_reference(t);
+    TREE_UNSIGNED(t)=unsign;
     op1 = t; 
   }
   /* if (context=='o') */ {
     tree d=$1;
     t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
+    TREE_UNSIGNED(t)=unsign;
     t=stabilize_reference(t);
+    TREE_UNSIGNED(t)=unsign;
    op2 = t;
   }
   if (context=='a') {
@@ -2140,7 +2154,7 @@ field_selector:
 ;
 
 maybe_sign_ext_flag:
-{ $$ = 0; } 
+{ $$ = build_int_2(0, 0); } 
 |
 ',' sign_ext_flag 
 { $$ = $2; }
@@ -2539,7 +2553,22 @@ executable_function_name '('  actual_parameter_list  ')'
 
  do_pref:
   // not quite according to 5.2.2.3
+#if 0
+  // not do this yet
+  if (TREE_READONLY(TREE_VALUE($3)) || TREE_CONSTANT(TREE_VALUE($3))) 
+    $$ = build_unary_op(ADDR_EXPR, TREE_VALUE($3), 0); // cut this sometime?
+  else {
+    tree decl = create_temp_var();
+    tree value = TREE_VALUE($3);
+    tree t = value;
+    
+    t = set_temp_var(decl, value);
+    c_expand_expr_stmt(t);
+    $$ = build_unary_op(ADDR_EXPR, decl, 0);
+  }
+#else
   $$ = build_unary_op(ADDR_EXPR, TREE_VALUE($3), 0);
+#endif
 
  out_exec_func:
 }
@@ -6361,6 +6390,7 @@ my_substitute_fn  (tp, walk_subtrees, data)
     for(old=TREE_PURPOSE(old);old && new;old=TREE_CHAIN(old),new=TREE_CHAIN(new)) {
       if (DECL_NAME(*tp)==DECL_NAME(old)) {
 		  *tp=TREE_VALUE(new);
+		  STRIP_NOPS(*tp); // check
 		  goto subst_out;
       }
     }
@@ -7090,7 +7120,11 @@ unsigned_attr(t)
      tree t;
 {
   t = find_extension_attr(t);
-  return t && TREE_OPERAND(t,0)==K_UNSIGNED;
+#if 0
+  return !(t && TREE_OPERAND(t,0)==K_SIGNED);
+#else
+  return !(t && 0==strcmp("signed",IDENTIFIER_POINTER(TREE_OPERAND(t,0))));
+#endif
 }
 
 tree
