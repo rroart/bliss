@@ -1,6 +1,6 @@
 add something in modified files about being modified
 
-proper bitfield semantics (seems so, but extension remain)
+proper bitfield semantics (seems so, but extension partially remain)
 make return exp work
 fix pointer offsets and adding (done)
 

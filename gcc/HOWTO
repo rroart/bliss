@@ -201,6 +201,12 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.113
+Sign extension for bit fields (but structure default bit field ext remain).
+
+Bugs fixed:
+Wrong default sign extension for decls.
+
 0.112
 Bugs fixed:
 Calling routine "variable" did not dereference.
