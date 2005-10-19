@@ -58,6 +58,7 @@ int turn_off_addr_expr = 0;
  static int myselectunsign = 0;
  static tree mylabel = 0;
  static tree selif = 0;
+ static int lastotherwise = 0;
  static int icc=0 ;
  static int gsc=0 ;
  static tree ifthenelseval=0;
@@ -3040,7 +3041,8 @@ select_action_with_end
   TREE_SIDE_EFFECTS (t) = 1;
   add_stmt(t);
 #endif
-  add_stmt (build_stmt (GOTO_STMT, mylabel));
+  if (!lastotherwise)
+    add_stmt (build_stmt (GOTO_STMT, mylabel));
 
   c_finish_then();
   c_expand_end_cond();
@@ -3062,6 +3064,7 @@ select_label
 select_label:
 exp  
 {
+  lastotherwise = 0;
 #if 0
   $$ = do_case ($1, 0);
 #endif
@@ -3085,6 +3088,7 @@ exp
 |
 exp K_TO exp
 {
+  lastotherwise = 0;
 #if 0
   // can not be variable. for future?
   $$ = do_case ($1, $3);
@@ -3120,6 +3124,7 @@ K_OTHERWISE
     yyrec=1;
     // workaround to handle some accepted grammar contrary to specs
     // [OTHERWISE:] TES;
+    lastotherwise = 1;
   } 
 #if 0
   $$ = do_case (0, 0);
