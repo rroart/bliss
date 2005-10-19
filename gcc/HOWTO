@@ -201,6 +201,10 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.114
+Bugs fixed:
+Nested select could get loop with otherwise.
+
 0.113
 Sign extension for bit fields (but structure default bit field ext remain).
 
