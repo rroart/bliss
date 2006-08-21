@@ -65,3 +65,8 @@ lookup upon precompiling, or find faster cpu?
 convert STRING_CST and other non-integer to integer when doing operands?
 
 routine parameters with attrs.
+
+macro checking number of params so it does not swallow anything behind
+(macro $bblock = block_byte; global x : $bblock [3]).
+
+proper quotation. use manual example.
