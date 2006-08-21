@@ -26,6 +26,8 @@
 
 #include "parse.h"
 
+#include "bliss.h"
+
 #define my_isblank(c) ((c) == ' ' || (c) == '\t')
 #define my_isblank2(c) ((c) == ' ' || (c) == '\t' || (c) == 0)
 #define my_isletter(c) ( ((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') || (c)=='$' || (c)=='_')
@@ -127,11 +129,11 @@
 
 #define MAX_INCLUDE_DEPTH 40
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
-  int include_stack_state[MAX_INCLUDE_DEPTH];
-  int include_stack_start[MAX_INCLUDE_DEPTH];
-  int include_stack_cond[MAX_INCLUDE_DEPTH];
-  int include_stack_act_par[MAX_INCLUDE_DEPTH];
-  int include_stack_rem[MAX_INCLUDE_DEPTH];
+  long include_stack_state[MAX_INCLUDE_DEPTH];
+  long include_stack_start[MAX_INCLUDE_DEPTH];
+  long include_stack_cond[MAX_INCLUDE_DEPTH];
+  long include_stack_act_par[MAX_INCLUDE_DEPTH];
+  long include_stack_rem[MAX_INCLUDE_DEPTH];
   signed int include_stack_ptr = 0;
 #define MAX_COND_DEPTH 40
   int cond_stack[MAX_COND_DEPTH];
@@ -429,7 +431,8 @@ hexdigit [0-9a-f]
   //fprintf(stderr, "TDIG %s\n",s); fflush(stderr); 
   //yylval.type_node_p=copy_node(get_identifier(s));
   //yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
-  yylval.type_node_p=build_int_2(atoi(yytext),0);
+  long long l = atoll(yytext);
+  yylval.type_node_p=build_int_2(l & 0xffffffff, l >> 32);
   opexpcnt++; // for unary op workaround
   return T_DIGITS;
 }
@@ -1891,7 +1894,7 @@ hexdigit [0-9a-f]
 		  if (s[0]==39 && s[len-1]==39) {
 			 char * new = xstrdup(s+1);
 			 new[len-2]=0;
-			 v=atoi(new);
+			 v=atoi(new); // check 64 bit
 		  } else {
 			 if (!quiet_flag) printf("not yet implemnted number\n");
 		  }
@@ -2208,6 +2211,11 @@ hexdigit [0-9a-f]
   }
   int newmacrocomma;
   if (*yytext=='[' || *yytext=='(' || *yytext=='<') {
+#if 0
+// not yet. need more. related with bblock problem
+	 if (macrostart==0 && macr && macr->param == 0 && macr->param2 == 0)
+		goto end_out;
+#endif
 	 if (macrostart==0)
 		macrostart=*yytext;
   }
@@ -2640,6 +2648,7 @@ struct dict keywords[] =
 	 { "plit", K_PLIT },
 	 { "preset", K_PRESET },
 	 { "psect", K_PSECT },
+	 { "quad", K_QUAD },
 	 { "record", K_RECORD },
 	 { "ref", K_REF },
 	 { "register", K_REGISTER },
@@ -2799,7 +2808,7 @@ static struct dict ukeywords[] = {
   { NULL, -1 }
 };
 
-#define NKEYW 180
+#define NKEYW 181
 #define NUKEYW 111
 
 static struct dict prename[] = {
