@@ -45,6 +45,8 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "ggc.h"
 #include "target.h"
 
+#include "bliss.h"
+
 /* Nonzero if we've already printed a "missing braces around initializer"
    message within this initializer.  */
 static int missing_braces_mentioned;
@@ -1979,11 +1981,26 @@ convert_arguments (tree typelist, tree values, tree name, tree fundecl)
 tree
 parser_build_binary_op (enum tree_code code, tree arg1, tree arg2)
 {
+  // 64-bit
   if (code==PLUS_EXPR || code==MINUS_EXPR) {
+#ifdef __x86_64__
+    if (POINTER_TYPE_CHECK(arg1))
+      arg1 = convert (long_integer_type_node, arg1);
+    if (POINTER_TYPE_CHECK(arg2))
+      arg2 = convert (long_integer_type_node, arg2);
+#else
+#if 1
+    if (POINTER_TYPE_CHECK(arg1))
+      arg1 = convert (long_integer_type_node, arg1);
+    if (POINTER_TYPE_CHECK(arg2))
+      arg2 = convert (long_integer_type_node, arg2);
+#else
     if (POINTER_TYPE_CHECK(arg1))
       arg1 = convert (integer_type_node, arg1);
     if (POINTER_TYPE_CHECK(arg2))
       arg2 = convert (integer_type_node, arg2);
+#endif
+#endif
   }
   tree result = build_binary_op (code, arg1, arg2, 1);
 

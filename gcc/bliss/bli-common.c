@@ -1773,6 +1773,9 @@ check_case_value (tree value)
 tree
 c_common_type_for_size (unsigned int bits, int unsignedp)
 {
+  if (bits == TYPE_PRECISION (long_integer_type_node)) // 64-bit
+    return unsignedp ? long_unsigned_type_node : long_integer_type_node;
+
   if (bits == TYPE_PRECISION (integer_type_node))
     return unsignedp ? unsigned_type_node : integer_type_node;
 
