@@ -34,6 +34,7 @@ int turn_off_addr_expr = 0;
 #include "coretypes.h"
 
 #include "tree.h"
+#include "tree-inline.h"
 
 #include "c-common.h"
 
@@ -46,6 +47,8 @@ int turn_off_addr_expr = 0;
 #include "ggc.h"
 #endif
  //#define IN_GCC
+
+#include "bliss.h"
 
  static short *malloced_yyss;
  static void *malloced_yyvs;
@@ -213,49 +216,7 @@ bli_common_parse_file(set_yydebug)
    bitstackno--;
  }
 
- tree my_copy_tree (tree);
- void my_substitute (tree, tree, tree);
- void my_fold (tree);
- tree parm_first_to_last (tree);
  enum{SIMP_MACRO,COND_MACRO,ITER_MACRO,KEYW_MACRO};
- void add_macro (char *,int,tree,tree,tree);
- char * add_counted_string (tree, int);
- char * add_underscore (tree, int);
- void * find_macro(struct mymacro * s,char * name);
- int make_macro_string(struct dsc$descriptor * dsc, struct mymacro * m, tree r);
- tree find_init_attr(tree t);
- tree find_structure_attr(tree);
- tree find_alloc_attr(tree);
- tree find_extension_attr(tree);
- tree find_linkage_attr(tree);
- tree find_novalue_attr(tree);
- tree find_volatile_attr(tree);
- tree find_external_name_attr(tree);
- tree find_alignment_attr(tree);
- tree get_alignment(tree);
- void set_external_name(tree,tree);
- int is_counted(tree);
- int unsigned_attr(tree);
- tree sign_convert(tree,tree);
- tree conv_unsign(tree);
- tree find_tree_code(tree, int);
- int my_strcat(struct dsc$descriptor *, int, const char *, int, const char *, int);
- int my_strcat_gen(struct dsc$descriptor *, struct dsc$descriptor *, struct dsc$descriptor * , int);
- tree handle_preset(tree, tree, tree, tree);
- tree handle_initial(tree, tree, tree, tree, int);
- tree convert_field_ref_to_decl(tree,tree);
- tree handle_structure(tree, tree, int);
- tree handle_structure_attribute(tree, tree, int);
- tree create_temp_var();
- tree set_temp_var(tree, tree);
- tree build_our_record(tree);
- int print_remain(struct dsc$descriptor *, tree);
- tree mytag(tree);
- int is_str_tag(tree);
- tree strip_literal(tree);
- tree find_linkage(char * name);
- void add_linkage (char *,int);
- tree convert_string_literal_to_integer(tree);
 
  int longest_macro=0;
  int str1_memcpy=0;
@@ -328,7 +289,7 @@ bli_common_parse_file(set_yydebug)
 %token K_SELECTU K_SET K_SHOW K_SIGNED K_STACKLOCAL K_STRUCTURE
 %token K_SWITCHES K_TES K_THEN K_TO K_UNDECLARE K_UNSIGNED K_UNTIL
 %token K_UPLIT K_VOLATILE K_WEAK K_WHILE K_WITH K_WORD K_XOR
-%token K_SIGNAL K_STOP K_SETUNWIND K_EXTERNAL_NAME
+%token K_SIGNAL K_STOP K_SETUNWIND K_EXTERNAL_NAME K_QUAD
 /* These tokens are reserved keywords with a leading percent */  
 %token P_ALLOCATION P_ASCIC P_ASCID P_ASCII P_ASCIZ P_ASSIGN P_B
 %token P_BLISS P_BLISS16 P_BLISS32 P_BLISS36 P_BPADDR P_BPUNIT P_BPVAL
@@ -403,7 +364,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_int>  P_TITLE U_CALL U_STANDARD
 %type <type_node_p> linkage_definition_list linkage_definition
 %type <type_int> U_BLISS16 U_BLISS32 U_BLISS36 
-%type <type_int> infix_operator
+%type <type_node_p> infix_operator
 /*%type <type_node_p> executable_expression control_expression*/
 %type <type_node_p> input_parameter_location_list input_parameter_location
 %type <type_node_p>  output_parameter_location_list output_parameter_location
@@ -507,7 +468,8 @@ bli_common_parse_file(set_yydebug)
 %type <type_int>  K_REF U_CODE U_NODEFAULT U_WRITE U_NOWRITE U_EXECUTE U_NOEXECUTE
 %type <type_node_p> conditional_expression  case_expression
 %type <type_node_p> select_expression loop_expression case_label_list 
-%type <type_int>  select_type K_OTHERWISE  K_ALWAYS
+%type <type_node_p> select_type
+%type <type_int>  K_OTHERWISE  K_ALWAYS
 %type <type_node_p> case_line case_line_list select_line select_line_list
 %type <type_node_p> select_label select_label_list case_action select_action
 %type <type_node_p> indexed_loop_expression tested_loop_expression
@@ -524,7 +486,7 @@ bli_common_parse_file(set_yydebug)
 %type <type_node_p> machine_specific_function_name select_index
 %type <type_node_p> position_exp size_exp 
 %type <type_node_p> exit_expression return_expression exp
-%type <type_int> K_PLIT K_UPLIT K_LONG K_WORD K_BYTE P_CTCE P_LTCE
+%type <type_int> K_PLIT K_UPLIT K_LONG K_WORD K_BYTE P_CTCE P_LTCE K_QUAD
 %type <type_int> K_SIGNED  K_UNSIGNED K_OWN K_GLOBAL K_VOLATILE
 %type <type_int> K_FORWARD K_STACKLOCAL  K_REGISTER
 %type <type_int> K_ROUTINE
@@ -691,6 +653,8 @@ allocation_unit END_EXPR
     last_expr = build_string(strlen("word"),"word");
   if ($1==integer_type_node)
     last_expr = build_string(strlen("long"),"long");
+  if ($1==long_long_integer_type_node) // 64-bit
+    last_expr = build_string(strlen("quad"),"quad");
   last_expr = tree_cons (0, last_expr, 0);
   YYACCEPT; 
 }
@@ -1101,28 +1065,28 @@ P_B T_STRING  {
   tree t;
   t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,2),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
-  t = convert (integer_type_node, t);
+  t = convert (long_integer_type_node, t); // 64-bit
   $$ = t;
 }
 | P_O T_STRING  {
   tree t;
   t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,8),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
-  t = convert (integer_type_node, t);
+  t = convert (long_integer_type_node, t); // 64-bit
   $$ = t;
 }
 | P_DECIMAL T_STRING  {
   tree t;
   t = build_int_2(1+strtoul(TREE_STRING_POINTER($2),0,10),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
-  t = convert (integer_type_node, t);
+  t = convert (long_integer_type_node, t); // 64-bit
   $$ = t;
 }
 | P_X T_STRING  {
   tree t;
   t = build_int_2(strtoul(1+TREE_STRING_POINTER($2),0,16),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
-  t = convert (integer_type_node, t);
+  t = convert (long_integer_type_node, t); // 64-bit
   $$ = t;
 }
 ;                  
@@ -1146,7 +1110,7 @@ character_code_literal: P_C T_STRING {
   tree t;
   t = build_int_2(*(char*)(1+TREE_STRING_POINTER($2)),0);
   TREE_TYPE (t) = widest_integer_literal_type_node;
-  t = convert (integer_type_node, t);
+  t = convert (long_integer_type_node, t); // 64-bit
   $$ = t;
 }
 ;
@@ -1192,8 +1156,10 @@ string_literal:  string_type T_STRING2 {
   int len=strlen(str)-2;
   str++;
   switch (type) {
+    // check 64bit
   case p_ascii:
 	 if (len>4) error("string longer than 4");
+    // check 64bit
   case p_asciz:
 	 {
 	 if (len>3) error("string longer than 3");
@@ -1205,11 +1171,12 @@ string_literal:  string_type T_STRING2 {
 		c[i]=str[i];
 	 t = build_int_2(myint,0);
 	 TREE_TYPE (t) = widest_integer_literal_type_node;
-	 t = convert (integer_type_node, t);
+	 t = convert (long_integer_type_node, t); // 64-bit
 	 TREE_LANG_FLAG_0(t)=1;
 	 $$ = t;
 	 }
 	 break;
+    // check 64bit
   case p_ascic:
 	 {
 	 if (len>3) error("string longer than 3");
@@ -1223,15 +1190,18 @@ string_literal:  string_type T_STRING2 {
 		c[i+1]=str[i];
 	 t = build_int_2(myint,0);
 	 TREE_TYPE (t) = widest_integer_literal_type_node;
-	 t = convert (integer_type_node, t);
+	 t = convert (long_integer_type_node, t); // 64-bit
 	 TREE_LANG_FLAG_1(t)=1;
 	 $$ = t;
 	 }
 	 break;
+    // check 64bit
   case p_ascid:
 	 // long_long_integer_type_node
 	 {
+#if 0
 	 unsigned long long l;
+#endif
 	 struct dsc$descriptor dsc = {
 		dsc$b_dtype : DSC$K_DTYPE_T,
 		dsc$b_class : DSC$K_CLASS_S,
@@ -1246,9 +1216,15 @@ string_literal:  string_type T_STRING2 {
 	 tree decl_p;
 	 tree type = integer_type_node;
 	 tree t = tree_cons (NULL_TREE, type, NULL_TREE); 
+	 // check. superflous? found when 64-biting
+#if 00
 	 tree first;
+#endif
 	 tree high;
+	 // check. superflous? found when 64-biting
+#if 00
 	 tree shift;
+#endif
 	 tree string;
 	 char mystr[1024];
 	 int new_len=1+((len+3)&1021);
@@ -1303,7 +1279,7 @@ string_literal:  string_type T_STRING2 {
 	 if (len==0) {
 	   addr=build_int_2(0,0); // later: init this to be start of dsc
 	 }
-	 addr = convert (integer_type_node, addr);
+	 addr = convert (integer_type_node, addr); // check. 64-bit 
 
 #if 0
 	 addr = build_int_2(42, 0);
@@ -1312,10 +1288,18 @@ string_literal:  string_type T_STRING2 {
 #endif
 
 	 //	 vec=&dsc;
-	 firstlong=*(long *)&dsc;
+	 firstlong=*(int *)&dsc; // check. 64-bit
 
+	 // 64-bit
+#ifdef __i386__ 
 	 tree last = tree_cons(build_int_2(1,0),addr,0);
 	 tree nextlast = tree_cons(build_int_2(0,0),build_int_2(firstlong,0), last);
+#else
+	 tree last = tree_cons(build_int_2(3,0),build_int_2(0,0),0);
+	 tree nextlast = tree_cons(build_int_2(2,0),addr,last); // check. not quite 64-bit
+	 tree nextnextlast = tree_cons(build_int_2(1,0),build_int_2(0,0),nextlast);
+	 tree nextnextnextlast = tree_cons(build_int_2(0,0),build_int_2(firstlong,0), nextnextlast);
+#endif
 
 #if 0
 	 tree decl2 = build_decl (CONST_DECL, 0, string_type_node);
@@ -1334,7 +1318,12 @@ string_literal:  string_type T_STRING2 {
 	 type = build_array_type (type, itype);
 	 type = int_array_type_node;
 #endif
+#ifdef __i386__
+	 // check. 64-bit
 	 tree d = build_nt(ARRAY_REF,get_identifier(s),build_int_2(2,0));
+#else
+	 tree d = build_nt(ARRAY_REF,get_identifier(s),build_int_2(4,0));
+#endif
 	 tree decl2 = start_decl(d, tree_cons(0, type, 0), 1, 0);
 #if 0
 	 DECL_SIZE_UNIT(decl2)=build_int_2(8,0);	
@@ -1344,7 +1333,12 @@ string_literal:  string_type T_STRING2 {
 	 start_init(decl2,NULL,global_bindings_p());
 	 finish_init();
 
+	 // 64-bit
+#ifdef __i386__
 	 tree constructor = build_constructor(TREE_TYPE(decl2)/*integer_type_node int_array_type_node*/,nextlast);
+#else
+	 tree constructor = build_constructor(TREE_TYPE(decl2)/*integer_type_node int_array_type_node*/,nextnextnextlast);
+#endif
 	 TREE_CONSTANT(constructor)=1;
 	 init=constructor;
 
@@ -1352,6 +1346,8 @@ string_literal:  string_type T_STRING2 {
 
 	 //	 fprintf(stderr, "vec %x %x %x %x %x\n",firstlong,sizeof( long),vec[0],vec[1],len);
 	 
+	 // check. superflous? found when 64-biting
+#if 00
 	 first = build_int_2(firstlong, 0);
 	 TREE_TYPE (first) = widest_integer_literal_type_node;
 	 first = convert (long_long_integer_type_node, first);
@@ -1372,6 +1368,7 @@ string_literal:  string_type T_STRING2 {
 
 	 $$ = longlong;
 	 $$ = build_unary_op (ADDR_EXPR, longlong, 0);
+#endif
 	 $$ = build_unary_op (ADDR_EXPR, decl2, 0);
 	 TREE_CONSTANT($$)=1;
 	 TREE_LANG_FLAG_2($$)=1;
@@ -1466,14 +1463,14 @@ plit: plit2 plit3 '(' plit_item_list ')'
   int counted = $1; // == K_PLIT;
   long page[1024];
   int offset = 0;
-  int size=4;
+  int size = sizeof(long); // 64-bit
   char * start = page;
   char * cur = start;
   memset(page, 0, 4096);
   if ($2)
     size=node_type_to_int($2);
   if (counted)
-	 cur+=4;
+    cur += sizeof(long); // 64-bit
   tree t = handle_initial(0, build_nt(INIT_ATTR, $4), 0, 0, size);
 
   static int myplit=0;
@@ -1535,7 +1532,7 @@ allocation_unit '(' plit_item_list ')' /* not easy to interpret p_group */
 |
 K_REP replicator K_OF '(' plit_item_list ')' 
 {
-  $$ = build_nt(PLIT_GROUP, $2, integer_type_node, $5);
+  $$ = build_nt(PLIT_GROUP, $2, long_integer_type_node, $5); // 64-bit
 }
 |
 K_REP replicator K_OF allocation_unit '(' plit_item_list ')' 
@@ -1547,6 +1544,13 @@ K_REP replicator K_OF allocation_unit '(' plit_item_list ')'
 allocation_unit:  K_LONG   { $$ = integer_type_node; }
 | K_WORD   { $$ = short_integer_type_node; }
 | K_BYTE  { $$ = char_type_node; }
+| K_QUAD
+{
+  $$ = long_long_integer_type_node; // 64-bit
+#ifdef __i386__
+  warning("%%BLS32-W-TEXT, Quad is not a standard 32-bit thingie.");
+#endif
+}
 ;
 
 replicator: ctce 
@@ -1589,10 +1593,10 @@ unlabeled_block
   tree es=$<type_node_p>2;
   tree node=TREE_OPERAND(es, 0);
   tree scope=TREE_OPERAND(node, 1);
-  TREE_TYPE(body)=integer_type_node;
+  TREE_TYPE(body) = long_integer_type_node; // 64-bit
   // body = c_expand_expr_stmt(body);
   // body = EXPR_STMT_EXPR(body);
-  TREE_TYPE(body)=integer_type_node;
+  TREE_TYPE(body) = long_integer_type_node; // 64-bit
   //RECHAIN_STMTS(node, LABELED_BLOCK_BODY(node));
   LABELED_BLOCK_BODY(node)=body;//$2;
   TREE_CHAIN(TREE_CHAIN(scope))=TREE_CHAIN(TREE_CHAIN(TREE_CHAIN(scope)));
@@ -1896,7 +1900,7 @@ access_actual:
 |
 expression  
 {
-  $$ = build_tree_list (NULL_TREE, convert (integer_type_node, $1));
+  $$ = build_tree_list (NULL_TREE, convert (long_integer_type_node, $1)); // 64-bit
   // convert primarily to have (bind?) byte in a strucure ref
 }
 |
@@ -2106,13 +2110,13 @@ address maybe_field_selector
     // 32 hardcoded
     tree f = build_int_2(5,0); // (32==2^5)
     TREE_TYPE (f) = widest_integer_literal_type_node;
-    f = convert (integer_type_node, f);
+    f = convert (long_integer_type_node, f); // 64-bit
     t = parser_build_binary_op(RSHIFT_EXPR, pos, f);
     op0 = parser_build_binary_op (PLUS_EXPR, $1, t);
   }
   /*if (context=='f') */ {
     tree d=$1;
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
+    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     TREE_UNSIGNED(t)=unsign;
     t=stabilize_reference(t);
@@ -2121,7 +2125,7 @@ address maybe_field_selector
   }
   /* if (context=='o') */ {
     tree d=$1;
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (integer_type_node),1), d, size, pos);
+    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
     TREE_TYPE(TREE_OPERAND(t, 2)) = ubitsizetype;
     TREE_UNSIGNED(t)=unsign;
     t=stabilize_reference(t);
@@ -2313,7 +2317,7 @@ operator_expression:
   }
 }
 | opexp9 K_MOD opexp9 { $$ = parser_build_binary_op (TRUNC_MOD_EXPR, $1, $3); }
-| opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, convert(integer_type_node, $3)); }
+| opexp9 '*' opexp9 { $$ = parser_build_binary_op (MULT_EXPR, $1, convert(long_integer_type_node, $3)); /* 64-bit */ }
 | opexp9 '/' opexp9 { $$ = parser_build_binary_op (TRUNC_DIV_EXPR, $1, $3); }
 |
 opexp9 '+' opexp9
@@ -2321,9 +2325,9 @@ opexp9 '+' opexp9
   tree left = $1;
   tree right = $3;
   if (POINTER_TYPE_CHECK(left))
-    left = convert (integer_type_node, left);
+    left = convert (long_integer_type_node, left); // 64-bit
   if (POINTER_TYPE_CHECK(right))
-    right = convert (integer_type_node, right);
+    right = convert (long_integer_type_node, right); // 64-bit
   $$ = parser_build_binary_op (PLUS_EXPR, left, right);
 }
 |
@@ -2331,10 +2335,20 @@ opexp9 '-' opexp9
 {
   tree left = $1;
   tree right = $3;
+  // check. removed?
+#if 0
+#if 0
+  if (POINTER_TYPE_CHECK(left))
+    left = convert (long_integer_type_node, left); // 64-bit
+  if (POINTER_TYPE_CHECK(right))
+    right = convert (long_integer_type_node, right); // 64-bit
+#else
   if (POINTER_TYPE_CHECK(left))
     left = convert (integer_type_node, left);
   if (POINTER_TYPE_CHECK(right))
     right = convert (integer_type_node, right);
+#endif
+#endif
   $$ = parser_build_binary_op (MINUS_EXPR, left, right); 
 }
 |
@@ -2349,14 +2363,14 @@ opexp9 infix_operator opexp9
     left = c_cast_expr(unsigned_type_node, left);
     right = c_cast_expr(unsigned_type_node, right);
   } else {
-    left = c_cast_expr(integer_type_node, left);
-    right = c_cast_expr(integer_type_node, right);
+    left = c_cast_expr(long_integer_type_node, left); // 64-bit
+    right = c_cast_expr(long_integer_type_node, right); // 64-bit
 }
   $$ = parser_build_binary_op (op, left, right);
  }
-| K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, convert(integer_type_node, $2), 0); }
+| K_NOT opexp9 %prec K_NOT { $$ = build_unary_op (BIT_NOT_EXPR, convert(long_integer_type_node, $2), 0); /* 64-bit */ }
 | opexp9 K_AND opexp9 { $$ = parser_build_binary_op (BIT_AND_EXPR, $1, $3); }
-|  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, convert(integer_type_node,$1), convert(integer_type_node,$3)); /* temp fix */ }
+|  opexp9 K_OR opexp9 { $$ = parser_build_binary_op (BIT_IOR_EXPR, convert(long_integer_type_node,$1), convert(long_integer_type_node,$3)); /* temp fix */ /* 64-bit */ }
 | opexp9 K_EQV opexp9 { $$ = build_unary_op(BIT_NOT_EXPR,parser_build_binary_op (BIT_XOR_EXPR, $1, $3),0); }
 | opexp9 K_XOR  opexp9 { $$ = parser_build_binary_op (BIT_XOR_EXPR, $1, $3); }
 |
@@ -2369,7 +2383,7 @@ opexp9 '=' opexp9 {
     if (TREE_OPERAND(b, 2)) TREE_OPERAND(b, 2)=fold(TREE_OPERAND(b, 2));
     TREE_TYPE(TREE_OPERAND(b, 2)) = ubitsizetype;
     tree tt=make_pointer_declarator(0,op0);
-    TREE_TYPE(tt)=integer_type_node;
+    TREE_TYPE(tt) = long_integer_type_node; // 64-bit
     TREE_OPERAND(b, 0)=tt;
     $$=build_modify_expr(b, NOP_EXPR, $3);
   } else {
@@ -2660,12 +2674,12 @@ K_IF
   ifthenelseval=decl;
 
   $<type_node_p>$ = c_begin_if_stmt ();
-  TREE_TYPE ($<type_node_p>$) = integer_type_node;
+  TREE_TYPE ($<type_node_p>$) = long_integer_type_node; // 64-bit
 }
 exp
 {
   tree t=$3;
-  t=parser_build_binary_op(BIT_AND_EXPR,convert(integer_type_node,t),build_int_2(1,0));
+  t=parser_build_binary_op(BIT_AND_EXPR,convert(long_integer_type_node,t),build_int_2(1,0)); // 64-bit
   c_expand_start_cond (c_common_truthvalue_conversion (t), 
 		       compstmt_count,$<type_node_p>2);
   compstmt_count++;
@@ -2899,9 +2913,9 @@ select_type select_index
   tree d1 = $1;
   myselectunsign = TREE_OPERAND(d1, 1);
   if (myselectunsign)
-    myselect = c_cast_expr(unsigned_type_node,myselect);
+    myselect = c_cast_expr(long_unsigned_type_node,myselect); // 64-bit
   else
-    myselect = c_cast_expr(integer_type_node,myselect);
+    myselect = c_cast_expr(long_integer_type_node,myselect); // 64-bit
   tree label = build_decl (LABEL_DECL, NULL_TREE, NULL_TREE);
   tree decl=label;
   DECL_CONTEXT (decl) = current_function_decl;
@@ -2996,7 +3010,7 @@ select_line:
 '[' 
 {
   $<type_node_p>$ = c_begin_if_stmt ();
-  TREE_TYPE ($<type_node_p>$) = integer_type_node;
+  TREE_TYPE ($<type_node_p>$) = long_integer_type_node; // 64-bit
 }
 select_label_list ']' ':'
 {
@@ -3078,9 +3092,9 @@ exp
     e1=build_int_2(s[1],0);
   }
   if (myselectunsign)
-    e1 = c_cast_expr(unsigned_type_node,e1);
+    e1 = c_cast_expr(long_unsigned_type_node,e1); // 64-bit
   else
-    e1 = c_cast_expr(integer_type_node,e1);
+    e1 = c_cast_expr(long_integer_type_node,e1); // 64-bit
 		 
   tree t = parser_build_binary_op(EQ_EXPR,myselect,e1);
   $$ = tree_cons (0, t, 0);
@@ -3217,7 +3231,11 @@ from_exp
   if (decl)
 	 goto skip_decl;
   // bad, but temp workaround
+#if 0
   tree tmp = start_decl($3, 0, 0, 0);
+#else
+  tree tmp = start_decl($3, tree_cons(0, long_integer_type_node, 0), 0, 0); // check. 64-bit
+#endif
   finish_decl(tmp, 0, 0);
  skip_decl:
   {}
@@ -3236,13 +3254,13 @@ to_exp   by_exp  K_DO exp
   if (incr_count==0) {
 	 tree f = build_int_2(1,0);
 	 TREE_TYPE (f) = widest_integer_literal_type_node;
-    f = convert (integer_type_node, f);
+	 f = convert (long_integer_type_node, f); // 64-bit
 	 incr_count=f;
   }
   tree incr = build_modify_expr (count, PLUS_EXPR, incr_count);
   FOR_EXPR ($<type_node_p>2) = incr;
 
-  tree type = integer_type_node;
+  tree type = long_integer_type_node; // 64-bit
 
   tree decl = create_temp_var();
   tree value = $9;
@@ -3606,6 +3624,8 @@ allocation_unit
     i=16;
   if ($1==integer_type_node)
     i=32;
+  if ($1==long_long_integer_type_node) // 64-bit
+    i=64;
   i=i>>3;
   if (i)
     $$=build_int_2(i,0);
@@ -3663,7 +3683,7 @@ allocation_unit '(' initial_item_list ')' /* not easy to interpret i_group */
 |
 K_REP replicator K_OF '(' initial_item_list ')'
 {
-  $$ = build_nt(INITIAL_GROUP, $2, integer_type_node, $5);
+  $$ = build_nt(INITIAL_GROUP, $2, long_integer_type_node, $5); // 64-bit
 }
 |
 K_REP replicator K_OF allocation_unit '(' initial_item_list ')'
@@ -3775,14 +3795,14 @@ own_item:
 own_name maybe_own_attribute_list
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $2;
   
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -3868,7 +3888,7 @@ own_name maybe_own_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), sizeof(long)); // 64-bit
 
   finish_decl (cell_decl_p, init, NULL_TREE);
 }
@@ -3932,14 +3952,14 @@ global_name maybe_global_attribute_list
 {
   // only differs in start_init?
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $2;
 
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -3996,7 +4016,7 @@ global_name maybe_global_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), sizeof(long)); // 64-bit
 
   finish_decl (cell_decl_p, init, NULL_TREE);
   set_external_name(cell_decl_p, myattr);
@@ -4048,14 +4068,14 @@ external_item:
 external_name maybe_external_attribute_list 
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $2;
   
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -4112,14 +4132,14 @@ forward_item:
 forward_name maybe_local_attribute_list 
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $2;
   
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -4202,15 +4222,15 @@ local_item:
 local_name maybe_local_attribute_list
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   //  tree type = integer_type_node;
   tree myattr = $2;
 
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -4260,7 +4280,7 @@ local_name maybe_local_attribute_list
   }
 
   if (orig_init && st_attr)
-    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), 4);
+    init = handle_initial(0, orig_init, 0, TREE_VALUE(mysize), sizeof(long)); // 64-bit
 
   finish_decl (cell_decl_p, init, NULL_TREE);
   TREE_THIS_VOLATILE(cell_decl_p)=find_volatile_attr(myattr)!=0;
@@ -4321,14 +4341,14 @@ map_item:
 map_name ':' attribute_list 
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $3;
   
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -4369,7 +4389,7 @@ T_NAME '['
 
   pushlevel(0);
 #if 1
-  int_tree = tree_cons(0,integer_type_node,0);
+  int_tree = tree_cons(0,long_integer_type_node,0); // 64-bit
   parm_tree = tree_cons(int_tree, $1, 0); 
   $$ = tree_cons (parm_tree, 0, 0);
   push_parm_decl($$); 
@@ -4392,7 +4412,7 @@ T_NAME '['
   //begin_stmt_tree(&$<type_node_p>$);
   //$<type_node_p>6=accessfn;
 
-  start_function (tree_cons(0, integer_type_node, 0), accessfn, 0);
+  start_function (tree_cons(0, long_integer_type_node, 0), accessfn, 0); // 64-bit
   store_parm_decls ();
   afun=current_function_decl;
 
@@ -4413,7 +4433,7 @@ allocation_formal_list ']' '='
 
   acfun=cfun;
   pushlevel(0);
-  start_function (tree_cons(0, integer_type_node, 0), allocfn, 0);
+  start_function (tree_cons(0, long_integer_type_node, 0), allocfn, 0); // 64-bit
   store_parm_decls ();
 
   //begin_stmt_tree(&$<type_node_p>$);
@@ -4528,22 +4548,22 @@ $$ = get_parm_info (1);
 allocation_formal:
 allocation_name { 
 #if 1
-  tree int_tree = tree_cons (0, integer_type_node, 0);   
+  tree int_tree = tree_cons (0, long_integer_type_node, 0); // 64-bit
   tree parm_decl = tree_cons (int_tree, $1, 0);
- $$ = tree_cons (parm_decl, 0, 0);
- push_parm_decl($$);
+  $$ = tree_cons (parm_decl, 0, 0);
+  push_parm_decl($$);
 #else
-  tree e=tree_cons(0,integer_type_node,0);
+  tree e=tree_cons(0,long_integer_type_node,0); // 64-bit
   tree f=tree_cons(e,$1,0); 
   $$ = tree_cons (f,0,0);
 #endif
 }
 |allocation_name '=' allocation_default { 
   //$$ = tree_cons ($3, $1, NULL_TREE); 
-  tree t = tree_cons (0, integer_type_node, 0);   
+  tree t = tree_cons (0, long_integer_type_node, 0); // 64-bit
   tree d = tree_cons (t, $1, 0);
- $$ = tree_cons (d, 0, 0);
- push_parm_decl_init($$, $3);
+  $$ = tree_cons (d, 0, 0);
+  push_parm_decl_init($$, $3);
 }
 ;
 
@@ -4614,7 +4634,7 @@ access_formal: T_NAME {
 //  chainon (NULL_TREE, all_prefix_attributes));
 //finish_decl (d, 0, NULL_TREE);
 #if 1
-  tree int_tree = tree_cons(0, integer_type_node, 0);
+  tree int_tree = tree_cons(0, long_integer_type_node, 0); // 64-bit
   tree parm_tree = tree_cons(int_tree, $1, 0); 
   $$ = tree_cons (parm_tree, 0, 0);
   push_parm_decl($$); 
@@ -4708,7 +4728,7 @@ io_list routine_attributes
   tree myattr = $4;
   int do_counted_arg = is_counted(myattr);
   int is_void = find_novalue_attr(myattr);
-  tree mytype = integer_type_node;
+  tree mytype = long_integer_type_node; // 64-bit
   if (is_void)
     mytype = void_type_node;
   mytype = tree_cons (0, mytype, 0);
@@ -4719,7 +4739,7 @@ io_list routine_attributes
   if (io_list==0) {
     // temp workaround to have ap with no formals
     tree d1 = get_identifier("__mydummy_for_ap__");
-    tree type = integer_type_node;
+    tree type = long_integer_type_node; // 64-bit
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
     tree point_int = tree_cons (int_tree, d1, 0);
     io_list = tree_cons (point_int, 0, 0);
@@ -4783,7 +4803,7 @@ formal_item: /*T_NAME ':' formal_attribute_list
 |*/
 formal_name
 { 
-  tree type = integer_type_node;
+  tree type = long_integer_type_node; // 64-bit
   tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
   tree point_tree = make_pointer_declarator (0, $1);
   point_tree = $1;
@@ -4853,7 +4873,7 @@ io_list global_routine_attributes
   tree myattr = $4;
   int do_counted_arg = is_counted(myattr);
   int is_void = find_novalue_attr(myattr);
-  tree mytype = integer_type_node;
+  tree mytype = long_integer_type_node; // 64-bit
   if (is_void)
     mytype = void_type_node;
   mytype = tree_cons (0, mytype, 0);
@@ -4864,7 +4884,7 @@ io_list global_routine_attributes
   if (io_list==0) {
     // temp workaround to have ap with no formals
     tree d1 = get_identifier("__mydummy_for_ap__");
-    tree type = integer_type_node;
+    tree type = long_integer_type_node; // 64-bit
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
     tree point_tree = make_pointer_declarator (0, d1);
     tree point_int = tree_cons (int_tree, point_tree, 0);
@@ -5156,14 +5176,14 @@ T_NAME
 {
   if (0==strcmp(IDENTIFIER_POINTER($1),"ap")) {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
-  tree type = integer_type_node;
+  tree type = long_integer_type_node; // 64-bit
   
   cell=$1;
 
-  cell_decl_p = start_decl (cell, tree_cons(0, integer_type_node, 0), 1, 0);
+  cell_decl_p = start_decl (cell, tree_cons(0, long_integer_type_node, 0), 1, 0); // 64-bit
 
   start_init(cell_decl_p,NULL,global_bindings_p());
   finish_init();
@@ -5171,7 +5191,7 @@ T_NAME
   // also needs a dummy parameter __mydummy_for_ap__ if no formals
   init = build_unary_op (ADDR_EXPR, DECL_ARGUMENTS(current_function_decl), 1);
   if (TREE_LANG_FLAG_5(current_function_decl)==0)
-    init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(4,0)); // check. fix to be 4 later when pointer arithmetic is fixed 
+    init = parser_build_binary_op (MINUS_EXPR, init, build_int_2(sizeof(long),0)); // 64-bit. check. fix to be sizeof(long) later when pointer arithmetic is fixed 
   
   finish_decl (cell_decl_p, init, NULL_TREE);
   } else {
@@ -5250,13 +5270,13 @@ literal_item: literal_name '=' compile_time_constant_expression ':' literal_attr
 |literal_name '=' compile_time_constant_expression
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
-  tree type = integer_type_node;
+  tree type = long_integer_type_node; // 64-bit
   
   cell=$1;
-  TREE_TYPE(cell)=integer_type_node;
+  TREE_TYPE(cell)=long_integer_type_node; // 64-bit
 
   init=$3;
   if (TREE_LANG_FLAG_4(cell)) {
@@ -5294,7 +5314,7 @@ external_literal_item: literal_name ':' literal_attribute_list
 |
 literal_name  
 {
-  tree cell_decl_p = start_decl ($1, tree_cons(0, integer_type_node,0), 0, 0);
+  tree cell_decl_p = start_decl ($1, tree_cons(0, long_integer_type_node,0), 0, 0); // 64-bit
 
   tree decl = cell_decl_p;
   int extern_ref = 1; 
@@ -5337,14 +5357,14 @@ bind_data_item:
 bind_data_name '=' data_name_value maybe_bind_data_attribute_list
 {
   tree cell, decl_p , cell_decl, init, t, cell_decl_p;
-  tree mysize=tree_cons(0,integer_type_node,0);
-  tree size=tree_cons(0,integer_type_node,0);
+  tree mysize=tree_cons(0,long_integer_type_node,0); // 64-bit
+  tree size=tree_cons(0,long_integer_type_node,0); // 64-bit
 
   tree myattr = $4;
   
   tree type = find_alloc_attr(myattr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,myattr);
@@ -6338,7 +6358,7 @@ mydeclares (tree t) {
   tree tmp;
   if (!t) return 0;
   for(tmp=t;tmp;tmp=TREE_CHAIN(tmp)) {
-    tree c = tree_cons (0, integer_type_node, 0);   
+    tree c = tree_cons (0, long_integer_type_node, 0); // 64-bit
     tree d = tree_cons (c, TREE_VALUE(tmp), 0);
     tree dd = tree_cons (d, 0, 0);
     push_parm_decl(dd);
@@ -6852,7 +6872,7 @@ int find_skip_mode_not(tree t) {
   return 0;
 }
 
-int mylast() {
+tree mylast() {
   return last_expr;
 }
 
@@ -6882,10 +6902,18 @@ void get_builtin(void) {
   add_macro("%bliss36",SIMP_MACRO,0,0,0);
   add_macro("%bliss32",SIMP_MACRO,0,0,get_identifier("%remaining"));
 
+  // 64-bit
+#ifdef __x86_64__
+  predef_literal("%bpval",64);
+  predef_literal("%bpunit",8);
+  predef_literal("%bpaddr",64);
+  predef_literal("%upval",8);
+#else
   predef_literal("%bpval",32);
   predef_literal("%bpunit",8);
   predef_literal("%bpaddr",32);
   predef_literal("%upval",4);
+#endif
 
 #if 0
   do_builtin=1;
@@ -6901,15 +6929,26 @@ void get_builtin(void) {
 
 // See language reference 11.10
 
+// 64-bit
+#ifdef __x86_64__
+char * bliss_builtin_struct_1 = "structure vector[i; n, unit=8, ext=0] = [n*unit] (vector + i*unit)<0,8*unit,ext>;";
+#else
 char * bliss_builtin_struct_1 = "structure vector[i; n, unit=4, ext=0] = [n*unit] (vector + i*unit)<0,8*unit,ext>;";
+#endif
 
 //char * bliss_builtin_struct_1 = "structure vector[i; n, unit=%upval, ext=0] = [n*unit] (vector+i*unit)<0,%bpunit*unit,ext>;";
 
 char * bliss_builtin_struct_2 = "structure bitvector[i; n] = [(n+7)/8] bitvector<i,1>;";
 
+#ifdef __x86_64__
+char * bliss_builtin_struct_3 = "structure block[o, p, s, e; bs, unit=8] = [bs*unit] (block+o*unit)<p,s,e>;";
+
+char * bliss_builtin_struct_4 = "structure blockvector[i, o, p, s, e; n, bs, unit=8] = [n*bs*unit] (blockvector+(i*bs+o)*unit)<p,s,e>;";
+#else
 char * bliss_builtin_struct_3 = "structure block[o, p, s, e; bs, unit=4] = [bs*unit] (block+o*unit)<p,s,e>;";
 
 char * bliss_builtin_struct_4 = "structure blockvector[i, o, p, s, e; n, bs, unit=4] = [n*bs*unit] (blockvector+(i*bs+o)*unit)<p,s,e>;";
+#endif
 
 // was bblock. starlet lets $$block be block_byte
 char * bliss_builtin_struct_5 = "structure block_byte [o, p, s, e; n] = [n] (block_byte + o) <p, s, e>;";
@@ -6917,6 +6956,10 @@ char * bliss_builtin_struct_5 = "structure block_byte [o, p, s, e; n] = [n] (blo
 char * bliss_builtin_linkage_1 = "linkage bliss = jsb;";
 
 char * bliss_builtin_linkage_2 = "linkage call = call;";
+
+#ifdef __x86_64__
+char * bliss_builtin_barrier = "own barrier;"; // temp workaround
+#endif
 
 void add_builtin(void) {
   parse_this(bliss_builtin_struct_1);
@@ -6926,6 +6969,9 @@ void add_builtin(void) {
   parse_this(bliss_builtin_struct_5);
   parse_this(bliss_builtin_linkage_1);
   parse_this(bliss_builtin_linkage_2);
+#ifdef __x86_64
+  parse_this(bliss_builtin_barrier); // temp workaround
+#endif
 
   if (check_little_endian()) // had to do some of my own extensions
     parse_this("compiletime $cpu_le = 1;");
@@ -6965,6 +7011,7 @@ register_field(char * s, tree t) {
   fields++;
 }
 
+tree
 find_field(char * s) {
   struct field_struct * t = field_root;
   for (;t;t=t->next,fielditers++) {
@@ -7136,6 +7183,10 @@ tree
 conv_unsign(t)
      tree t;
 {
+  if (t==long_integer_type_node) // 64-bit
+    return long_unsigned_type_node;
+  if (t==long_long_integer_type_node) // 64-bit
+    return long_long_unsigned_type_node;
   if (t==integer_type_node)
     return unsigned_type_node;
   if (t==short_integer_type_node)
@@ -7266,7 +7317,7 @@ tree build_our_record(size)
   if (TREE_CODE(size)==NON_LVALUE_EXPR)
     size=TREE_OPERAND(size,0);
   tree rt = make_node(RECORD_TYPE);
-  TREE_TYPE(rt)=integer_type_node;
+  TREE_TYPE(rt) = long_integer_type_node; // 64-bit
   TYPE_SIZE_UNIT(rt)=size;
   TYPE_SIZE(rt)=size;
   TYPE_MODE(rt)=BLKmode;
@@ -7279,7 +7330,7 @@ convert_field_ref_to_decl(ref, value)
      tree value;
 {
   tree t = ref;
-  tree field=build_decl (FIELD_DECL, 0/*cell_decl_p*/, integer_type_node);
+  tree field=build_decl (FIELD_DECL, 0/*cell_decl_p*/, long_integer_type_node); // 64-bit
   SET_DECL_C_BIT_FIELD(field);
   if (TREE_CODE(value)!=ADDR_EXPR)
     DECL_BIT_FIELD(field)=1;
@@ -7288,7 +7339,7 @@ convert_field_ref_to_decl(ref, value)
   TREE_TYPE(TREE_OPERAND(t,2))=bitsizetype;
   DECL_FIELD_BIT_OFFSET(field)=TREE_OPERAND(t,2);
   DECL_FIELD_OFFSET(field)=fold(TREE_OPERAND(t,0));//build_int_2(0,0);
-  DECL_SIZE_UNIT(field)=build_int_2(4,0);
+  DECL_SIZE_UNIT(field)=build_int_2(sizeof(long),0); // 64-bit
   DECL_SIZE(field)=fold(TREE_OPERAND(t,1));//build_int_2(8,0);
   my_fold(DECL_FIELD_OFFSET(field));
   my_fold(DECL_FIELD_OFFSET(field));
@@ -7403,7 +7454,7 @@ build_field_decl(offset, size)
      int offset;
      int size;
 {
-  tree field=build_decl (FIELD_DECL, 0, integer_type_node);
+  tree field=build_decl (FIELD_DECL, 0, long_integer_type_node); // 64-bit
   SET_DECL_C_BIT_FIELD(field);
   DECL_BIT_FIELD(field)=1;
 
@@ -7422,14 +7473,28 @@ int
 node_type_to_int(t)
      tree t;
 {
+  // 64-bit
   // also look at size and size_unit
+  if (t==long_long_integer_type_node)
+    return 8;
+  // 64-bit
+  if (t==long_integer_type_node)
+#ifdef __x86_64__
+    return 8;
+#else
+    return 4;
+#endif
   if (t==integer_type_node)
     return 4;
   if (t==short_integer_type_node)
     return 2;
   if (t==char_type_node)
     return 1;
+#ifdef __x86_64__
+  return 8;
+#else
   return 4;
+#endif
 }
 
 tree
@@ -7525,7 +7590,7 @@ handle_structure(name, st_attr, alloc)
   
   cell__=get_identifier(add_underscore(name,2));
   astruct = start_structure (STRUCTURE_ATTR, cell__);
-  st_attr = finish_structure (astruct, TREE_OPERAND(st_attr, 0) , 0,0,0,0); 
+  st_attr = finish_structure (astruct, TREE_OPERAND(st_attr, 0) , 0,0,0,0,0); 
   tree size=TREE_VALUE(TREE_CHAIN(TREE_CHAIN(TYPE_FIELDS(st_attr))));
   if (alloc==0)
     return 0;
@@ -7535,7 +7600,7 @@ handle_structure(name, st_attr, alloc)
 tree
 create_temp_var()
 {
-  tree type = integer_type_node;
+  tree type = long_integer_type_node; // 64-bit
 
   // next something based on cp build_local_temp
   tree slot = build_decl (VAR_DECL, NULL_TREE, type);
@@ -7585,7 +7650,7 @@ handle_structure_attribute(name, alloc_actual_list, ref)
   }
   my_fold(size);
   if (ref)
-    size=build_int_2(4,0);
+    size=build_int_2(sizeof(long),0); // 64-bit
   //tree decl=build_array_declarator (size, NULL_TREE, 0, 0) ; // 4x too big?
   ////decl->exp.operands[2]=t;
   type=char_type_node;
@@ -7666,7 +7731,7 @@ strip_literal(t)
 }
 
 void
-add_linkage(char * name, int type) {
+add_linkage(char * name, tree type) {
   tree i = get_identifier(name);
   tree t = build_nt(LINKAGE, type);
   pushtag(i, t);
@@ -7712,7 +7777,7 @@ build_external(id, attr)
 
   tree type = find_alloc_attr(attr);
   if (type==0)
-    type = integer_type_node;
+    type = long_integer_type_node; // 64-bit
   else
     type=TREE_OPERAND(type,0);
   type=sign_convert(type,attr);
