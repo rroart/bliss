@@ -201,6 +201,16 @@ TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
 
+0.200
+x86_64:
+New support
+Bugs fixed:
+i386:
+Some unwanted alignment (TPAMAC) just disappeared with long_int change.
+Lexical digits got changed in sign change area
+(0x80000001 instead of 0x80000000. Also changed from 32-bit to 64-bit.) 
+Address of descriptor string was taken as 64-bit, which destroyed edx.
+
 0.114
 Bugs fixed:
 Nested select could get loop with otherwise.
