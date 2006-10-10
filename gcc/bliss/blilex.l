@@ -1,4 +1,4 @@
-%x macro
+%x lexmacro
 
 %{
 
@@ -22,7 +22,10 @@
 
 #include "system.h"
 #include "coretypes.h"
+
 #include "tree.h"
+
+#include "bli-tree.h"
 
 #include "parse.h"
 
@@ -33,7 +36,7 @@
 #define my_isletter(c) ( ((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') || (c)=='$' || (c)=='_')
 #define my_isend(c) ((c) == '\n' || (c) == 0)
 
-  void error(),warning(),inform();
+//  void error(),warning(),inform();
   tree parse_this (char * this);
   tree parse_this_n (char * this, int n);
   tree parse_this_range (char * this, char * end);
@@ -88,25 +91,6 @@
 
   struct bli_token_struct * first_token=NULL;
 
-#define DSC$K_DTYPE_T 14
-#define DSC$K_CLASS_S 1
-
-  struct dsc$descriptor {
-    unsigned short dsc$w_length;   
-    unsigned char dsc$b_dtype;    
-    unsigned char dsc$b_class;    
-    void          *dsc$a_pointer; 
-  };
-
-  struct mymacro {
-    struct mymacro * next;
-    char * name;
-    int type;
-    tree param;
-    tree param2;
-    tree body;
-  };
-
   static int keyword (char *);
   static int ukeyword (char *);
   static void downcase (char *);
@@ -115,17 +99,23 @@
   void pop_req_stack(void);
   void push_cond_stack(int);
   void pop_cond_stack(void);
+#if 0
   void * find_macro(struct mymacro *,char *);
+#endif
   void yy2error (const char *);
+#if 0
   int make_macro_string(struct dsc$descriptor * dsc, struct mymacro *, tree);
+#endif
   int isupper(int);
   int islower(int);
   int tolower(int);
   int bli_init_reswords (void);
   int yylex ( void );
   int something_that_uses_yyunput(void);
-  int add_tree_string(tree, const char *, int, int);
+  tree add_tree_string_new(tree, const char *, int, int);
+  tree add_tree_string_new_p(tree *, const char *, int, int);
   void strip_par(char *);
+  tree * tree_last_p (tree *);
 
 #define MAX_INCLUDE_DEPTH 40
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
@@ -431,8 +421,10 @@ hexdigit [0-9a-f]
   //fprintf(stderr, "TDIG %s\n",s); fflush(stderr); 
   //yylval.type_node_p=copy_node(get_identifier(s));
   //yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
+  //yylval.type_node_p=build_int_cst (long_integer_type_node, atoi(yytext));
   long long l = atoll(yytext);
-  yylval.type_node_p=build_int_2(l & 0xffffffff, l >> 32);
+  yylval.type_node_p=build_int_cst_wide(long_integer_type_node, l & 0xffffffff, l >> 32);
+
   opexpcnt++; // for unary op workaround
   return T_DIGITS;
 }
@@ -476,7 +468,7 @@ hexdigit [0-9a-f]
       if (m) { 
   	     //if (m->param==0) goto ifall;
 	macr=m;
-	     BEGIN(macro);
+	     BEGIN(lexmacro);
 	     continue;
       }
 #if 0
@@ -593,7 +585,7 @@ hexdigit [0-9a-f]
 		  tree t = parse_this(myline);
 		  t = TREE_VALUE(t);
 		  push_cond_stack(0);
-		  skip_mode=get_cond_stack()|integer_zerop(fold(parser_build_binary_op(BIT_AND_EXPR,t,build_int_2(1,0))));
+		  skip_mode=get_cond_stack()|integer_zerop(fold(/*parser_*/build_binary_op(BIT_AND_EXPR,t,build_int_cst (long_integer_type_node, 1), 1))); // check -parser
 		  push_cond_stack(0);
 		} else {
 		  push_cond_stack(0);
@@ -700,12 +692,12 @@ hexdigit [0-9a-f]
 
 	   int val=TREE_INT_CST_LOW(size);
 	   sprintf(myline,"%d",val);
-	   yylval.type_node_p=build_int_2(val,0);
+	   yylval.type_node_p=build_int_cst (long_integer_type_node, val);
 	   if(!quiet_flag)printf("all %x\n",val);
 	 } else {
 	   myline[1]=0;
 	   myline[0]='4';
-	   yylval.type_node_p=build_int_2(4,0);
+	   yylval.type_node_p=build_int_cst (long_integer_type_node, 4);
 	 }
 	 //yylval.type_node_p=copy_node(get_identifier(myline));
 	 //yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
@@ -715,19 +707,19 @@ hexdigit [0-9a-f]
 #if 0
 	 char * str = IDENTIFIER_POINTER($4);
 	 if (strcmp(str,"own")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"global")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"forward")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"local")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"stacklocal")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"register")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"global register")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 #endif
   }
 	 break;
@@ -799,26 +791,26 @@ hexdigit [0-9a-f]
 	 //printf("is32 %x\n",is32);
 	 //yylval.type_node_p=copy_node(get_identifier(myline));
 	 //yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
-	 yylval.type_node_p=build_int_2(is32,0);
+	 yylval.type_node_p=build_int_cst (long_integer_type_node, is32);
 	 pname_macro(myline,strlen(myline));
 	 retval=T_DIGITS;
 	 goto out_data;
 #if 0
 	 char * str = IDENTIFIER_POINTER($4);
 	 if (strcmp(str,"own")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"global")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"forward")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"local")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"stacklocal")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"register")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 	 if (strcmp(str,"global register")==0)
-		$$ = build_int_2(4,0);
+		$$ = build_int_cst (long_integer_type_node, 4);
 #endif
   }
 	 break;
@@ -927,7 +919,7 @@ hexdigit [0-9a-f]
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
-	 yylval.type_node_p=build_int_2(myret,0);
+	 yylval.type_node_p=build_int_cst (long_integer_type_node, myret);
 	 pname_macro(s, strlen(s));
 	 retval = T_DIGITS;
 
@@ -984,7 +976,7 @@ hexdigit [0-9a-f]
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
-	 yylval.type_node_p=build_int_2(myret,0);
+	 yylval.type_node_p=build_int_cst (long_integer_type_node, myret);
 	 pname_macro(s,strlen(s));
 	 retval = T_DIGITS;
 
@@ -1189,7 +1181,7 @@ hexdigit [0-9a-f]
 	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
 
 	 void (*fn)()=0;
-	 char * str;
+	 char * str = 0;
 
 	 switch (key) {
 	 case P_ERROR:
@@ -1534,7 +1526,7 @@ hexdigit [0-9a-f]
 		  myline[0]='0';
 		//yylval.type_node_p=copy_node(get_identifier(myline));
 		//yylval.type_node_p=copy_node(build_string(strlen(myline),myline));
-		yylval.type_node_p=build_int_2(is_there,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, is_there);
 		pname_macro(myline,strlen(myline));
 		retval=T_DIGITS;
 		goto out_data;
@@ -1605,7 +1597,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("null %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(myret,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, myret);
 		pname_macro(s,strlen(s));
 
 		retval=T_DIGITS;
@@ -1677,7 +1669,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("ident %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(myline[0]-48,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, myline[0]-48);
 		pname_macro(s,strlen(s));
 
 		retval=T_DIGITS;
@@ -1739,7 +1731,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("isstr %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(myline[0]-48,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, myline[0]-48);
 		pname_macro(s,strlen(s));
 
 		retval=T_DIGITS;
@@ -1853,7 +1845,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("len %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(len,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, len);
 		pname_macro(s,strlen(s));
 
 		retval=T_DIGITS;
@@ -1910,7 +1902,7 @@ hexdigit [0-9a-f]
 		if (!quiet_flag) printf("number %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(v,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, v);
 		pname_macro(s,strlen(s));
 
 		retval=T_DIGITS;
@@ -1932,7 +1924,7 @@ hexdigit [0-9a-f]
 		char * s = strdup(myline);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
-		yylval.type_node_p=build_int_2(cond_iter_macro_count,0);
+		yylval.type_node_p=build_int_cst (long_integer_type_node, cond_iter_macro_count);
 		pname_macro(s,strlen(s));
 
 		cond_iter_macro_count=0; // reset it here because cannot in cond itself?
@@ -1993,7 +1985,7 @@ hexdigit [0-9a-f]
       char * s = strdup(myline);
       //yylval.type_node_p=copy_node(get_identifier(s));
       //yylval.type_node_p=copy_node(build_string(strlen(s),s));
-      yylval.type_node_p=build_int_2(0,0);
+      yylval.type_node_p=build_int_cst (long_integer_type_node, 0);
       pname_macro(s,strlen(s));
 
       retval=T_DIGITS;
@@ -2085,7 +2077,7 @@ hexdigit [0-9a-f]
   m=(void*)find_macro(0,yytext);
   if (m) { 
     macr=m;
-    BEGIN(macro);
+    BEGIN(lexmacro);
     exit(42);
   }
 
@@ -2105,7 +2097,7 @@ hexdigit [0-9a-f]
 {illstring}			{
   // seems you can create illegal strings with \n etc in it
  do_ill:
-  warning("Got illegal string\n");
+  warning(0, "Got illegal string\n");
   if (skip_mode && if_mode == 0) {
     yyless(yyleng);
     break;
@@ -2116,7 +2108,7 @@ hexdigit [0-9a-f]
   m=(void*)find_macro(0,yytext);
   if (m) { 
     macr=m;
-    BEGIN(macro);
+    BEGIN(lexmacro);
     exit(42);
   }
 
@@ -2183,11 +2175,11 @@ hexdigit [0-9a-f]
   }
 } 
 
-<macro>"%x"|"%X"|"%o"|"%O"|"%b"|"%B"|"%bpval"|"%BPVAL"|"%bpunit"|"%BPUNIT"|"%bpaddr"|%"BPADDR"|"%upval"|"%UPVAL"|"%ASCID"|"%ascid"|"%ASCIC"|"%ascic"|"%ASCIZ"|"%asciz" {
+<lexmacro>"%x"|"%X"|"%o"|"%O"|"%b"|"%B"|"%bpval"|"%BPVAL"|"%bpunit"|"%BPUNIT"|"%bpaddr"|%"BPADDR"|"%upval"|"%UPVAL"|"%ASCID"|"%ascid"|"%ASCIC"|"%ascic"|"%ASCIZ"|"%asciz" {
   goto m_name;
 }
 
-<macro>"%"{name} {
+<lexmacro>"%"{name} {
   downcase(yytext+1);
   if (0==strcmp("%else",yytext) || 0==strcmp("%if",yytext) || 0==strcmp("%then",yytext) || 0==strcmp("%fi",yytext)) {
     if (macrostart==0 && 0==strcmp("%if",yytext))
@@ -2204,7 +2196,7 @@ hexdigit [0-9a-f]
   goto p_name;
 }
 
-<macro>{delim}|"%"				{
+<lexmacro>{delim}|"%"				{
   if (skip_mode && if_mode == 0) {
     yyless(yyleng);
     break;
@@ -2228,14 +2220,15 @@ hexdigit [0-9a-f]
 	     goto out;
 	   }
 	   tree t = tree_last(macroact);
+	   tree t_p = tree_last_p(&macroact);
 	   if (macrocomma=='=' && macr->type==KEYW_MACRO) {
 	     // was: add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 	     if (TREE_TYPE(tree_last(macroact))==0)
 	       TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
 	     else
-	       add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, 1, 1);
+	       TREE_TYPE(tree_last(macroact)) = add_tree_string_new(TREE_TYPE(tree_last(macroact)), yytext, 1, 1);
 	   } else {
-	     add_tree_string(t, yytext, 1, 0);
+	     add_tree_string_new_p(t_p, yytext, 1, 0);
 	   }
 	 }
 	 goto out;
@@ -2246,10 +2239,11 @@ hexdigit [0-9a-f]
 		goto end_out;
 	 if (macro_stack_ptr>1) {
 		tree t = tree_last(macroact);
+		tree t_p = tree_last_p(&macroact);
 		if (macrocomma=='=' && macr->type==KEYW_MACRO)
-		  add_tree_string(TREE_TYPE(t), yytext, 1, 1);
+		  TREE_TYPE(t) = add_tree_string_new(TREE_TYPE(t), yytext, 1, 1);
 		else
-		  add_tree_string(t, yytext, 1, 0);
+		  add_tree_string_new_p(t_p, yytext, 1, 0);
 		pop_macro_stack();
 		goto out;
 	 }
@@ -2284,10 +2278,11 @@ hexdigit [0-9a-f]
 	 default:
 		if (macro_stack_ptr>1) {
 		  tree t = tree_last(macroact);
+		  tree t_p = tree_last_p(&macroact);
 		  if (macrocomma=='=' && macr->type==KEYW_MACRO)
-		    add_tree_string(TREE_TYPE(t), yytext, strlen(yytext), 1);
+		    TREE_TYPE(t) = add_tree_string_new(TREE_TYPE(t), yytext, strlen(yytext), 1);
 		  else
-		    add_tree_string(t, yytext, strlen(yytext), 0);
+		    add_tree_string_new_p(t_p, yytext, strlen(yytext), 0);
 		} else {
 		  if (*yytext==',')
 		    if (macroact==0) {
@@ -2306,13 +2301,14 @@ hexdigit [0-9a-f]
 		      goto out;
 		    }
 		    tree t = tree_last(macroact);
+		    tree t_p = tree_last_p(&macroact);
 		    if (macrocomma=='=' && macr->type==KEYW_MACRO) {
 		      if (TREE_TYPE(tree_last(macroact))==0)
 			TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
 		      else
-			add_tree_string(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext), 1);
+			TREE_TYPE(tree_last(macroact)) = add_tree_string_new(TREE_TYPE(tree_last(macroact)), yytext, strlen(yytext), 1);
 		    } else {
-		      add_tree_string(t, yytext, strlen(yytext), 1);
+		      add_tree_string_new_p(t_p, yytext, strlen(yytext), 1);
 		    }
 		  }
 		}
@@ -2372,7 +2368,7 @@ hexdigit [0-9a-f]
 
 }
 
-<macro>{name}|{string}|{digit}+				{
+<lexmacro>{name}|{string}|{digit}+				{
  m_name:
   if (skip_mode && if_mode == 0) {
     yyless(yyleng);
@@ -2420,7 +2416,7 @@ hexdigit [0-9a-f]
     if (TREE_TYPE(tree_last(macroact))==0)
       TREE_TYPE(tree_last(macroact))=build_string(use_yyleng,use_yytext);
     else
-      add_tree_string(TREE_TYPE(tree_last(macroact)), use_yytext, use_yyleng, 1);
+      TREE_TYPE(tree_last(macroact)) = add_tree_string_new(TREE_TYPE(tree_last(macroact)), use_yytext, use_yyleng, 1);
     goto out_macro_comma;
   }
   if (macrocomma==',' && macro_stack_ptr==1) {
@@ -2429,32 +2425,33 @@ hexdigit [0-9a-f]
 	 macroact=chainon(macroact,build_string(use_yyleng,use_yytext));
 #else
 	 tree t = tree_last(macroact);
+	 tree t_p = tree_last_p(&macroact);
 	 int space=0;
 	 if (TREE_STRING_LENGTH(t))
 	   space=1;
-	 add_tree_string(t, use_yytext, use_yyleng, space);
+	 add_tree_string_new_p(t_p, use_yytext, use_yyleng, space);
 #endif
   } else {
 	 if (macroact==0) {
 		macroact=chainon(macroact,build_string(use_yyleng,use_yytext));
 		goto out_macro_comma;
 	 }
-	 tree t = tree_last(macroact);
-	 add_tree_string(t, use_yytext, use_yyleng, 1);
+	 tree t_p = tree_last_p(&macroact);
+	 add_tree_string_new_p(t_p, use_yytext, use_yyleng, 1);
   }
  out_macro_comma:
   {}
   //  macrocomma=1;
 }
 
-<macro>\n            input_line++;
-<macro> { }
-<macro>\r { }
-<macro> { }
+<lexmacro>\n            input_line++;
+<lexmacro> { }
+<lexmacro>\r { }
+<lexmacro> { }
 
-<macro>{space}+          { }
+<lexmacro>{space}+          { }
 
-<macro>![^\n\f]*[\n\f]			/* ignore trailing comment */ input_line++ ; 
+<lexmacro>![^\n\f]*[\n\f]			/* ignore trailing comment */ input_line++ ; 
 
 %%
 
@@ -3167,13 +3164,14 @@ change_macromode() {
   }
 }
 
-int
-add_tree_string(t,s,len,space)
+tree
+add_tree_string_new(t,s,len,space)
 	  tree t;
 	  const char * s;
 	  int len;
 	  int space;
 {
+  tree new_t;
   // maybe a source for leakage
   int orig_len = TREE_STRING_LENGTH (t);
   char str[1024]; // check bound overflow later
@@ -3184,12 +3182,34 @@ add_tree_string(t,s,len,space)
   }
   memcpy(str+orig_len+space, s, len);
   str[orig_len+len+space]=0;
+#if 0
+  TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len+space);
   TREE_STRING_POINTER (t) = ggc_alloc_string (str, orig_len+len+space);
   TREE_STRING_LENGTH (t) = orig_len+len+space;
+#else
+  new_t = t = build_string(orig_len+len+space, str);
+#endif
   //  free(str); leak
   if (TREE_STRING_LENGTH (t)>longest_string)
     longest_string = TREE_STRING_LENGTH (t);
   add_memcpy+=orig_len;
+  return new_t;
+}
+
+tree
+add_tree_string_new_p(t,s,len,space)
+	  tree * t;
+	  const char * s;
+	  int len;
+	  int space;
+{
+  if (*t == 0) {
+exit(42);
+    add_tree_string_new (t, s, len, space);
+}
+  else
+    *t = add_tree_string_new (*t, s, len, space);
+  return *t;
 }
 
 void
@@ -3301,3 +3321,14 @@ do_eof()
 	 return END_BUILTIN;
   }
 } 
+
+tree *
+tree_last_p (tree * chain)
+{
+  if (chain && *chain)
+    while (TREE_CHAIN (*chain)) {
+      chain = &TREE_CHAIN(*chain);
+    }
+  return chain;
+}
+

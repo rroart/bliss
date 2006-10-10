@@ -24,16 +24,20 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "c-common.h"
+#include "bli-common.h"
+#if 0
 #include "c-pragma.h"
+#endif
 #include "flags.h"
 #include "toplev.h"
 #include "langhooks.h"
 #include "tree-inline.h"
 #include "diagnostic.h"
 #include "intl.h"
+#if 0
 #include "cppdefault.h"
 #include "c-incpath.h"
+#endif
 #include "debug.h"		/* For debug_hooks.  */
 #include "opts.h"
 #include "options.h"
@@ -186,6 +190,8 @@ defer_opt (enum opt_code code, const char *arg)
   deferred_count++;
 }
 
+extern cpp_reader *parse_in;
+
 /* Common initialization before parsing options.  */
 unsigned int
 c_common_init_options (unsigned int argc, const char **argv)
@@ -205,8 +211,10 @@ c_common_init_options (unsigned int argc, const char **argv)
       diagnostic_prefixing_rule (global_dc) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
     }
 
+#if 0
   parse_in = cpp_create_reader (c_dialect_cxx () ? CLK_GNUCXX: CLK_GNUC89,
 				ident_hash);
+#endif
 
   cpp_opts = &cpp_opts_str; /*cpp_get_options (parse_in);*/
   cpp_opts->dollars_in_ident = DOLLARS_IN_IDENTIFIERS;
@@ -701,7 +709,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_fvtable_thunks:
     case OPT_fxref:
     case OPT_fvtable_gc:
-      warning ("switch \"%s\" is no longer supported", option->opt_text);
+      warning (0, "switch \"%s\" is no longer supported", option->opt_text);
       break;
 
     case OPT_faccess_control:
@@ -757,7 +765,10 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_fsigned_bitfields:
       flag_signed_bitfields = value;
+#if 0
+      // check
       explicit_flag_signed_bitfields = 1;
+#endif
       break;
 
     case OPT_fsigned_char:
@@ -766,7 +777,9 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_funsigned_bitfields:
       flag_signed_bitfields = !value;
+#if 0
       explicit_flag_signed_bitfields = 1;
+#endif
       break;
 
     case OPT_funsigned_char:
@@ -821,7 +834,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fhandle_exceptions:
-      warning ("-fhandle-exceptions has been renamed -fexceptions (and is now on by default)");
+      warning (0, "-fhandle-exceptions has been renamed -fexceptions (and is now on by default)");
       flag_exceptions = value;
       break;
 
@@ -1128,17 +1141,17 @@ c_common_post_options (const char **pfilename)
   /* Special format checking options don't work without -Wformat; warn if
      they are used.  */
   if (warn_format_y2k && !warn_format)
-    warning ("-Wformat-y2k ignored without -Wformat");
+    warning (0, "-Wformat-y2k ignored without -Wformat");
   if (warn_format_extra_args && !warn_format)
-    warning ("-Wformat-extra-args ignored without -Wformat");
+    warning (0, "-Wformat-extra-args ignored without -Wformat");
   if (warn_format_zero_length && !warn_format)
-    warning ("-Wformat-zero-length ignored without -Wformat");
+    warning (0, "-Wformat-zero-length ignored without -Wformat");
   if (warn_format_nonliteral && !warn_format)
-    warning ("-Wformat-nonliteral ignored without -Wformat");
+    warning (0, "-Wformat-nonliteral ignored without -Wformat");
   if (warn_format_security && !warn_format)
-    warning ("-Wformat-security ignored without -Wformat");
+    warning (0, "-Wformat-security ignored without -Wformat");
   if (warn_missing_format_attribute && !warn_format)
-    warning ("-Wmissing-format-attribute ignored without -Wformat");
+    warning (0, "-Wmissing-format-attribute ignored without -Wformat");
 
   if (flag_preprocess_only)
     {
@@ -1207,7 +1220,7 @@ c_common_init (void)
   cpp_opts->char_precision = TYPE_PRECISION (char_type_node);
   cpp_opts->int_precision = TYPE_PRECISION (integer_type_node);
   cpp_opts->wchar_precision = TYPE_PRECISION (wchar_type_node);
-  cpp_opts->unsigned_wchar = TREE_UNSIGNED (wchar_type_node);
+  cpp_opts->unsigned_wchar = TYPE_UNSIGNED (wchar_type_node);
   cpp_opts->bytes_big_endian = BYTES_BIG_ENDIAN;
 
 #if 0
@@ -1239,7 +1252,7 @@ c_common_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 #if YYDEBUG != 0
   yydebug = set_yydebug;
 #else
-  warning ("YYDEBUG not defined");
+  warning (0, "YYDEBUG not defined");
 #endif
 
   file_index = 0;
@@ -1249,7 +1262,9 @@ c_common_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       if (file_index > 0)
 	{
 	  /* Reset the state of the parser.  */
+#if 0
 	  c_reset_state();
+#endif
 
 	  /* Reset cpplib's macros and start a new file.  */
 #if 0
@@ -1299,7 +1314,9 @@ c_common_finish (void)
 
   /* For performance, avoid tearing down cpplib's internal structures
      with cpp_destroy ().  */
+#if 0
   errorcount += cpp_finish (parse_in, deps_stream);
+#endif
 
   if (deps_stream && deps_stream != out_stream
       && (ferror (deps_stream) || fclose (deps_stream)))
@@ -1543,7 +1560,7 @@ void
 cb_dir_change (cpp_reader *pfile ATTRIBUTE_UNUSED, const char *dir)
 {
   if (! set_src_pwd (dir))
-    warning ("too late for # directive to set debug directory");
+    warning (0, "too late for # directive to set debug directory");
 }
 
 /* Set the C 89 standard (with 1994 amendments if C94, without GNU
@@ -1558,7 +1575,10 @@ set_std_c89 (int c94, int iso)
   flag_no_nonansi_builtin = iso;
   flag_isoc94 = c94;
   flag_isoc99 = 0;
+#if 0
+  // check gone
   flag_writable_strings = 0;
+#endif
 }
 
 /* Set the C 99 standard (without GNU extensions if ISO).  */
@@ -1571,7 +1591,10 @@ set_std_c99 (int iso)
   flag_iso = iso;
   flag_isoc99 = 1;
   flag_isoc94 = 1;
+#if 0
+  // check gone
   flag_writable_strings = 0;
+#endif
 }
 
 /* Set the C++ 98 standard (without GNU extensions if ISO).  */

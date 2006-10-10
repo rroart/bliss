@@ -25,15 +25,19 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "c-tree.h"
-#include "c-common.h"
+#include "bli-tree.h"
+#include "bli-common.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "diagnostic.h"
+#if 0
 #include "c-pretty-print.h"
+#endif
 
+#if 0
 static void c_initialize_diagnostics (diagnostic_context *);
+#endif
 
 enum c_language_kind c_language = clk_c;
 
@@ -51,8 +55,10 @@ extern void bli_print_statistics(void);
 #define LANG_HOOKS_FINISH c_common_finish
 #undef LANG_HOOKS_INIT_OPTIONS
 #define LANG_HOOKS_INIT_OPTIONS c_common_init_options
+#if 0
 #undef LANG_HOOKS_INITIALIZE_DIAGNOSTICS
 #define LANG_HOOKS_INITIALIZE_DIAGNOSTICS c_initialize_diagnostics
+#endif
 #undef LANG_HOOKS_HANDLE_OPTION
 #define LANG_HOOKS_HANDLE_OPTION c_common_handle_option
 #undef LANG_HOOKS_MISSING_ARGUMENT
@@ -61,24 +67,31 @@ extern void bli_print_statistics(void);
 #define LANG_HOOKS_POST_OPTIONS c_common_post_options
 #undef LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET c_common_get_alias_set
+#if 0
 #undef LANG_HOOKS_SAFE_FROM_P
 #define LANG_HOOKS_SAFE_FROM_P c_safe_from_p
+#endif
 #undef LANG_HOOKS_EXPAND_EXPR
 #define LANG_HOOKS_EXPAND_EXPR bli_expand_expr
 #undef LANG_HOOKS_MARK_ADDRESSABLE
 #define LANG_HOOKS_MARK_ADDRESSABLE c_mark_addressable
 #undef LANG_HOOKS_PARSE_FILE
 #define LANG_HOOKS_PARSE_FILE bli_common_parse_file
+#if 0
+// check
 #undef LANG_HOOKS_TRUTHVALUE_CONVERSION
 #define LANG_HOOKS_TRUTHVALUE_CONVERSION c_common_truthvalue_conversion
+#endif
 #undef LANG_HOOKS_FINISH_INCOMPLETE_DECL
 #define LANG_HOOKS_FINISH_INCOMPLETE_DECL c_finish_incomplete_decl
 #undef LANG_HOOKS_UNSAFE_FOR_REEVAL
 #define LANG_HOOKS_UNSAFE_FOR_REEVAL c_common_unsafe_for_reeval
 #undef LANG_HOOKS_STATICP
 #define LANG_HOOKS_STATICP c_staticp
+#if 0
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
 #define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME c_static_assembler_name
+#endif
 #undef LANG_HOOKS_NO_BODY_BLOCKS
 #define LANG_HOOKS_NO_BODY_BLOCKS true
 #undef LANG_HOOKS_WARN_UNUSED_GLOBAL_DECL
@@ -118,8 +131,11 @@ extern void bli_print_statistics(void);
 #undef LANG_HOOKS_TREE_INLINING_CONVERT_PARM_FOR_INLINING
 #define LANG_HOOKS_TREE_INLINING_CONVERT_PARM_FOR_INLINING \
   c_convert_parm_for_inlining
+#if 0
+// check
 #undef LANG_HOOKS_TREE_INLINING_ESTIMATE_NUM_INSNS
 #define LANG_HOOKS_TREE_INLINING_ESTIMATE_NUM_INSNS c_estimate_num_insns
+#endif
 #if 0
 #undef LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN
 #define LANG_HOOKS_TREE_DUMP_DUMP_TREE_FN c_dump_tree
@@ -148,6 +164,18 @@ extern void bli_print_statistics(void);
 #undef LANG_HOOKS_WRITE_GLOBALS
 #define LANG_HOOKS_WRITE_GLOBALS c_write_global_declarations
 
+#undef LANG_HOOKS_GETDECLS
+#define LANG_HOOKS_GETDECLS lhd_return_null_tree_v
+
+#define C_SIZEOF_STRUCT_LANG_IDENTIFIER \
+  (sizeof (struct c_common_identifier) + 3 * sizeof (void *))
+#undef LANG_HOOKS_IDENTIFIER_SIZE
+#define LANG_HOOKS_IDENTIFIER_SIZE C_SIZEOF_STRUCT_LANG_IDENTIFIER
+
+/* Hooks for tree gimplification.  */
+#undef LANG_HOOKS_GIMPLIFY_EXPR
+#define LANG_HOOKS_GIMPLIFY_EXPR c_gimplify_expr
+
 /* ### When changing hooks, consider if ObjC needs changing too!! ### */
 
 /* Each front end provides its own.  */
@@ -157,10 +185,12 @@ const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 #define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
 
-const char tree_code_type[] = {
+const enum tree_code_class tree_code_type[] = {
 #include "tree.def"
+#if 0
   'x',
-#include "c-common.def"
+#include "bli-c-common.def"
+#endif
   'x',
 #include "bliss-tree.def"
 };
@@ -174,8 +204,10 @@ const char tree_code_type[] = {
 
 const unsigned char tree_code_length[] = {
 #include "tree.def"
+#if 0
   0,
-#include "c-common.def"
+#include "bli-c-common.def"
+#endif
   0,
 #include "bliss-tree.def"
 };
@@ -212,8 +244,10 @@ const unsigned char tree_code_length[] = {
 
 const char *const tree_code_name[] = {
 #include "tree.def"
+#if 0
   "@@dummy",
-#include "c-common.def"
+#include "bli-c-common.def"
+#endif
   "@@blissdummy",
 #include "bliss-tree.def"
 };
@@ -222,22 +256,26 @@ const char *const tree_code_name[] = {
 void
 finish_file (void)
 {
+#if 0
   c_objc_common_finish_file ();
+#endif
 }
 
+#if 0
 static void
 c_initialize_diagnostics (diagnostic_context *context)
 {
+#if 0
   pretty_printer *base = context->printer;
   c_pretty_printer *pp = xmalloc (sizeof (c_pretty_printer));
   memcpy (pp_base (pp), base, sizeof (pretty_printer));
-#if 0
   pp_c_pretty_printer_init (pp);
-#endif
   context->printer = (pretty_printer *) pp;
 
   /* It is safe to free this object because it was previously malloc()'d.  */
   free (base);
+#endif
 }
+#endif
 
 #include "gtype-c.h"
