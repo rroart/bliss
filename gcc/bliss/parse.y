@@ -1237,7 +1237,8 @@ string_literal:  string_type T_STRING2 {
 	 start_init(decl,NULL,global_bindings_p());
 	 finish_init();
 
-	 tree constructor2 = build_constructor_from_list (int_array_type_node /*TREE_TYPE(decl)*//*integer_type_node int_array_type_node*/,string);
+	 tree stringlist = tree_cons (build_int_cst (integer_type_node, 0), string, 0);
+	 tree constructor2 = build_constructor_from_list (int_array_type_node /*TREE_TYPE(decl)*//*integer_type_node int_array_type_node*/,stringlist);
 	 TREE_CONSTANT(constructor2)=1;
 	 init=constructor2;
 
@@ -1539,7 +1540,7 @@ unlabeled_block
 {
   tree name=$1;
   tree decl = lookup_label(name);
-  add_stmt (build (LABEL_EXPR, void_type_node, decl));
+  add_stmt (build1 (LABEL_EXPR, void_type_node, decl));
 #if 0
   tree body = tree_last(cur_stmt_list);
   tree es=$<type_node_p>2;
@@ -2078,7 +2079,7 @@ address maybe_field_selector
   }
   /*if (context=='f') */ {
     tree d=$1;
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
+    t=build3 (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
 #if 0
     // check
     TREE_TYPE(TREE_OPERAND(t, 2)) = bitsizetype; // check. was u-
@@ -2090,7 +2091,7 @@ address maybe_field_selector
   }
   /* if (context=='o') */ {
     tree d=$1;
-    t=build (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
+    t=build3 (BIT_FIELD_REF, c_common_type_for_mode(TYPE_MODE (long_integer_type_node),1), d, size, pos); // 64-bit
 #if 0
     // check
     TREE_TYPE(TREE_OPERAND(t, 2)) = bitsizetype; // check. was u-
@@ -2738,7 +2739,7 @@ K_SET case_line_list K_TES
   //tree nop = build_int_cst (long_integer_type_node, 0); // 64-bit
   c_finish_case ($$ /*nop*/ /*0*/); // check
   // c_in_case_stmt--; // check
-  add_stmt (build (LABEL_EXPR, void_type_node, cntrls[cntrli].c_break_label));
+  add_stmt (build1 (LABEL_EXPR, void_type_node, cntrls[cntrli].c_break_label));
   $$ = cntrls[cntrli].block_value;
   cntrli--;
 }
@@ -2763,7 +2764,7 @@ case_line:
 '[' case_label_list ']' ':' case_action ';'
 {
   tree decl = cntrls[cntrli].block_value;
-  $5 = build (MODIFY_EXPR, TREE_TYPE (decl), decl, $5);
+  $5 = build2 (MODIFY_EXPR, TREE_TYPE (decl), decl, $5);
   add_stmt ($5);
   if (cntrls[cntrli].c_break_label)
     add_stmt (build1 (GOTO_EXPR, void_type_node, cntrls[cntrli].c_break_label));
@@ -2774,10 +2775,10 @@ case_line:
   yyerrok;
   // another deviation. handle no ';' before tes
   tree decl = cntrls[cntrli].block_value;
-  $5 = build (MODIFY_EXPR, TREE_TYPE (decl), decl, $5);
+  $5 = build2 (MODIFY_EXPR, TREE_TYPE (decl), decl, $5);
   add_stmt ($5);
   if (cntrls[cntrli].c_break_label)
-    add_stmt (build (GOTO_EXPR, void_type_node, cntrls[cntrli].c_break_label));
+    add_stmt (build1 (GOTO_EXPR, void_type_node, cntrls[cntrli].c_break_label));
 }
 ;
 
@@ -2891,7 +2892,7 @@ K_OF K_SET select_line_list K_TES
 #endif
 #endif
   if (cntrls[cntrli].c_break_label)
-    add_stmt (build (LABEL_EXPR, void_type_node, cntrls[cntrli].c_break_label));
+    add_stmt (build1 (LABEL_EXPR, void_type_node, cntrls[cntrli].c_break_label));
   $$ = cntrls[cntrli].block_value;
   cntrli--;
 }
@@ -2973,7 +2974,7 @@ mydummy
 select_action_with_end
 {
   tree decl = cntrls[cntrli].block_value;
-  $9 = build (MODIFY_EXPR, TREE_TYPE (decl), decl, $9);
+  $9 = build2 (MODIFY_EXPR, TREE_TYPE (decl), decl, $9);
   add_stmt ($9);
   if (!lastotherwise && cntrls[cntrli].c_break_label)
     add_stmt ( build1 (GOTO_EXPR, void_type_node, cntrls[cntrli].c_break_label));
@@ -3342,7 +3343,7 @@ K_EXITLOOP exp {
   tree t = value;
   
   if (!(TREE_CODE(t)==VAR_DECL && DECL_ARTIFICIAL (decl))) 
-    t = build (MODIFY_EXPR, TREE_TYPE (decl), decl, t);
+    t = build2 (MODIFY_EXPR, TREE_TYPE (decl), decl, t);
   add_stmt (t);
 
   t = build1 (GOTO_EXPR, void_type_node, cntrls[cntrli].c_break_label);
@@ -4665,12 +4666,31 @@ io_list routine_attributes
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
 #else
   if (io_list==0) {
+#if 0
     // temp workaround to have ap with no formals
     tree d1 = get_identifier("__mydummy_for_ap__");
     tree type = long_integer_type_node; // 64-bit
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
     tree point_int = tree_cons (int_tree, d1, 0);
     io_list = tree_cons (point_int, 0, 0);
+#else
+#if 1
+    push_scope();
+    // check: needs mark_forward_parm_decls (); maybe?
+    declare_parm_level ();
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    tree type = long_integer_type_node; // 64-bit
+    tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
+    tree dd = build_parm_decl(d1, long_integer_type_node); // 64-bit
+    push_parm_decl (dd);
+    io_list = get_parm_info(1);
+    pop_scope();
+#else
+    tree type = long_integer_type_node;
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    io_list = build_decl (PARM_DECL, d1, type);
+#endif
+#endif
   }
 #endif
   // check. why CALL_EXPR?
@@ -4816,6 +4836,7 @@ io_list global_routine_attributes
   if (io_list==0) io_list=build_tree_list (NULL_TREE, NULL_TREE);
 #else
   if (io_list==0) {
+#if 0
     // temp workaround to have ap with no formals
     tree d1 = get_identifier("__mydummy_for_ap__");
     tree type = long_integer_type_node; // 64-bit
@@ -4823,6 +4844,24 @@ io_list global_routine_attributes
     tree point_tree = bli_make_pointer_declarator (0, d1);
     tree point_int = tree_cons (int_tree, point_tree, 0);
     io_list = tree_cons (point_int, 0, 0);
+#else
+#if 1
+    push_scope();
+    // check: needs mark_forward_parm_decls (); maybe?
+    declare_parm_level ();
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    tree type = long_integer_type_node; // 64-bit
+    tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
+    tree dd = build_parm_decl(d1, long_integer_type_node); // 64-bit
+    push_parm_decl (dd);
+    io_list = get_parm_info(1);
+    pop_scope();
+#else
+    tree type = long_integer_type_node;
+    tree d1 = get_identifier("__mydummy_for_ap__");
+    io_list = build_decl (PARM_DECL, d1, type);
+#endif
+#endif
   }
 #endif
   fn = build_nt (CALL_EXPR, $1, io_list, NULL_TREE);
@@ -5328,7 +5367,7 @@ bind_data_name '=' data_name_value maybe_bind_data_attribute_list
   if (TREE_CODE(init)==BIT_FIELD_REFS) {
     init=TREE_OPERAND(init, 2);
     init=TREE_OPERAND(init, 0);
-    my_fold(init);
+    my_fold_p(&init);
   }
 #if 0
   TREE_CONSTANT(init)=1;
@@ -7302,6 +7341,7 @@ convert_field_ref_to_decl(ref, value)
   STRIP_TYPE_NOPS(DECL_FIELD_BIT_OFFSET(field));
   STRIP_TYPE_NOPS(DECL_SIZE(field));
   if (!quiet_flag) printf("off %x %x %x\n",TREE_INT_CST_LOW(DECL_FIELD_OFFSET(field)), TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(field)),TREE_INT_CST(DECL_SIZE(field)));
+  SET_DECL_OFFSET_ALIGN(field, 8);
   return field;
 }
 
@@ -7570,7 +7610,7 @@ set_temp_var(decl, value)
 
   if (value==0)
     value=build_int_cst (long_integer_type_node, 0); // workaround to avoid decl 0 and crash
-  tree t = build (TARGET_EXPR, TREE_TYPE (decl), decl, value, 0, NULL_TREE);
+  tree t = build4 (TARGET_EXPR, TREE_TYPE (decl), decl, value, 0, NULL_TREE);
   TREE_SIDE_EFFECTS (t) = 1;
   return t;
 }
@@ -7860,6 +7900,7 @@ bli_make_pointer_declarator (tree type_quals_attrs, tree target)
   if (attrs != NULL_TREE)
     itarget = tree_cons (attrs, target, NULL_TREE);
 #endif
+  //  return build1 (INDIRECT_REF, long_integer_type_node, itarget);
   return build1 (INDIRECT_REF, 0 /*quals*/, itarget);
 }
 
