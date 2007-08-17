@@ -143,9 +143,11 @@ c_common_missing_argument (const char *opt, size_t code)
       /* Pick up the default message.  */
       return false;
 
+#if 0
     case OPT_fconstant_string_class_:
       error ("no class name specified with \"%s\"", opt);
       break;
+#endif
 
     case OPT_A:
       error ("assertion missing after \"%s\"", opt);
@@ -224,7 +226,9 @@ c_common_init_options (unsigned int argc, const char **argv)
      before passing on command-line options to cpplib.  */
   cpp_opts->warn_dollars = 0;
 
+#if 0
   flag_const_strings = c_dialect_cxx ();
+#endif
   flag_exceptions = c_dialect_cxx ();
   warn_pointer_arith = c_dialect_cxx ();
 
@@ -666,12 +670,14 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       warn_unused_macros = value;
       break;
 
+#if 0
     case OPT_Wwrite_strings:
       if (!c_dialect_cxx ())
 	flag_const_strings = value;
       else
 	warn_write_strings = value;
       break;
+#endif
 
     case OPT_ansi:
       if (!c_dialect_cxx ())
@@ -794,17 +800,21 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_conserve_space = value;
       break;
 
+#if 0
     case OPT_fconst_strings:
       flag_const_strings = value;
       break;
+#endif
 
     case OPT_fconstant_string_class_:
       constant_string_class_name = arg;
       break;
 
+#if 0
     case OPT_fdefault_inline:
       flag_default_inline = value;
       break;
+#endif
 
     case OPT_felide_constructors:
       flag_elide_constructors = value;
@@ -814,12 +824,14 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_enforce_eh_specs = value;
       break;
 
+#if 0
     case OPT_ffixed_form:
     case OPT_ffixed_line_length_:
       /* Fortran front end options ignored when preprocessing only.  */
       if (!flag_preprocess_only)
         result = 0;
       break;
+#endif
 
     case OPT_ffor_scope:
       flag_new_for_scope = value;
