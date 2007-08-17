@@ -1,13 +1,13 @@
 COMPILE/INSTALL/RUN:
 you might need flex 2.5.4 (have had problems with 2.5.31)
 
-unpack a gcc 3.4.3 distribution
+unpack a gcc 4.2.1 distribution
 
 put the bliss directories in gcc (alongside cp ada etc)
-by something like ln -s gcc-3.4.3 bliss and untar it right
+by something like ln -s gcc-4.2.1 bliss and untar it right
 (bliss is based on C routines)
 
-make a separate build directory in the same directory as gcc-3.4.3.
+make a separate build directory in the same directory as gcc-4.2.1.
 
 in each, do a ../configure --enable-languages=bliss.
 do a make bootstrap in it
@@ -200,6 +200,12 @@ loops needs it in case there is no block.
 TREE_SIDEEFFECTS is used so in some cases we get code generation at all.
 
 NEWS:
+
+0.211
+Gcc 4.2.1 backend.
+
+0.210
+Gcc 4.1.1 backend.
 
 0.200
 x86_64:
