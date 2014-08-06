@@ -1530,10 +1530,10 @@ attached_label_list
 #endif
 #if 0
   TREE_OPERAND(node, 1)= cur_last; // temp storage
-  $$=node;
+  //$$=node;
 #endif
 #if 0
-  $$=c_expand_expr_stmt($$);
+  //$$=c_expand_expr_stmt($$);
 #endif
 }
 unlabeled_block
@@ -2648,7 +2648,7 @@ control_expression:  conditional_expression
 if_then:
 K_IF
 {
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 exp
 {
@@ -2675,7 +2675,7 @@ if_then
 K_ELSE
 {
   compstmt_count++;
-  $$=c_begin_compound_stmt (1);
+  $<type_node_p>$=c_begin_compound_stmt (1);
 }
 pushlevel exp poplevel
 {
@@ -2730,7 +2730,7 @@ ctce K_TO ctce K_OF
 #if 0
   c_break_label = create_artificial_label ();
 #endif
-  $$=c_begin_compound_stmt (1);
+  $<type_node_p>$=c_begin_compound_stmt (1);
 }
 K_SET case_line_list K_TES
 {
@@ -2941,7 +2941,7 @@ error
 select_line:
 '[' 
 {
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 select_label_list ']' ':'
 {
@@ -2965,11 +2965,11 @@ select_label_list ']' ':'
   add_stmt (build_break_stmt ()); // selectone always
 #endif
   yyrec = 1;
-  $$ = t;
+  $<type_node_p>$ = t;
 }
 mydummy
 {
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 select_action_with_end
 {
@@ -3137,7 +3137,7 @@ indexed_loop_expression:
 indexed_loop_type
 {
   cntrli++;
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
   cntrls[cntrli].c_break_label = create_artificial_label ();
   //exitblock_value = create_temp_var();
   cntrls[cntrli].block_value = create_tmp_var (long_integer_type_node, "loopval");
@@ -3161,7 +3161,7 @@ from_exp
 }
 to_exp   by_exp  K_DO 
 {
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 exp 
 {
@@ -3203,23 +3203,23 @@ pre_tested_loop:
 k_while_or_until 
 {
   cntrli++;
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
   cntrls[cntrli].c_break_label = create_artificial_label ();
   cntrls[cntrli].block_value = create_tmp_var (long_integer_type_node, "loopval");
 }
 exp
 {
-  $$ = $3; // check
-  tree t=$$;
+  $<type_node_p>$ = $3; // check
+  tree t=$<type_node_p>$;
   t=/*parser_*/build_binary_op(BIT_AND_EXPR,t,build_int_cst (long_integer_type_node, 1), 1); // 64-bit
   t = c_common_truthvalue_conversion ( t ); 
   if ($1)
 	 t = build_unary_op (TRUTH_NOT_EXPR, t, 0);
-  $$ = c_common_truthvalue_conversion (t);
+  $<type_node_p>$ = c_common_truthvalue_conversion (t);
 }
 K_DO
 {
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 exp
 {
@@ -3250,7 +3250,7 @@ post_tested_loop:
 K_DO 
 {
   cntrli++;
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
   cntrls[cntrli].c_break_label = create_artificial_label ();
   cntrls[cntrli].block_value = create_tmp_var (long_integer_type_node, "loopval");
 }
@@ -3258,11 +3258,11 @@ mydummy
 {
   // $<type_node_p>$ = add_stmt (build_stmt (DO_STMT, NULL_TREE, NULL_TREE));
   //  DO_COND ($<type_node_p>$) = error_mark_node; // see c-parse.y for why
-  $$ = c_begin_compound_stmt (1);
+  $<type_node_p>$ = c_begin_compound_stmt (1);
 }
 exp
 {
-  $$ = c_end_compound_stmt ($<type_node_p>4, 1);
+  $<type_node_p>$ = c_end_compound_stmt ($<type_node_p>4, 1);
 }
 k_while_or_until
 {
@@ -4364,8 +4364,8 @@ T_NAME '['
 
   push_scope();
   declare_parm_level();
-  $$ = build_parm_decl($1, long_integer_type_node); // 64-bit
-  push_parm_decl($$); 
+  $<type_node_p>$ = build_parm_decl($1, long_integer_type_node); // 64-bit
+  push_parm_decl($<type_node_p>$); 
 }
   access_formal_list  ';' 
 {
@@ -4396,7 +4396,7 @@ T_NAME '['
 #endif
   afun=current_function_decl;
 
-  $$ = current_function_decl;
+  $<type_node_p>$ = current_function_decl;
   push_scope();
   push_scope();
   declare_parm_level();
@@ -4430,8 +4430,8 @@ allocation_formal_list ']' '='
   //begin_stmt_tree(&$<type_node_p>$);
   //$<type_node_p>12=allocfn;
 
-  $$=allocfn;
-  $$ = current_function_decl;
+  $<type_node_p>$=allocfn;
+  $<type_node_p>$ = current_function_decl;
 }
 structure_size
 {
@@ -4457,7 +4457,7 @@ structure_size
   begin_stmt_tree (&DECL_SAVED_TREE (current_function_decl));
 #endif
 
-  $$=accessfn;
+  $<type_node_p>$=accessfn;
 }
 structure_body
 {
