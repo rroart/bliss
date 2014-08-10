@@ -2,4 +2,5 @@
 mkdir tmp
 cd tmp
 wget http://mirrors-usa.go-parts.com/gcc/releases/gcc-4.2.1/gcc-core-4.2.1.tar.bz2
+wget http://mirrors-usa.go-parts.com/gcc/releases/gcc-4.2.1/gcc-testsuite-4.2.1.tar.gz
 cd ..

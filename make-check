@@ -1,0 +1,7 @@
+#export DEJAGNULIBS=/usr/share/dejagnu
+#export TCL_LIBRARY=/usr/share/tcltk/tcl8.5
+cd build
+cd gcc
+make check-bliss
+cd ..
+
