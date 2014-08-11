@@ -1,5 +1,15 @@
-#export DEJAGNULIBS=/usr/share/dejagnu
-#export TCL_LIBRARY=/usr/share/tcltk/tcl8.5
+unamem=`uname -m`
+
+if [ $unamem = x86_64 ]; then
+if [ -d /usr/lib/x86_64-linux-gnu ]; then
+export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+fi
+else
+if [ -d /usr/lib/i386-linux-gnu/ ]; then
+export LIBRARY_PATH=/usr/lib/i386-linux-gnu/
+fi
+fi
+
 cd build
 cd gcc
 make check-bliss
