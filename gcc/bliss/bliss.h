@@ -3,14 +3,14 @@
 
 #include <tree.h>
 
-#define DSC$K_DTYPE_T 14
-#define DSC$K_CLASS_S 1
+#define DSC_DOLLAR_K_DTYPE_T 14
+#define DSC_DOLLAR_K_CLASS_S 1
 
-struct dsc$descriptor {
-  unsigned short        dsc$w_length;   
-  unsigned char dsc$b_dtype;    
-  unsigned char dsc$b_class;    
-  void          *dsc$a_pointer; 
+struct dsc_dollar_descriptor {
+  unsigned short        dsc_dollar_w_length;   
+  unsigned char dsc_dollar_b_dtype;    
+  unsigned char dsc_dollar_b_class;    
+  void          *dsc_dollar_a_pointer; 
 };
 // has not got descrip.h (yet)
 
@@ -47,7 +47,7 @@ void add_macro (char *,int,tree,tree,tree);
 char * add_counted_string (tree, int);
 char * add_underscore (tree, int);
 void * find_macro(struct mymacro * s,char * name);
-int make_macro_string(struct dsc$descriptor * dsc, struct mymacro * m, tree r);
+int make_macro_string(struct dsc_dollar_descriptor * dsc, struct mymacro * m, tree r);
 tree find_init_attr(tree t);
 tree find_structure_attr(tree);
 tree find_alloc_attr(tree);
@@ -64,8 +64,8 @@ int unsigned_attr(tree);
 tree sign_convert(tree,tree);
 tree conv_unsign(tree);
 tree find_tree_code(tree, int);
-int my_strcat(struct dsc$descriptor *, int, const char *, int, const char *, int);
-int my_strcat_gen(struct dsc$descriptor * dsc, struct dsc$descriptor *dsc1, struct dsc$descriptor * dsc2, int space);
+int my_strcat(struct dsc_dollar_descriptor *, int, const char *, int, const char *, int);
+int my_strcat_gen(struct dsc_dollar_descriptor * dsc, struct dsc_dollar_descriptor *dsc1, struct dsc_dollar_descriptor * dsc2, int space);
 tree handle_preset(tree, tree, tree, tree);
 tree handle_initial(tree, tree, tree, tree, int);
 tree convert_field_ref_to_decl(tree,tree);
@@ -74,7 +74,7 @@ tree handle_structure_attribute(tree, tree, int);
 tree create_temp_var();
 tree set_temp_var(tree, tree);
 tree build_our_record(tree);
-int print_remain(struct dsc$descriptor *, tree);
+int print_remain(struct dsc_dollar_descriptor *, tree);
 tree mytag(tree);
 int is_str_tag(tree);
 tree strip_literal(tree);

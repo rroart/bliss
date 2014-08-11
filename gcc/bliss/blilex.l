@@ -94,7 +94,7 @@
   static int keyword (char *);
   static int ukeyword (char *);
   static void downcase (char *);
-  void push_macro(struct dsc$descriptor *);
+  void push_macro(struct dsc_dollar_descriptor *);
   void push_req_stack(char *);
   void pop_req_stack(void);
   void push_cond_stack(int);
@@ -104,7 +104,7 @@
 #endif
   void yy2error (const char *);
 #if 0
-  int make_macro_string(struct dsc$descriptor * dsc, struct mymacro *, tree);
+  int make_macro_string(struct dsc_dollar_descriptor * dsc, struct mymacro *, tree);
 #endif
   int isupper(int);
   int islower(int);
@@ -169,10 +169,10 @@
 	 }
 
   void
-    push_macro(struct dsc$descriptor *dsc)
+    push_macro(struct dsc_dollar_descriptor *dsc)
     {
       char * empty="";
-      char * new=dsc->dsc$a_pointer;
+      char * new=dsc->dsc_dollar_a_pointer;
       if (new==0)
         new=empty;
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
@@ -183,7 +183,7 @@
       include_stack_rem[include_stack_ptr] = old_remain; 
       include_stack_ptr++;
 
-      yy_switch_to_buffer(yy_scan_bytes(new, dsc->dsc$w_length));
+      yy_switch_to_buffer(yy_scan_bytes(new, dsc->dsc_dollar_w_length));
     }
 
   void
@@ -633,7 +633,7 @@ hexdigit [0-9a-f]
 	 if (do_skip)
 		goto do_break;
 	 key=-1;
-	 struct dsc$descriptor dsc;
+	 struct dsc_dollar_descriptor dsc;
 	 print_remain(&dsc, remaining);
 	 push_macro(&dsc);
   }
@@ -2328,7 +2328,7 @@ hexdigit [0-9a-f]
       old_remain = remaining;
       if (p==0)
         remaining=a;
-      struct dsc$descriptor dsc;
+      struct dsc_dollar_descriptor dsc;
       int sts = make_macro_string(&dsc, macr, macroact);
       if ((sts&1)==0)
 #if 0
@@ -2394,7 +2394,7 @@ hexdigit [0-9a-f]
 #endif
 	 // temp workaround if macros are simple enough?
 	 if (m->param==0 && m->param2==0) {
-	        struct dsc$descriptor dsc;
+	        struct dsc_dollar_descriptor dsc;
 		int sts = make_macro_string(&dsc, m, 0);
 		if ((sts&1)==0)
 #if 0
