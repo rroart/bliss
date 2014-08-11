@@ -7,8 +7,14 @@ unamem=`uname -m`
 if [ $unamem = x86_64 ]; then
 ARCH=x86_64
 LIBS=
+if [ -d /usr/lib/x86_64-linux-gnu ]; then
+export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+fi
 else
 ARCH=i386
+if [ -d /usr/lib/i386-linux-gnu/ ]; then
+export LIBRARY_PATH=/usr/lib/i386-linux-gnu/
+fi
 fi
 
 CFLAGS=
