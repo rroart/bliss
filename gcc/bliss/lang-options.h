@@ -19,7 +19,7 @@ along with this program; see the file COPYING.  If not, write to
 the Free Software Foundation, 59 Temple Place - Suite 330,
 Boston, MA 02111-1307, USA.  */
 
-DEFINE_LANG_NAME ("bliss")
+//DEFINE_LANG_NAME ("bliss")
      
 /* This is the contribution to the `lang_options' array in gcc.c for
    bliss.  */

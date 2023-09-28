@@ -32,11 +32,11 @@ tree get_value(tree);
 tree give_char_array_type_node();
 tree start_structure (enum tree_code, tree);
 tree finish_structure (tree, tree, tree, tree, tree, tree, tree);
-tree parse_this_range (char * this, char * end);
-tree parse_this_n (char * this, int n);
-tree parse_this (char * this);
+tree parse_this_range (char * thiss, char * end);
+tree parse_this_n (char * thiss, int n);
+tree parse_this (char * thiss);
 tree mylast();
-tree build_external(id, attr);
+tree build_external(tree, tree);
 
 tree my_copy_tree (tree);
 void my_substitute (tree, tree, tree);

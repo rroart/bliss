@@ -41,6 +41,7 @@ static void c_initialize_diagnostics (diagnostic_context *);
 
 enum c_language_kind c_language = clk_c;
 
+ #  define PARAMS(args) args
 extern void bli_common_parse_file(int);
 extern rtx bli_expand_expr PARAMS ((tree, rtx, enum machine_mode, int));
 extern void bli_print_statistics(void);
@@ -61,8 +62,8 @@ extern void bli_print_statistics(void);
 #endif
 #undef LANG_HOOKS_HANDLE_OPTION
 #define LANG_HOOKS_HANDLE_OPTION c_common_handle_option
-#undef LANG_HOOKS_MISSING_ARGUMENT
-#define LANG_HOOKS_MISSING_ARGUMENT c_common_missing_argument
+//#undef LANG_HOOKS_MISSING_ARGUMENT
+//#define LANG_HOOKS_MISSING_ARGUMENT c_common_missing_argument
 #undef LANG_HOOKS_POST_OPTIONS
 #define LANG_HOOKS_POST_OPTIONS c_common_post_options
 #undef LANG_HOOKS_GET_ALIAS_SET
@@ -164,8 +165,8 @@ extern void bli_print_statistics(void);
 #undef LANG_HOOKS_WRITE_GLOBALS
 #define LANG_HOOKS_WRITE_GLOBALS c_write_global_declarations
 
-#undef LANG_HOOKS_GETDECLS
-#define LANG_HOOKS_GETDECLS lhd_return_null_tree_v
+//#undef LANG_HOOKS_GETDECLS
+//#define LANG_HOOKS_GETDECLS lhd_return_null_tree_v
 
 #define C_SIZEOF_STRUCT_LANG_IDENTIFIER \
   (sizeof (struct c_common_identifier) + 3 * sizeof (void *))
@@ -179,10 +180,11 @@ extern void bli_print_statistics(void);
 /* ### When changing hooks, consider if ObjC needs changing too!! ### */
 
 /* Each front end provides its own.  */
-const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+//const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* Tree code classes.  */
 
+/*
 #define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
 
 const enum tree_code_class tree_code_type[] = {
@@ -195,11 +197,13 @@ const enum tree_code_class tree_code_type[] = {
 #include "bliss-tree.def"
 };
 #undef DEFTREECODE
+*/
 
 /* Table indexed by tree code giving number of expression
    operands beyond the fixed part of the node structure.
    Not used for types or decls.  */
 
+/*
 #define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
 
 const unsigned char tree_code_length[] = {
@@ -212,6 +216,7 @@ const unsigned char tree_code_length[] = {
 #include "bliss-tree.def"
 };
 #undef DEFTREECODE
+*/
 
 /* The front end language hooks (addresses of code for this front
    end).  Mostly just use the C routines.  */
@@ -279,3 +284,4 @@ c_initialize_diagnostics (diagnostic_context *context)
 #endif
 
 #include "gtype-c.h"
+

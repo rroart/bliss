@@ -70,8 +70,9 @@ GCC_FOR_BLISS = `if [ -f ./xgcc ] ; then \
 	 else \
 	    echo $(CC) ; \
 	 fi`
+GCC2_FOR_BLISS = $(CXX)
 
-BLI_GENERATED = $(blibld)/parse.c $(blibld)/blilex.c
+BLI_GENERATED = $(blibld)/parse.c $(blibld)/blilex.cc
 
 BLI_EXES = 
 
@@ -100,11 +101,24 @@ bliss BLISS:bliss.done bliss.check.drivers.done
 bliss.done: bli1$(exeext) bliss/libbli.a
 	${STAMP} bliss.done
 
+BLI_C_OBJS = c-family/c-common.o c/c-objc-common.o c-family/c-attribs.o c-family/c-dump.o c-family/c-format.o c-family/c-gimplify.o c-family/c-omp.o c-family/c-opts.o c-family/c-pragma.o c/c-decl.o c/c-fold.o c/c-lang.o c/c-typeck.o
+
+BLI_OBJS=bliss/blilex.o attribs.o tree.o \
+	 bliss/parse.o $(BLI_NEW_UTILS) \
+	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o bliss/bli-gimplify.o $(BLI_BE_LIBS) $(BLI_C_OBJS)
+
 # core compiler 
-bli1$(exeext): bliss/blilex.o attribs.o tree.o \
+bli1$(exeext): $(BLI_OBJS) $(BACKEND) $(LIBDEPS)
+	@$(call LINK_PROGRESS,$(INDEX.c),start)
+	+$(LLINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(BLI_OBJS) \
+	  $(BACKEND) $(LIBS) $(BACKENDLIBS)
+	@$(call LINK_PROGRESS,$(INDEX.c),end)
+
+# core compiler 
+bli1$(exeext)not: bliss/blilex.o attribs.o tree.o \
 	 bliss/parse.o $(BLI_NEW_UTILS) \
 	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o bliss/bli-gimplify.o $(BLI_BE_LIBS)
-	$(GCC_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
+	$(GCC2_FOR_BLISS) $(ALL_CFLAGS) $(LDFLAGS) $(BLISS_EXTRAS) -o $@ \
 	 bliss/blilex.o attribs.o tree.o \
 	 bliss/parse.o $(BLI_NEW_UTILS) bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o bliss/bli-gimplify.o \
 	 $(BLI_BE_LIBS)
@@ -125,26 +139,26 @@ bliss.check.drivers.done: $(BLISS_TEST_DRIVERS)
 
 # object file makes
 
-bliss/blilex.o: $(blibld)/blilex.c bliss/parse.h \
+bliss/blilex.o: $(blibld)/blilex.cc bliss/parse.h \
 	 $(BLI_UTIL_H) \
 	 $(BLI_NEW_UTIL_H)
-	$(GCC_FOR_BLISS) $(BLISS_EXTRAS) -o $@ -c $(ALL_CFLAGS) $(INCLUDES) -Iinclude $< 
+	$(GCC2_FOR_BLISS) $(BLISS_EXTRAS) -fpermissive -o $@ -c $(ALL_CFLAGS) $(INCLUDES) -Iinclude $< 
 
-bliss/parse.h: bliss/parse.c
-bliss/parse.c: $(blisrc)/parse.y
+bliss/parse.h: bliss/parse.cc
+bliss/parse.cc: $(blisrc)/parse.y
 	@echo "Expect 33 shift/reduce conflicts and 58 reduce/reduce conflicts."
 	cd bliss && \
-	if $(BISON) -v $(BISONFLAGS) -d -o parse.c ../$(srcdir)/bliss/parse.y; then \
-	  grep '^#define[       ]*YYEMPTY' parse.c >> parse.h ; \
+	if $(BISON) -v $(BISONFLAGS) -d -o parse.cc ../$(srcdir)/bliss/parse.y; then \
+	  echo "grep '^#define[       ]*YYEMPTY' parse.cc >> parse.h" ; \
 	else \
 	  rm -f parse.* ; \
 	  false ; \
 	fi
 
-bliss/parse.o: bliss/parse.c $(BLISS_TREE_H) \
+bliss/parse.o: bliss/parse.cc $(BLISS_TREE_H) \
 	$(SYSTEM_H) toplev.h $(GGC_H)
-	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $(BIG_SWITCHFLAG) \
-		bliss/parse.c $(OUTPUT_OPTION)
+	$(GCC2_FOR_BLISS) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) $(BIG_SWITCHFLAG) -fpermissive \
+		bliss/parse.cc $(OUTPUT_OPTION)
 
 
 bliss/bli-semantics.o: $(blisrc)/bli-semantics.c  $(BLI_NEW_UTIL_H)
@@ -163,8 +177,8 @@ bliss/bliss/bli-gimplify.o : $(blisrc)/bliss/bli-gimplify.c $(BLI_NEW_UTIL_H)
 # directory in case someone wants to build but does not have
 # lex/yacc/autogen
 
-$(blibld)/blilex.c: $(blisrc)/blilex.l
-	$(LEX) $(LEXFLAGS) -o$(blibld)/blilex.c $(blisrc)/blilex.l
+$(blibld)/blilex.cc: $(blisrc)/blilex.l
+	$(LEX) $(LEXFLAGS) -o$(blibld)/blilex.cc $(blisrc)/blilex.l
 
 # -v for verbose .output file
 

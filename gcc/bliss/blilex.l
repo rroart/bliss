@@ -7,7 +7,7 @@
    * 9 Nov 1990
    *
    * Taken over by
-   * Roar Thronæs <roart@nvg.ntnu.no>
+   * Roar Thronï¿½s <roart@nvg.ntnu.no>
    * 7-MAY-2000
    *
    *
@@ -16,18 +16,22 @@
    */
 
 #include "config.h"
-#include <stdio.h>
+//#include <stdio.h>
 
-#undef IN_GCC
+//#undef IN_GCC
+//#undef PREFERRED_DEBUGGING_TYPE
+//#define PREFERRED_DEBUGGING_TYPE NO_DEBUG
 
 #include "system.h"
 #include "coretypes.h"
-
+#include "backend.h"
+#include "target.h"
+#include "rtl.h"
 #include "tree.h"
 
 #include "bli-tree.h"
 
-#include "parse.h"
+#include "parse.hh"
 
 #include "bliss.h"
 
@@ -37,20 +41,35 @@
 #define my_isend(c) ((c) == '\n' || (c) == 0)
 
 //  void error(),warning(),inform();
-  tree parse_this (char * this);
-  tree parse_this_n (char * this, int n);
-  tree parse_this_range (char * this, char * end);
+  tree parse_this (char * thiss);
+  tree parse_this_n (char * thiss, int n);
+  tree parse_this_range (char * thiss, char * end);
   char * my_strcasestr(const char *, const char *);
   char * my_strstrend(const char *, const char *);
   char * my_strstrendbal(const char *, const char *, char , int);
+  extern void inform (location_t, const char *, ...);
+  //extern void inform (const char *, ...);
+  extern change_macromode();
+  extern tree get_identifier (const char *);
+  extern tree maybe_get_identifier (const char *);
+  extern tree is_label(tree);
+  extern tree fold (tree);
+  extern tree set_cti(tree id, tree val);
+  extern tree is_something(tree);
+  extern char * print_tree(tree);
+  extern void downcase(char *);
+  extern int keyword(char *);
+  extern int do_eof();
+extern int check_little_endian();
 
   extern int yydebug;
   extern int yy2debug;
-  extern int quiet_flag;
+  //extern int quiet_flag;
   int opexpcnt=0;
 
   char * s;
 
+  int input_line;
   YYSTYPE yylval;
   unsigned int intern_hash_size=0;
   unsigned int estimated_token_count=0;
@@ -85,6 +104,8 @@
   int blipre_debug_line=0; 
 
   int last_eq=0;
+
+  location_t loc = 0;
 
 #define LEXINIT_INVALID 3
   int which_lex=LEXINIT_INVALID;
@@ -172,9 +193,9 @@
     push_macro(struct dsc_dollar_descriptor *dsc)
     {
       char * empty="";
-      char * new=dsc->dsc_dollar_a_pointer;
-      if (new==0)
-        new=empty;
+      void * neww=dsc->dsc_dollar_a_pointer;
+      if (neww==0)
+        neww=empty;
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0; 
       include_stack_start[include_stack_ptr] = YY_START; 
@@ -183,7 +204,7 @@
       include_stack_rem[include_stack_ptr] = old_remain; 
       include_stack_ptr++;
 
-      yy_switch_to_buffer(yy_scan_bytes(new, dsc->dsc_dollar_w_length));
+      yy_switch_to_buffer(yy_scan_bytes(neww, dsc->dsc_dollar_w_length));
     }
 
   void
@@ -203,7 +224,7 @@
     }
 
   void
-    push_req_stack(char *new)
+    push_req_stack(char *neww)
     {
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0;
@@ -212,9 +233,9 @@
       include_stack_act_par[include_stack_ptr] = 0; 
       include_stack_rem[include_stack_ptr] = remaining; 
       include_stack_ptr++;
-      downcase(new);
-      opened_req[opened_req_ptr++]=xstrdup(new);
-      yyin = fopen( new, "r" );
+      downcase(neww);
+      opened_req[opened_req_ptr++]=xstrdup(neww);
+      yyin = fopen( neww, "r" );
      
       yy_switch_to_buffer(yy_create_buffer( yyin, YY_BUF_SIZE ) );
     }
@@ -224,7 +245,7 @@
     {
       if ( --include_stack_ptr < 0 )
 	{
-	  if (yy2debug) inform("\nempty include stack\n");
+	  if (yy2debug) inform(loc, "\nempty include stack\n");
 	}
       else
 	{
@@ -235,7 +256,7 @@
     }
 
   void
-    push_cond_stack(int new)
+    push_cond_stack(int neww)
     {
       cond_stack[cond_stack_ptr++] = /*base_*/skip_mode;
     }
@@ -245,7 +266,7 @@
     {
       if ( --cond_stack_ptr < 0 )
 		  {
-			 if (yy2debug) inform("\nempty cond stack\n");
+			 if (yy2debug) inform(loc, "\nempty cond stack\n");
 		  }
       else
 		  {
@@ -279,7 +300,7 @@
     {
       if ( --macro_stack_ptr < 0 )
 		  {
-			 if (yy2debug) inform("\nempty cond stack\n");
+			 if (yy2debug) inform(loc, "\nempty cond stack\n");
 		  }
       else
 		  {
@@ -417,13 +438,13 @@ hexdigit [0-9a-f]
     break;
   }
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
-  s=strdup(yytext);
+  s=xstrdup(yytext);
   //fprintf(stderr, "TDIG %s\n",s); fflush(stderr); 
   //yylval.type_node_p=copy_node(get_identifier(s));
   //yylval.type_node_p=copy_node(build_string(strlen(yytext),yytext));
   //yylval.type_node_p=build_int_cst (long_integer_type_node, atoi(yytext));
   long long l = atoll(yytext);
-  yylval.type_node_p=build_int_cst_wide(long_integer_type_node, l & 0xffffffff, l >> 32);
+  yylval.type_node_p=build_int_cst(long_integer_type_node, l);
 
   opexpcnt++; // for unary op workaround
   return T_DIGITS;
@@ -454,6 +475,7 @@ hexdigit [0-9a-f]
   out_do_quote:
     {}
   }
+  struct mymacro * m;
   if (macromode) { yylval.type_node_p = build_string(strlen(yytext),yytext); return LEXEME; }
   if (tnamemode) goto onlytname;
   if (undefmode) { key=ukeyword(yytext); /*undefmode=0;*/ }
@@ -464,7 +486,7 @@ hexdigit [0-9a-f]
   if (key<=0) key = keyword (yytext);
   if (key == -1) 
     {
-      struct mymacro * m=(void*)find_macro(0,yytext);
+      m=(void*)find_macro(0,yytext);
       if (m) { 
   	     //if (m->param==0) goto ifall;
 	macr=m;
@@ -478,7 +500,7 @@ hexdigit [0-9a-f]
       }
 #endif
     onlytname:
-      s=strdup(yytext);
+      s=xstrdup(yytext);
 #if 1
       yylval.type_node_p=get_identifier(yytext);
       //yylval.type_node_p=build_string(strlen(yytext),yytext);
@@ -499,7 +521,7 @@ hexdigit [0-9a-f]
       if (m==0 && link) return T_LINKAGENAME; // workaround, temp
       if (m==0) return T_NAME;
     }
-  /*yylval.type_str=strdup(yytext);*/
+  /*yylval.type_str=xstrdup(yytext);*/
   yylval.type_node_p=get_identifier(yytext);
   //yylval.type_node_p=build_string(strlen(yytext),yytext);
   opexpcnt=0; // for unary op workaround
@@ -514,6 +536,10 @@ hexdigit [0-9a-f]
   downcase (yytext);
   key = keyword (yytext);
   int key_len = strlen(yytext);
+
+  int retval = 0;
+  char * my_yytext=yytext+strlen(yytext);
+  char * my_end;
 
   if (macromode) {
     if (do_quote) {
@@ -549,9 +575,6 @@ hexdigit [0-9a-f]
     goto do_name;
   }
 
-  int retval = 0;
-  char * my_yytext=yytext+strlen(yytext);
-  char * my_end;
   yyless(strlen(yytext));
 
   switch (key) {
@@ -757,7 +780,7 @@ hexdigit [0-9a-f]
 	 tree t = parse_this_range(second,my_end);
 	 t = TREE_VALUE(t);
 
-	 set_cti(get_identifier(strdup(myline)), fold(t));
+	 set_cti(get_identifier(xstrdup(myline)), fold(t));
 
 	 goto myout;
 	 break;
@@ -915,7 +938,7 @@ hexdigit [0-9a-f]
 
 	 memset(myline, 0, 255);
 	 sprintf(myline,"%d",myret);
-	 char * s = strdup(myline);
+	 char * s = xstrdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -961,7 +984,7 @@ hexdigit [0-9a-f]
 	 t = TREE_VALUE(t);
 
 	 tmp=0;
-	 if (TREE_TYPE(TREE_OPERAND(fold(t),0))==INTEGER_CST)
+	 if (TREE_CODE(TREE_TYPE(TREE_OPERAND(fold(t),0)))==INTEGER_CST)
 		tmp=1;
 	 myret*=tmp;
 
@@ -972,7 +995,7 @@ hexdigit [0-9a-f]
 
 	 memset(myline, 0, 255);
 	 sprintf(myline,"%d",myret);
-	 char * s = strdup(myline);
+	 char * s = xstrdup(myline);
 	 if (!quiet_flag) printf("myret %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 //yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1105,9 +1128,12 @@ hexdigit [0-9a-f]
 	 t = TREE_VALUE(t);
 	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
-	 char * c = &v;
+	 char * c = (char *) &v;
 	 int i;
 	 if (!quiet_flag) printf("tc %x\n",TREE_CODE(t));
+
+	 char * start=0;
+	 char * end = strchr(start+1,39);
 
 	 if (TREE_CODE(t)!=INTEGER_CST)
 		goto no_int;
@@ -1140,7 +1166,6 @@ hexdigit [0-9a-f]
 
 	 {}
 
-	 char * start=0;
 	 if (TREE_CODE(t)==IDENTIFIER_NODE) start=IDENTIFIER_POINTER(t);
 	 if (TREE_CODE(t)==STRING_CST) start=TREE_STRING_POINTER(t);
 
@@ -1154,8 +1179,6 @@ hexdigit [0-9a-f]
 		myretp+=len;
 		goto str_out;
 	 }
-
-	 char * end = strchr(start+1,39);
 
 	 if (end) {
 	   memcpy(&myret[myretp],start+1,end-start-1);
@@ -1175,7 +1198,7 @@ hexdigit [0-9a-f]
 	 if (key!=P_NAME)
 		myret[myretp]=39;
 
-	 char * s = strdup(myret);
+	 char * s = xstrdup(myret);
 	 if (!quiet_flag) printf("myrets %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1193,19 +1216,19 @@ hexdigit [0-9a-f]
 		str="WARN";
 		break;
 	 case P_INFORM:
-		fn=inform;
+		fn=verbatim;
 		str="INFORM";
 		break;
 	 case P_PRINT:
-		fn=inform;
+		fn=verbatim;
 		str="";
 		break;
 	 case P_MESSAGE:
-		fn=inform;
+		fn=verbatim;
 		str="MSG";
 		break;
 	 case P_ERRORMACRO:
-		fn=inform;
+		fn=verbatim;
 		str="ERRORMACRO";
 		break;
 	 case P_NAME:
@@ -1220,7 +1243,7 @@ hexdigit [0-9a-f]
 		goto out_data;
 		break;
 	 }
-	 fn("BLS-%s-%s\n",str,s);
+	 fn(); // "BLS-%s\n"); // str, s
 	 goto myout;
 	 break;
   }
@@ -1290,9 +1313,12 @@ hexdigit [0-9a-f]
 
 	 t=fold(t);
 	 int v=TREE_INT_CST_LOW(t);
-	 char * c = &v;
+	 char * c = (char*) &v;
 	 int i;
 	 if (!quiet_flag) printf("tc %x\n",TREE_CODE(t));
+
+	 char * start = IDENTIFIER_POINTER(t) + 1;
+	 char * end = strchr(start,39);
 
 	 if (TREE_CODE(t)!=INTEGER_CST)
 		goto ex_no_int;
@@ -1325,9 +1351,6 @@ hexdigit [0-9a-f]
 
 	 {}
 
-	 char * start = IDENTIFIER_POINTER(t) + 1;
-	 char * end = strchr(start,39);
-
 	 memcpy(&myret[myretp],start,end-start);
 	 myretp+=strlen(&myret[myretp]);
 
@@ -1351,7 +1374,7 @@ hexdigit [0-9a-f]
 		myret[number+2]=0;
 	 }
 
-	 char * s = strdup(myret);
+	 char * s = xstrdup(myret);
 	 if (!quiet_flag) printf("myretexs %s\n",s);
 	 //yylval.type_node_p=copy_node(get_identifier(s));
 	 yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1402,7 +1425,8 @@ hexdigit [0-9a-f]
 
 	 char end_char;
 	 char start_char=*my_yytext;
-
+	 char * tmp_end;
+	 
 	 switch (start_char) {
     case '(':
       end_char=')';
@@ -1418,7 +1442,7 @@ hexdigit [0-9a-f]
 	 }
 
 	 //  my_yytext;
-	 char * tmp_end = strchr(my_yytext+1,end_char);
+	 tmp_end = strchr(my_yytext+1,end_char);
 
 #if 0
 	 if (tmp_end!=my_end)
@@ -1433,7 +1457,7 @@ hexdigit [0-9a-f]
   no_remove:
 #if 0
 	 memcpy(myline,my_yytext,my_end-my_yytext);
-	 char * s = strdup(myline);
+	 char * s = xstrdup(myline);
 #endif
 	 if (!quiet_flag) printf("myrem %s\n",my_yytext);
 #if 0
@@ -1593,7 +1617,7 @@ hexdigit [0-9a-f]
 		else
 		  myret=0;
 
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		if (!quiet_flag) printf("null %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1665,7 +1689,7 @@ hexdigit [0-9a-f]
 		myline[1]=0;
 	 id_found:
 		{}
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		if (!quiet_flag) printf("ident %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1727,7 +1751,7 @@ hexdigit [0-9a-f]
 		  myline[0]='0';
 		myline[1]=0;
 
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		if (!quiet_flag) printf("isstr %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1778,7 +1802,7 @@ hexdigit [0-9a-f]
 		  p2++;
 
 		p2_end = p2;
-		while (isdigit(*p2_end)) // fix/change later
+		while (ISDIGIT(*p2_end)) // fix/change later
 		  p2_end++;
 
 	 no_p2:
@@ -1799,17 +1823,17 @@ hexdigit [0-9a-f]
 
 		tree exp = find_field(myline1);
 
-		tree new;
+		tree neww;
 
 		if (p2==0)
-		  new = my_copy_tree(exp);
+		  neww = my_copy_tree(exp);
 		else {
 		  v++;
-		  for (new=exp;v;v--,new=TREE_CHAIN(new)) ;
-		  new=copy_node(new);
+		  for (neww=exp;v;v--,neww=TREE_CHAIN(neww)) ;
+		  neww=copy_node(neww);
 		}    
 
-		char * p = print_tree(new);
+		char * p = print_tree(neww);
 
 		expr_parse++;
 		include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
@@ -1841,7 +1865,7 @@ hexdigit [0-9a-f]
 		char myline[255];
 		memset(myline,0,255);
 		sprintf(myline,"%d",len);
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		if (!quiet_flag) printf("len %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1884,9 +1908,9 @@ hexdigit [0-9a-f]
 		  char * s = IDENTIFIER_POINTER(t);
 		  int len=strlen(s);
 		  if (s[0]==39 && s[len-1]==39) {
-			 char * new = xstrdup(s+1);
-			 new[len-2]=0;
-			 v=atoi(new); // check 64 bit
+			 char * neww = xstrdup(s+1);
+			 neww[len-2]=0;
+			 v=atoi(neww); // check 64 bit
 		  } else {
 			 if (!quiet_flag) printf("not yet implemnted number\n");
 		  }
@@ -1898,7 +1922,7 @@ hexdigit [0-9a-f]
 		char myline[255];
 		memset(myline,0,255);
 		sprintf(myline,"%d",v);
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		if (!quiet_flag) printf("number %s\n",s);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
@@ -1921,7 +1945,7 @@ hexdigit [0-9a-f]
 		char myline[255];
 		memset(myline,0,255);
 		sprintf(myline,"%d",cond_iter_macro_count);
-		char * s = strdup(myline);
+		char * s = xstrdup(myline);
 		//yylval.type_node_p=copy_node(get_identifier(s));
 		//yylval.type_node_p=copy_node(build_string(strlen(s),s));
 		yylval.type_node_p=build_int_cst (long_integer_type_node, cond_iter_macro_count);
@@ -1982,7 +2006,7 @@ hexdigit [0-9a-f]
       myline[0]='0';
       myline[1]=0;
 
-      char * s = strdup(myline);
+      char * s = xstrdup(myline);
       //yylval.type_node_p=copy_node(get_identifier(s));
       //yylval.type_node_p=copy_node(build_string(strlen(s),s));
       yylval.type_node_p=build_int_cst (long_integer_type_node, 0);
@@ -2062,7 +2086,7 @@ hexdigit [0-9a-f]
     yyless(yyleng);
     break;
   }
-  yylval.type_str = strdup(yytext);
+  yylval.type_str = xstrdup(yytext);
   return '%';
 }
 
@@ -2118,7 +2142,7 @@ hexdigit [0-9a-f]
     continue;                   /* not obvious at all...*/
   }
 #endif
-  s=strdup(yytext);
+  s=xstrdup(yytext);
   //yylval.type_node_p=copy_node(get_identifier(s));
   yylval.type_node_p=copy_node(build_string(strlen(s),s));
   return T_STRING;
@@ -2128,7 +2152,7 @@ hexdigit [0-9a-f]
 
 "%("([^\)]|")"[^\%])*")%"	/* ignore embedded comment */  ;
 
-"@" { if (yy2debug) inform("%%lexical gone?\n"); }
+"@" { if (yy2debug) inform(loc, "%%lexical gone?\n"); }
 
 {others}			{
   yy2error ("not recognized");
@@ -2138,7 +2162,7 @@ hexdigit [0-9a-f]
  eof:
   if ( --include_stack_ptr < 0 )
     {
-      if (yy2debug) inform("\nempty include stack\n");
+      if (yy2debug) inform(loc, "\nempty include stack\n");
       return YY_NULL;
     }
   else
@@ -2220,7 +2244,7 @@ hexdigit [0-9a-f]
 	     goto out;
 	   }
 	   tree t = tree_last(macroact);
-	   tree t_p = tree_last_p(&macroact);
+	   tree * t_p = tree_last_p(&macroact);
 	   if (macrocomma=='=' && macr->type==KEYW_MACRO) {
 	     // was: add_tree_string(TREE_TYPE(t), yytext, 1, 1);
 	     if (TREE_TYPE(tree_last(macroact))==0)
@@ -2239,7 +2263,7 @@ hexdigit [0-9a-f]
 		goto end_out;
 	 if (macro_stack_ptr>1) {
 		tree t = tree_last(macroact);
-		tree t_p = tree_last_p(&macroact);
+		tree * t_p = tree_last_p(&macroact);
 		if (macrocomma=='=' && macr->type==KEYW_MACRO)
 		  TREE_TYPE(t) = add_tree_string_new(TREE_TYPE(t), yytext, 1, 1);
 		else
@@ -2278,7 +2302,7 @@ hexdigit [0-9a-f]
 	 default:
 		if (macro_stack_ptr>1) {
 		  tree t = tree_last(macroact);
-		  tree t_p = tree_last_p(&macroact);
+		  tree * t_p = tree_last_p(&macroact);
 		  if (macrocomma=='=' && macr->type==KEYW_MACRO)
 		    TREE_TYPE(t) = add_tree_string_new(TREE_TYPE(t), yytext, strlen(yytext), 1);
 		  else
@@ -2301,7 +2325,7 @@ hexdigit [0-9a-f]
 		      goto out;
 		    }
 		    tree t = tree_last(macroact);
-		    tree t_p = tree_last_p(&macroact);
+		    tree * t_p = tree_last_p(&macroact);
 		    if (macrocomma=='=' && macr->type==KEYW_MACRO) {
 		      if (TREE_TYPE(tree_last(macroact))==0)
 			TREE_TYPE(tree_last(macroact))=build_string(strlen(yytext),yytext);
@@ -2411,7 +2435,7 @@ hexdigit [0-9a-f]
 		continue;
 	 }
   }
-  if (macrocomma==0) if (yy2debug) inform("\nmacrocomma missing %x\n",input_line);
+  if (macrocomma==0) if (yy2debug) inform(loc, "\nmacrocomma missing %x\n",input_line);
   if (macrocomma=='=' && macr->type==KEYW_MACRO) {
     if (TREE_TYPE(tree_last(macroact))==0)
       TREE_TYPE(tree_last(macroact))=build_string(use_yyleng,use_yytext);
@@ -2425,7 +2449,7 @@ hexdigit [0-9a-f]
 	 macroact=chainon(macroact,build_string(use_yyleng,use_yytext));
 #else
 	 tree t = tree_last(macroact);
-	 tree t_p = tree_last_p(&macroact);
+	 tree * t_p = tree_last_p(&macroact);
 	 int space=0;
 	 if (TREE_STRING_LENGTH(t))
 	   space=1;
@@ -2436,7 +2460,7 @@ hexdigit [0-9a-f]
 		macroact=chainon(macroact,build_string(use_yyleng,use_yytext));
 		goto out_macro_comma;
 	 }
-	 tree t_p = tree_last_p(&macroact);
+	 tree * t_p = tree_last_p(&macroact);
 	 add_tree_string_new_p(t_p, use_yytext, use_yyleng, 1);
   }
  out_macro_comma:
@@ -2461,8 +2485,7 @@ struct dict {
   int	d_num;
 };
 
-static void downcase (cp)
-     char *cp;
+static void downcase (char * cp)
 {
   while (cp && *cp) {
     if (isupper (*cp))
@@ -2890,12 +2913,12 @@ static struct dict bname[] = {
   { NULL, -1 }
 };
 
-static int keyword (cp)
-     char *cp;				/* It better be lower case */
+static int keyword (char * cp)
+     /* It better be lower case */
 {
   int first, last, half, c;
 
-  if (yy2debug) inform("key %x %s\n",(unsigned int)cp,cp);
+  if (yy2debug) inform(loc, "key %x %s\n",(unsigned int)cp,cp);
 
   first = 0;				/* inclusive */
   last = NKEYW;				/* exclusive */
@@ -2911,16 +2934,16 @@ static int keyword (cp)
       else
 		  first = half + 1;
     }
-  if (yy2debug) inform("keynot\n");
+  if (yy2debug) inform(loc, "keynot\n");
   return -1;				/* Not a keyword */
 }
 
-static int ukeyword (cp)
-     char *cp;				/* It better be lower case */
+static int ukeyword (char * cp)
+     /* It better be lower case */
 {
   int first, last, half, c;
 
-  if (yy2debug) inform("ukey %x %s\n",(unsigned int)cp,cp);
+  if (yy2debug) inform(loc, "ukey %x %s\n",(unsigned int)cp,cp);
   first = 0;				/* inclusive */
   last = NUKEYW;				/* exclusive */
   while (first < last)
@@ -2934,7 +2957,7 @@ static int ukeyword (cp)
       else
 		  first = half + 1;
     }
-  if (yy2debug) inform("ukeynot\n");
+  if (yy2debug) inform(loc, "ukeynot\n");
   return -1;				/* Not a keyword */
 }
 
@@ -2978,8 +3001,8 @@ int something_that_uses_yyunput(void) {
   return 0;
 }
 
-tree parse_this (char * this) {
-  if (!quiet_flag) printf("parse this %s\n",this);
+tree parse_this (char * thiss) {
+  if (!quiet_flag) printf("parse this %s\n",thiss);
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
@@ -2988,7 +3011,7 @@ tree parse_this (char * this) {
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
-  yy_switch_to_buffer(yy_scan_string(this));
+  yy_switch_to_buffer(yy_scan_string(thiss));
   BEGIN(0);
   //tree t = save_last_tree();
   yyparse();
@@ -2996,7 +3019,7 @@ tree parse_this (char * this) {
   return mylast();
 }
 
-tree parse_this_n (char * this, int n) {
+tree parse_this_n (char * thiss, int n) {
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
@@ -3005,20 +3028,20 @@ tree parse_this_n (char * this, int n) {
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
-  yy_switch_to_buffer(yy_scan_bytes(this,n));
+  yy_switch_to_buffer(yy_scan_bytes(thiss,n));
   BEGIN(0);
   yyparse();
   return mylast();
 }
 
-tree parse_this_range (char * this, char * end) {
+tree parse_this_range (char * thiss, char * end) {
   goto skip_me;
   if (yydebug) {
   skip_me: {}
     char myline[255];
     memset(myline, 0, 255);
-    int len = end - this;
-    memcpy(myline,this,len>250 ? 250 : len);
+    int len = end - thiss;
+    memcpy(myline,thiss,len>250 ? 250 : len);
     if (!quiet_flag) printf("parse_this_range %s\n",myline);
   }
   expr_parse++;
@@ -3029,7 +3052,7 @@ tree parse_this_range (char * this, char * end) {
   include_stack_act_par[include_stack_ptr] = cur_act_par; 
   include_stack_rem[include_stack_ptr] = remaining; 
   include_stack_ptr++;
-  yy_switch_to_buffer(yy_scan_bytes(this,end-this));
+  yy_switch_to_buffer(yy_scan_bytes(thiss,end-thiss));
   BEGIN(0);
   yyparse();
   return mylast();
@@ -3038,9 +3061,7 @@ tree parse_this_range (char * this, char * end) {
 typedef char chartype;
 
 char *
-my_strcasestr (phaystack, pneedle)
-     const char *phaystack;
-     const char *pneedle;
+my_strcasestr (const char * phaystack, const char * pneedle)
 {
   register const unsigned char *haystack, *needle;
   register chartype b, c;
@@ -3165,11 +3186,7 @@ change_macromode() {
 }
 
 tree
-add_tree_string_new(t,s,len,space)
-	  tree t;
-	  const char * s;
-	  int len;
-	  int space;
+add_tree_string_new(tree t, const char * s, int len, int space)
 {
   tree new_t;
   // maybe a source for leakage
@@ -3197,15 +3214,11 @@ add_tree_string_new(t,s,len,space)
 }
 
 tree
-add_tree_string_new_p(t,s,len,space)
-	  tree * t;
-	  const char * s;
-	  int len;
-	  int space;
+add_tree_string_new_p(tree * t, const char * s, int len,int space)
 {
   if (*t == 0) {
 exit(42);
-    add_tree_string_new (t, s, len, space);
+    //add_tree_string_new (t, s, len, space);
 }
   else
     *t = add_tree_string_new (*t, s, len, space);
@@ -3213,8 +3226,7 @@ exit(42);
 }
 
 void
-strip_par (s)
-	  char * s;
+strip_par (char * s)
 {
 #if 0
   return;
@@ -3253,9 +3265,7 @@ strip_par (s)
 }
 
 void
-pname_macro(src,len)
-     char * src;
-     int len;
+pname_macro(char * src, int len)
 {
   if (pname_string==0)
     return;
@@ -3268,8 +3278,7 @@ pname_macro(src,len)
   pname_len=len;
 }
 
-check_lib(s) 
-     char * s;
+check_lib(char * s) 
 {
   // lib.req is really compiled lib and seems to imply starlet, too
   downcase(s);
@@ -3285,7 +3294,7 @@ do_eof()
  eof:
   if ( --include_stack_ptr < 0 )
     {
-      if (yy2debug) inform("\nempty include stack\n");
+      if (yy2debug) inform(loc, "\nempty include stack\n");
       return YY_NULL;
     }
   else

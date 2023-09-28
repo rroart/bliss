@@ -1,5 +1,7 @@
 #!/bin/sh
 
+VERS=13.2.0
+
 LIBS=
 
 unamem=`uname -m`
@@ -38,21 +40,21 @@ exit 1
 fi
 fi
 fi
-rm -rf gcc-4.2.1
-bunzip2 -dc tmp/gcc-core-4.2.1.tar.bz2|tar xpf -
-tar xzf patch/gcc-vmscall-0_3_11.tar.gz
-patch -p1 < gcc-vmscall/gcc-4.2.1-vmscall.patch
-tar xzf tmp/gcc-testsuite-4.2.1.tar.gz
+rm -rf gcc-${VERS}
+zcat /tmp/gcc-${VERS}.tar.xz|tar xpf -
+#tar xzf patch/gcc-vmscall-0_3_11.tar.gz
+#patch -p1 < gcc-vmscall/gcc-4.2.1-vmscall.patch
+#tar xzf tmp/gcc-testsuite-4.2.1.tar.gz
 rm bliss
-ln -sf gcc-4.2.1 bliss
-rsync -a gcc/ gcc-4.2.1/gcc
+ln -sf gcc-${VERS} bliss
+rsync -a gcc/ gcc-${VERS}/gcc
 rm -rf build
 mkdir build
 cd build
 if [ $unamem = x86_64 ]; then
-../gcc-4.2.1/configure --enable-languages=bliss --with-included-gettext  --prefix=`pwd`/../usr --disable-multilib 
+../gcc-${VERS}/configure --enable-languages=bliss --with-included-gettext  --prefix=`pwd`/../usr --disable-multilib 
 else
-../gcc-4.2.1/configure --enable-languages=bliss --with-included-gettext --prefix=`pwd`/../usr
+../gcc-${VERS}/configure --enable-languages=bliss --with-included-gettext --prefix=`pwd`/../usr
 fi
 make bootstrap
 make install
