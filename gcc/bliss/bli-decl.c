@@ -138,7 +138,7 @@ start_structure (
   tree ref = 0;
 
   if (name != 0)
-    ref = lookup_tag (code, name, 1, &input_location);
+    ref = 0; // TODO lookup_tag (code, name, 1, &input_location);
   if (ref && TREE_CODE (ref) == code)
     {
       C_TYPE_BEING_DEFINED (ref) = 1;
@@ -156,7 +156,7 @@ start_structure (
   /* Otherwise create a forward-reference just so the tag is in scope.  */
 
   ref = make_node (code);
-  pushtag (input_location, name, ref);
+  // TODO pushtag (input_location, name, ref);
   C_TYPE_BEING_DEFINED (ref) = 1;
   //  TYPE_PACKED (ref) = flag_pack_struct;
   return ref;
@@ -207,7 +207,7 @@ finish_structure (
 void
 push_parm_decl_init (tree parm, tree init)
 {
-  tree decl;
+  tree decl = 0;
 
   /* Don't attempt to expand sizes while parsing this decl.
      (We can get here with i_s_e 1 somehow from Objective-C.)  */
@@ -216,9 +216,11 @@ push_parm_decl_init (tree parm, tree init)
   immediate_size_expand = 0;
 #endif
 
+  /* TODO
   decl = grokdeclarator ((const struct c_declarator *) TREE_VALUE (TREE_PURPOSE (parm)),
 			 (struct c_declspecs *) TREE_PURPOSE (TREE_PURPOSE (parm)),
 			 PARM, 0, NULL, NULL, NULL, NULL, DEPRECATED_NORMAL);
+  */
 #if 0
   // check
   decl_attributes (&decl, TREE_VALUE (parm), 0);
@@ -239,7 +241,7 @@ push_parm_decl_init (tree parm, tree init)
 tree
 my_lookup_tag(tree t)
 {
-  return lookup_tag(LINKAGE, t, 1, &input_location);
+  return 0 ; // TODO lookup_tag(LINKAGE, t, 1, &input_location);
 }
 
 void

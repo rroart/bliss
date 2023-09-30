@@ -78,7 +78,7 @@ struct c_switch {
   bool bool_cond_p;
 };
 
-struct c_switch *c_switch_stack;
+extern struct c_switch *c_switch_stack;
 
 tree
 c_start_case_2 (tree start, tree end)

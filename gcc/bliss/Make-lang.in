@@ -101,11 +101,22 @@ bliss BLISS:bliss.done bliss.check.drivers.done
 bliss.done: bli1$(exeext) bliss/libbli.a
 	${STAMP} bliss.done
 
-BLI_C_OBJS = c-family/c-common.o c/c-objc-common.o c-family/c-attribs.o c-family/c-dump.o c-family/c-format.o c-family/c-gimplify.o c-family/c-omp.o c-family/c-opts.o c-family/c-pragma.o c/c-decl.o c/c-fold.o c/c-lang.o c/c-typeck.o
+bliss/c-lex.o: c-family/c-lex.o
+	cp -p c-family/c-lex.o bliss/c-lex.o
+	strip -N _Z10init_c_lexv bliss/c-lex.o
+
+bliss/c-parser.o: c/c-parser.o
+	cp -p c/c-parser.o bliss/c-parser.o
+	strip -N _Z12c_parse_filev bliss/c-parser.o
+	strip -N _Z12c_parse_initv bliss/c-parser.o
+
+BLI_C_OBJS = c-family/c-ada-spec.o c-family/c-common.o c-family/c-attribs.o c-family/c-cppbuiltin.o c-family/c-dump.o c-family/c-format.o c-family/c-gimplify.o c-family/c-indentation.o c/c-objc-common.o c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o c-family/c-ppoutput.o c-family/c-pretty-print.o c-family/c-semantics.o c-family/c-spellcheck.o c-family/c-ubsan.o c-family/c-warn.o c-family/known-headers.o c-family/stub-objc.o c/c-convert.o c-family/c-pragma.o c/c-decl.o c/c-errors.o c/c-fold.o  c/c-typeck.o c/gimple-parser.o i386-c.o cc1-checksum.o glibc-c.o
+BLI_MOD_C_OBJS = bliss/c-lex.o bliss/c-parser.o
+# c/c-lang.o
 
 BLI_OBJS=bliss/blilex.o attribs.o tree.o \
 	 bliss/parse.o $(BLI_NEW_UTILS) \
-	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o bliss/bli-gimplify.o $(BLI_BE_LIBS) $(BLI_C_OBJS)
+	 bliss/bli-semantics.o bliss/bli-decl.o bliss/bli-typeck.o bliss/bli-common.o bliss/bli-lang.o bliss/bli-convert.o bliss/bli-common2.o bliss/bli-format.o bliss/bli-errors.o bliss/bli-opts.o bliss/bli-gimplify.o $(BLI_C_OBJS) $(BLI_MOD_C_OBJS)
 
 # core compiler 
 bli1$(exeext): $(BLI_OBJS) $(BACKEND) $(LIBDEPS)
@@ -372,3 +383,11 @@ bliss.html:
 	mv bliss*.html $(blisrc)
 
 lang_opt_files += $(srcdir)/bliss/lang.opt
+
+# C selftests
+
+# If C is enabled, require the selftests to be run for it
+# at each stage of the build:
+selftest-bliss:
+	echo s-selftest-c
+

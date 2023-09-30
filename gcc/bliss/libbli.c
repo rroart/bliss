@@ -4,6 +4,7 @@
 
 // later: put some that can be ctce into parse.y
 
+#if 0 // TODO
 typedef unsigned int size_t;
 #define NULL 0
 
@@ -276,3 +277,4 @@ void bli_signal(int sig) {
   if (sig&4)
     exit(sig);
 }
+#endif

@@ -27,9 +27,10 @@
 #include "backend.h"
 #include "target.h"
 #include "rtl.h"
+
 #include "tree.h"
 
-#include "bli-tree.h"
+#include "c/c-tree.h"
 
 #include "parse.hh"
 
@@ -70,7 +71,7 @@ extern int check_little_endian();
   char * s;
 
   int input_line;
-  YYSTYPE yylval;
+  extern YYSTYPE yylval;
   unsigned int intern_hash_size=0;
   unsigned int estimated_token_count=0;
 
@@ -151,7 +152,7 @@ extern int check_little_endian();
   int cond_stack_ptr = 0;
 #define MAX_MACRO_DEPTH 40
   tree macro_stack[MAX_MACRO_DEPTH];
-  char macro_stack_char[MAX_MACRO_DEPTH];
+  char* macro_stack_char[MAX_MACRO_DEPTH];
   int macro_stack_ptr=0;
 #define MAX_NESTED_MACRO_DEPTH 10
   void* nested_macro_stack_mac[MAX_MACRO_DEPTH];
@@ -608,7 +609,7 @@ hexdigit [0-9a-f]
 		  tree t = parse_this(myline);
 		  t = TREE_VALUE(t);
 		  push_cond_stack(0);
-		  skip_mode=get_cond_stack()|integer_zerop(fold(/*parser_*/build_binary_op(BIT_AND_EXPR,t,build_int_cst (long_integer_type_node, 1), 1))); // check -parser
+		  skip_mode=get_cond_stack()|integer_zerop(fold(/*parser_*/build_binary_op(input_location, BIT_AND_EXPR,t,build_int_cst (long_integer_type_node, 1), 1))); // check -parser
 		  push_cond_stack(0);
 		} else {
 		  push_cond_stack(0);

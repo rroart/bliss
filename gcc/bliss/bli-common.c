@@ -78,4 +78,4 @@ bli_expand_expr (exp, target, tmode, modifier, alt_rtl)
 }
 */
 
-int pending_lang_change;
+//int pending_lang_change;

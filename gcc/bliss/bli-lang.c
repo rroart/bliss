@@ -23,14 +23,14 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "tree.h"
-#include "bli-tree.h"
-#include "bli-common.h"
-#include "ggc.h"
+//#include "tm.h"
+//#include "tree.h"
+#include "c/c-tree.h"
+#include "c-family/c-common.h"
+//#include "ggc.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
-#include "diagnostic.h"
+//#include "diagnostic.h"
 #if 0
 #include "c-pretty-print.h"
 #endif
@@ -42,7 +42,7 @@ static void c_initialize_diagnostics (diagnostic_context *);
 enum c_language_kind c_language = clk_c;
 
  #  define PARAMS(args) args
-extern void bli_common_parse_file(int);
+extern void bli_common_parse_file();
 extern rtx bli_expand_expr PARAMS ((tree, rtx, enum machine_mode, int));
 extern void bli_print_statistics(void);
 
@@ -103,8 +103,8 @@ extern void bli_print_statistics(void);
 #define LANG_HOOKS_FUNCTION_ENTER_NESTED c_push_function_context
 #undef LANG_HOOKS_FUNCTION_LEAVE_NESTED
 #define LANG_HOOKS_FUNCTION_LEAVE_NESTED c_pop_function_context
-#undef LANG_HOOKS_DUP_LANG_SPECIFIC_DECL
-#define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL c_dup_lang_specific_decl
+//#undef LANG_HOOKS_DUP_LANG_SPECIFIC_DECL
+//#define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL c_dup_lang_specific_decl
 #undef LANG_HOOKS_DECL_UNINIT
 #define LANG_HOOKS_DECL_UNINIT c_decl_uninit
 #undef LANG_HOOKS_PRINT_STATISTICS
@@ -165,8 +165,8 @@ extern void bli_print_statistics(void);
 #undef LANG_HOOKS_WRITE_GLOBALS
 #define LANG_HOOKS_WRITE_GLOBALS c_write_global_declarations
 
-//#undef LANG_HOOKS_GETDECLS
-//#define LANG_HOOKS_GETDECLS lhd_return_null_tree_v
+#undef LANG_HOOKS_GETDECLS
+#define LANG_HOOKS_GETDECLS hook_tree_void_null
 
 #define C_SIZEOF_STRUCT_LANG_IDENTIFIER \
   (sizeof (struct c_common_identifier) + 3 * sizeof (void *))
@@ -180,7 +180,7 @@ extern void bli_print_statistics(void);
 /* ### When changing hooks, consider if ObjC needs changing too!! ### */
 
 /* Each front end provides its own.  */
-//const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
+struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 /* Tree code classes.  */
 

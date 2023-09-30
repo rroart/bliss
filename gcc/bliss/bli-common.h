@@ -19,6 +19,7 @@ along with GCC; see the file COPYING.  If not, write to the Free
 Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.  */
 
+#define GCC_BLI_COMMON_H
 #ifndef GCC_BLI_COMMON_H
 #define GCC_BLI_COMMON_H
 
@@ -297,8 +298,8 @@ extern tree add_stmt (tree);
 extern void push_cleanup (tree, tree, bool);
 extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
-extern tree build_modify_expr (tree, enum tree_code, tree);
-extern tree build_indirect_ref (tree, const char *);
+extern tree build_modify_expr (location_t, tree, tree, enum tree_code, location_t, tree, tree);
+extern tree build_indirect_ref (location_t, tree, ref_operator);
 
 extern int c_expand_decl (tree);
 
@@ -644,7 +645,7 @@ extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
-extern tree c_common_truthvalue_conversion (tree);
+extern tree c_common_truthvalue_conversion (location_t, tree);
 extern void c_apply_type_quals_to_decl (int, tree);
 extern tree c_sizeof_or_alignof_type (tree, bool, int);
 extern tree c_alignof_expr (tree);
@@ -750,15 +751,15 @@ extern int anon_aggr_type_p (tree);
   (DECL_LANG_FLAG_4 (FIELD_DECL_CHECK (NODE)) = 0)
 
 extern void emit_local_var (tree);
-extern tree do_case (tree, tree);
+extern tree do_case (location_t, tree, tree, tree);
 extern tree build_stmt (enum tree_code, ...);
 extern tree build_case_label (tree, tree, tree);
 
 /* These functions must be defined by each front-end which implements
    a variant of the C language.  They are used in c-common.c.  */
 
-extern tree build_unary_op (enum tree_code, tree, int);
-extern tree build_binary_op (enum tree_code, tree, tree, int);
+extern tree build_unary_op (location_t, enum tree_code, tree, bool);
+extern tree build_binary_op (location_t, enum tree_code, tree, tree, bool);
 extern tree perform_integral_promotions (tree);
 
 /* These functions must be defined by each front-end which implements
@@ -782,7 +783,7 @@ extern tree c_add_case_label (splay_tree, tree, tree, tree, tree);
 
 extern void c_do_switch_warnings (splay_tree, location_t, tree, tree);
 
-extern tree build_function_call (tree, tree);
+extern tree build_function_call (location_t, tree, tree);
 
 extern tree resolve_overloaded_builtin (tree, tree);
 
