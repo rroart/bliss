@@ -1,0 +1,7 @@
+GNU Bliss Compiler
+
+Now being updated to GCC 13.2.0 backend.
+Code generation is not at the same level as the older for GCC 4.2.1.
+A major refactor and modernization is in the long time works.
+
+The older Bliss for GCC 4.2.1 was able to build CMUIP telnet client for 32-bit.
