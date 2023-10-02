@@ -110,8 +110,9 @@ bliss/c-parser.o: c/c-parser.o
 	strip -N _Z12c_parse_filev bliss/c-parser.o
 	strip -N _Z12c_parse_initv bliss/c-parser.o
 
-BLI_C_OBJS = c-family/c-ada-spec.o c-family/c-common.o c-family/c-attribs.o c-family/c-cppbuiltin.o c-family/c-dump.o c-family/c-format.o c-family/c-gimplify.o c-family/c-indentation.o c/c-objc-common.o c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o c-family/c-ppoutput.o c-family/c-pretty-print.o c-family/c-semantics.o c-family/c-spellcheck.o c-family/c-ubsan.o c-family/c-warn.o c-family/known-headers.o c-family/stub-objc.o c/c-convert.o c-family/c-pragma.o c/c-decl.o c/c-errors.o c/c-fold.o  c/c-typeck.o c/gimple-parser.o i386-c.o cc1-checksum.o glibc-c.o
+BLI_C_OBJS = c-family/c-ada-spec.o c-family/c-common.o c-family/c-attribs.o c-family/c-cppbuiltin.o c-family/c-dump.o c-family/c-format.o c-family/c-gimplify.o c-family/c-indentation.o c/c-objc-common.o c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o c-family/c-ppoutput.o c-family/c-pretty-print.o c-family/c-semantics.o c-family/c-spellcheck.o c-family/c-ubsan.o c-family/c-warn.o c-family/known-headers.o c-family/stub-objc.o c/c-convert.o c-family/c-pragma.o c/c-errors.o c/c-fold.o  c/c-typeck.o c/gimple-parser.o i386-c.o cc1-checksum.o glibc-c.o
 BLI_MOD_C_OBJS = bliss/c-lex.o bliss/c-parser.o
+# bliss/c-decl.o 
 # c/c-lang.o
 
 BLI_OBJS=bliss/blilex.o attribs.o tree.o \

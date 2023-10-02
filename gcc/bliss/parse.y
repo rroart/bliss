@@ -56,7 +56,7 @@ int turn_off_addr_expr = 0;
 
  #  define PARAMS(args) args
 static const char *input_filename;
-int   yyparse (void);
+extern int   yyparse (void);
   extern void inform (location_t, const char *, ...);
   extern tree get_identifier (const char *);
   extern tree maybe_get_identifier (const char *);
@@ -78,8 +78,13 @@ int   yyparse (void);
   extern int check_little_endian();
   extern void push_parm_decl_init(tree, tree);
   extern int register_field(char * s, tree t);
-  
- static short *malloced_yyss;
+
+  // bli-decl.c
+  extern void bli_pushtag (location_t loc, tree name, tree type);
+  extern void bli_pop_scope();
+  extern struct c_arg_info * bli_get_parm_info (bool ellipsis, tree expr);
+
+  static short *malloced_yyss;
  static void *malloced_yyvs;
 
  static int compstmt_count;
@@ -169,9 +174,13 @@ void
 
   get_builtin();
 
-  yyin=fopen(input_filename,"r");
+  yyin=fopen(main_input_filename,"r");
 
-  return yyparse();
+  // need this way or it will not execute
+  // if return yyparse(), it just disappeared
+  int parse = yyparse();
+  printf("Parsing complete.\n");
+  return parse;
 }
 
  extern tree current_function_decl; 
@@ -609,7 +618,7 @@ module		: K_MODULE module_head '='
   last_expr_filename=input_filename;
 #endif
   push_file_scope ();
-  add_builtin();
+  // TODO add_builtin();
 }
 save_location
  start_block K_ELUDOM
@@ -618,7 +627,7 @@ save_location
   if (1) inform (input_location, "\n%%BLS-I-PARSED-OK-That's a module alright\n");
 #if 0
   while (! global_bindings_p ())
-    pop_scope();
+    bli_pop_scope();
 #endif
   finish_fname_decls ();
   // TODO finish_file ();
@@ -1646,7 +1655,7 @@ pushlevel block_body K_END poplevel
 { 
 #ifndef c99
 #if 0
-  $$=pop_scope();
+  $$=bli_pop_scope();
 #endif
 #endif
  // last_expr_type = NULL_TREE; // check
@@ -1660,7 +1669,7 @@ pushlevel block_body ')' poplevel
   if (cfun==0)
 	 goto no_cfun;
 #if 0
-$$=pop_scope();
+$$=bli_pop_scope();
 #endif
  // last_expr_type = NULL_TREE; // check
  $$=$1;
@@ -2685,7 +2694,7 @@ pushlevel exp poplevel
     add_stmt ($7);
 
 #if 0
-  $$=pop_scope();
+  $$=bli_pop_scope();
 #endif
   $3 = c_common_truthvalue_conversion (input_location, build_binary_op(input_location, BIT_AND_EXPR,convert(integer_type_node,$3),build_int_cst (long_integer_type_node, 1), 1)); // 64-bit
   $$ = c_end_compound_stmt (input_location, $<type_node_p>4, 1);
@@ -2707,7 +2716,7 @@ pushlevel exp poplevel
 
   $5 = c_end_compound_stmt (input_location, $<type_node_p>3, 1);
 #if 0
-  $$=pop_scope();
+  $$=bli_pop_scope();
 #endif
 
   tree block = TREE_PURPOSE(TREE_VALUE($1));
@@ -4392,7 +4401,7 @@ T_NAME '['
 
   tree accessid = get_identifier(add_underscore($1, 2));
   //tree accessls = $4;
-   struct c_arg_info * arg_info2 = get_parm_info(1, 0);
+   struct c_arg_info * arg_info2 = bli_get_parm_info(1, 0);
   tree accessfn = build_nt (CALL_EXPR, accessid, arg_info2, NULL_TREE);
 
   //push_parm_decl($<type_node_p>3);
@@ -4404,14 +4413,14 @@ T_NAME '['
   push_function_context ();
 #endif
   accessfn = accessid; 
-  struct c_arg_info * arg_info = get_parm_info(1, 0);
+  struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
 #if 0
   push_function_context ();
 #endif
   bli_start_function (long_integer_type_node, accessfn, arg_info, 0); // 64-bit
   store_parm_decls();
 #if 0
-  void * ret = get_parm_info(1, 0);
+  void * ret = bli_get_parm_info(1, 0);
   store_parm_decls_from (ret);
 #endif
   afun=current_function_decl;
@@ -4433,7 +4442,7 @@ allocation_formal_list ']' '='
 
   acfun=cfun;
   allocfn = allocid;
-  struct c_arg_info * arg_info = get_parm_info(1, 0);
+  struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
 #if 0
   push_scope();
 #endif
@@ -4443,7 +4452,7 @@ allocation_formal_list ']' '='
   bli_start_function (long_integer_type_node, allocfn, arg_info, 0); // 64-bit
   store_parm_decls();
 #if 0
-  void * ret = get_parm_info(1, 0);
+  void * ret = bli_get_parm_info(1, 0);
   store_parm_decls_from (ret);
 #endif
 
@@ -4494,7 +4503,7 @@ structure_body
 
   //DECL_SAVED_TREE (current_function_decl)=$13;
 #if 0
-  pop_scope();
+  bli_pop_scope();
 #endif
   add_stmt($13);
 #if 0
@@ -4507,9 +4516,9 @@ bli_finish_function ();
   pop_function_context ();
 #endif
 
-  pop_scope();
-  pop_scope();
-  pop_scope();
+  bli_pop_scope();
+  bli_pop_scope();
+  bli_pop_scope();
 
   tree d7 = DECL_ARGUMENTS($<type_node_p>10);
   tree d4 = DECL_ARGUMENTS($<type_node_p>6 /*12*/);
@@ -4538,11 +4547,11 @@ allocation_formal_list:
 allocation_formal_list ',' allocation_formal 
 { 
 //$$ = tree_cons (NULL_TREE, $1, $3);
-  /*$$ = get_parm_info (1);*/
+  /*$$ = bli_get_parm_info (1);*/
   //$$=chainon ($1, $3); 
 }
 |allocation_formal { 
-  /*$$ = get_parm_info (1);*/
+  /*$$ = bli_get_parm_info (1);*/
 //$$=$1; 
  }
 ;
@@ -4577,12 +4586,12 @@ structure_body:
   expression;
 
 access_formal_list: access_formal_list ',' access_formal { 
-  /*  $$ = get_parm_info (1);*/
+  /*  $$ = bli_get_parm_info (1);*/
   //$$=chainon($1,$3); 
 }
 | access_formal 
 {
-  /*  $$ = get_parm_info (1);*/
+  /*  $$ = bli_get_parm_info (1);*/
   //$$=$1;
 }
 ;
@@ -4703,8 +4712,8 @@ io_list routine_attributes
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
     struct c_parm * decl = build_parm_decl(d1, long_integer_type_node); // 64-bit
     push_parm_decl (decl, 0);
-    struct c_arg_info * arg_info = get_parm_info(1, 0);
-    pop_scope();
+    struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
+    bli_pop_scope();
 #else
     tree type = long_integer_type_node;
     tree d1 = get_identifier("__mydummy_for_ap__");
@@ -4713,9 +4722,10 @@ io_list routine_attributes
 #endif
   }
 #endif
-    struct c_arg_info * arg_info = get_parm_info(1, 0);
+  struct c_arg_info * arg_info = build_arg_info();
+  if (io_list != 0) arg_info = bli_get_parm_info(1, 0);
   // check. why CALL_EXPR?
-  fn = build_nt (CALL_EXPR, $1, arg_info, NULL_TREE);
+  fn = build_nt (FUNCTION_DECL, $1, arg_info, NULL_TREE);
   fn = $1;
   bli_start_function (mytype, fn, arg_info, 0);
   if (0==strcmp("main", IDENTIFIER_POINTER($1))) {
@@ -4762,8 +4772,8 @@ io_list: { $$=0; }
 '(' formal_item_list ')'
 { 
   $$ = $3;
-  struct c_arg_info * arg_info = get_parm_info(1, 0);
-  pop_scope();
+  struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
+  bli_pop_scope();
 }
 /*  |'(' formal_item_list ';' formal_item_list ')' 
     |'(' ';' formal_item_list ')' */
@@ -4771,8 +4781,8 @@ io_list: { $$=0; }
 
 formal_item_list:
 /* empty 6 */ { $$ = 0 ; } 
-|formal_item_list ','  formal_item { /*$$ = get_parm_info (1);*/ }
-|formal_item { /*$$ = get_parm_info (1);*/ }
+|formal_item_list ','  formal_item { /*$$ = bli_get_parm_info (1);*/ }
+|formal_item { /*$$ = bli_get_parm_info (1);*/ }
 ;
 
 formal_name:
@@ -4875,8 +4885,8 @@ io_list global_routine_attributes
     tree int_tree = tree_cons (NULL_TREE, type, NULL_TREE);
     struct c_parm * decl = build_parm_decl(d1, long_integer_type_node); // 64-bit
     push_parm_decl (decl, 0);
-    struct c_arg_info * arg_info = get_parm_info(1, 0);
-    pop_scope();
+    struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
+    bli_pop_scope();
 #else
     tree type = long_integer_type_node;
     tree d1 = get_identifier("__mydummy_for_ap__");
@@ -4885,7 +4895,7 @@ io_list global_routine_attributes
 #endif
   }
 #endif
-    struct c_arg_info * arg_info = get_parm_info(1, 0);
+    struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
   fn = build_nt (CALL_EXPR, $1, arg_info, NULL_TREE);
   fn = $1;
   bli_start_function (mytype, fn, arg_info, 0);
@@ -5569,7 +5579,7 @@ T_NAME '('
 }
 keyword_pair_list
 {
-  pop_scope ();
+  bli_pop_scope ();
 }
  ')' '=' { macromode=1; } macro_body '%' 
 { 
@@ -6296,7 +6306,7 @@ mydeclares (tree t) {
   for(tmp=t;tmp;tmp=TREE_CHAIN(tmp)) {
     struct c_parm * decl = build_parm_decl (TREE_VALUE(tmp), long_integer_type_node); // 64-bit
     push_parm_decl(decl, 0);
-    get_parm_info(1, 0);
+    bli_get_parm_info(1, 0);
   }
   return 0;
 }
@@ -6434,7 +6444,7 @@ void
 add_macro(char * name, int type, tree param, tree param2, tree body) {
   tree i = get_identifier(name);
   tree t = build_nt(MACRO_DEF, type, param, param2, body);
-  c_pushtag(input_location, i, t);
+  bli_pushtag(input_location, i, t);
 }
 
 void *
@@ -6754,7 +6764,7 @@ c_parse_file (void)
   /* In case there were missing closebraces, get us back to the global
      binding level.  */
   while (! global_bindings_p ())
-    pop_scope();
+    bli_pop_scope();
   /* __FUNCTION__ is defined at file scope ("").  This
      call may not be necessary as my tests indicate it
      still works without it.  */
@@ -6897,7 +6907,9 @@ void get_builtin(void) {
   add_macro("%bliss32",SIMP_MACRO,0,0,get_identifier("%remaining"));
 
   // 64-bit
+#if 0 // TODO
 #ifdef __x86_64__
+  // TODO
   predef_literal("%bpval",64);
   predef_literal("%bpunit",8);
   predef_literal("%bpaddr",64);
@@ -6908,7 +6920,8 @@ void get_builtin(void) {
   predef_literal("%bpaddr",32);
   predef_literal("%upval",4);
 #endif
-
+#endif
+  
 #if 0
   do_builtin=1;
 
@@ -7048,6 +7061,7 @@ predef_literal(char * name, int value)
 {
   tree d1 = get_identifier(name);
   tree d3 = build_int_cst (long_integer_type_node, value); // 64-bit
+  // TODO
   build_enumerator(input_location, input_location, 0, d1, d3); // later?
   TREE_LANG_FLAG_0(d1)=1;
 }
@@ -7789,7 +7803,7 @@ struct c_parm *
 build_parm_decl(tree id, tree type) {
   struct c_declspecs * specs = build_null_declspecs();
   struct c_typespec typespec;
-  typespec.kind = ctsk_typeof;
+  typespec.kind = ctsk_tagdef; // TODO
   typespec.spec = type;
   specs = declspecs_add_type(input_location, specs, typespec);
   return build_c_parm(specs, 0, build_id_declarator(id), input_location);
@@ -7817,7 +7831,7 @@ build_specs(tree type)
 {
   struct c_declspecs * specs = build_null_declspecs();
   struct c_typespec typespec;
-  typespec.kind = ctsk_typeof;
+  typespec.kind = ctsk_tagdef; // TODO
   typespec.spec = type;
   specs = declspecs_add_type(input_location, specs, typespec);
   return specs;
