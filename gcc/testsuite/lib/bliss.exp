@@ -158,7 +158,9 @@ proc gcc_target_compile { source dest type options } {
     if [target_info exists gcc,timeout] {
 	lappend options "timeout=[target_info gcc,timeout]"
     }
-    lappend options "compiler=$GCC_UNDER_TEST"
+    #lappend options "compiler=$GCC_UNDER_TEST"
+    # TODO fix better later
+    lappend options "compiler=xgcc -B. -v -specs=$(SPECS)"
     set options [dg-additional-files-options $options $source]
     return [target_compile $source $dest $type $options]
 }
