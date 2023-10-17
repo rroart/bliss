@@ -1,0 +1,3 @@
+./configure
+make bootstrap or make
+(build/stage3-gcc. make check-bliss)

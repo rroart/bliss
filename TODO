@@ -1,6 +1,9 @@
 I1: Upgrade
 I2: Documentation
 I3: Tests
+I4: Warnings
 
+rename bli to bliss
 rename to cc
+bliss.exp TODO
 error after bison
