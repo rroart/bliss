@@ -50,7 +50,7 @@
   char * my_strstrendbal(const char *, const char *, char , int);
   extern void inform (location_t, const char *, ...);
   //extern void inform (const char *, ...);
-  extern change_macromode();
+  extern void change_macromode();
   extern tree get_identifier (const char *);
   extern tree maybe_get_identifier (const char *);
   extern tree is_label(tree);
@@ -58,8 +58,8 @@
   extern tree set_cti(tree id, tree val);
   extern tree is_something(tree);
   extern char * print_tree(tree);
-  extern void downcase(char *);
-  extern int keyword(char *);
+  static void downcase(char *);
+  static int keyword(char *);
   extern int do_eof();
 extern int check_little_endian();
 
@@ -113,7 +113,6 @@ extern int check_little_endian();
 
   struct bli_token_struct * first_token=NULL;
 
-  static int keyword (char *);
   static int ukeyword (char *);
   static void downcase (char *);
   void push_macro(struct dsc_dollar_descriptor *);
@@ -138,6 +137,7 @@ extern int check_little_endian();
   tree add_tree_string_new_p(tree *, const char *, int, int);
   void strip_par(char *);
   tree * tree_last_p (tree *);
+  int is_opened(char * file);
 
 #define MAX_INCLUDE_DEPTH 40
   YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
@@ -3179,6 +3179,7 @@ char * my_strstrendbal(const char * s, const char * end, char t, int bal) {
   return e;
 }
 
+void
 change_macromode() {
   if (one_lexeme) {
 	 macromode=0;
