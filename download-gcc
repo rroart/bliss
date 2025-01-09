@@ -1,6 +1,6 @@
 #!/bin/sh
 mkdir tmp
 cd tmp
-wget https://ftp.gwdg.de/pub/misc/gcc/releases/gcc-13.2.0/gcc-13.2.0.tar.gz
+wget https://ftp.gwdg.de/pub/misc/gcc/releases/gcc-14.2.0/gcc-14.2.0.tar.gz
 #wget http://mirrors-usa.go-parts.com/gcc/releases/gcc-4.2.1/gcc-testsuite-4.2.1.tar.gz
 cd ..

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERS=13.2.0
+VERS=14.2.0
 
 LIBS=
 
@@ -23,7 +23,7 @@ CFLAGS=
 CPPFLAGS=
 CC=
 rm -rf gcc-${VERS}
-zcat /tmp/gcc-${VERS}.tar.xz|tar xpf -
+xzcat /tmp/gcc-${VERS}.tar.xz|tar xpf -
 #tar xzf patch/gcc-vmscall-0_3_11.tar.gz
 #patch -p1 < gcc-vmscall/gcc-4.2.1-vmscall.patch
 #tar xzf tmp/gcc-testsuite-4.2.1.tar.gz

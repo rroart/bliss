@@ -155,7 +155,6 @@ bli_pop_scope (void)
 	case ENUMERAL_TYPE:
 	case UNION_TYPE:
 	case RECORD_TYPE:
-	  set_type_context (p, context);
 
 	  /* Types may not have tag-names, in which case the type
 	     appears in the bindings list with b->id NULL.  */
@@ -266,12 +265,7 @@ bli_pop_scope (void)
 	     the TRANSLATION_UNIT_DECL.  This makes same_translation_unit_p
 	     work.  */
 	  if (scope == file_scope)
-	    {
 	      DECL_CONTEXT (p) = context;
-	      if (TREE_CODE (p) == TYPE_DECL
-		  && TREE_TYPE (p) != error_mark_node)
-		set_type_context (TREE_TYPE (p), context);
-	    }
 
 	  gcc_fallthrough ();
 	  /* Parameters go in DECL_ARGUMENTS, not BLOCK_VARS, and have
@@ -491,11 +485,14 @@ bli_get_parm_info (bool ellipsis, tree expr)
 	  if (TREE_CODE (decl) != UNION_TYPE || b->id != NULL_TREE)
 	    {
 	      if (b->id)
-		/* The %s will be one of 'struct', 'union', or 'enum'.  */
-		warning_at (b->locus, 0,
-			    "%<%s %E%> declared inside parameter list"
-			    " will not be visible outside of this definition or"
-			    " declaration", keyword, b->id);
+		{
+		  /* The %s will be one of 'struct', 'union', or 'enum'.  */
+		  if (!flag_isoc23)
+		    warning_at (b->locus, 0,
+				"%<%s %E%> declared inside parameter list"
+				" will not be visible outside of this definition or"
+				" declaration", keyword, b->id);
+		}
 	      else
 		/* The %s will be one of 'struct', 'union', or 'enum'.  */
 		warning_at (b->locus, 0,
