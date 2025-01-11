@@ -285,3 +285,16 @@ c_initialize_diagnostics (diagnostic_context *context)
 
 #include "gtype-c.h"
 
+/* New in gcc 14 */
+
+extern void c_register_features ();
+
+/* Implement c-family hook to register language-specific features for
+   __has_{feature,extension}.  */
+
+void
+c_family_register_lang_features ()
+{
+  c_register_features ();
+}
+
