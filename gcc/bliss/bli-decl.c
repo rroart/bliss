@@ -2,6 +2,8 @@
 
 // BLISS adds
 
+// mirroring c-decl
+
 void
 bli_bind (tree name, tree decl, struct c_scope *scope, bool invisible,
       bool nested, location_t locus)
@@ -69,6 +71,8 @@ bli_bind (tree name, tree decl, struct c_scope *scope, bool invisible,
   b->shadowed = *here;
   *here = b;
 }
+
+// mirroring c-decl
 
 tree
 bli_pop_scope (void)
@@ -328,6 +332,8 @@ bli_pop_scope (void)
   return block;
 }
 
+// mirroring c-decl
+
 void
 bli_pushtag (location_t loc, tree name, tree type)
 {
@@ -371,6 +377,8 @@ bli_pushtag (location_t loc, tree name, tree type)
 	}
     }
 }
+
+// mirroring c-decl
 
 struct c_arg_info *
 bli_get_parm_info (bool ellipsis, tree expr)
@@ -442,8 +450,9 @@ bli_get_parm_info (bool ellipsis, tree expr)
 	  if (TREE_ASM_WRITTEN (decl))
 	    error_at (b->locus,
 		      "parameter %q+D has just a forward declaration", decl);
-	  /* Check for (..., void, ...) and issue an error.  */
-	  else if (VOID_TYPE_P (type) && !DECL_NAME (decl))
+	  /* Check for (..., void, ...) and named void parameters and issue an
+	     error.  */
+	  else if (VOID_TYPE_P (type))
 	    {
 	      if (!gave_void_only_once_err)
 		{
@@ -487,7 +496,7 @@ bli_get_parm_info (bool ellipsis, tree expr)
 	      if (b->id)
 		{
 		  /* The %s will be one of 'struct', 'union', or 'enum'.  */
-		  if (!flag_isoc23)
+		  if (!flag_isoc23 || !COMPLETE_TYPE_P (decl))
 		    warning_at (b->locus, 0,
 				"%<%s %E%> declared inside parameter list"
 				" will not be visible outside of this definition or"
@@ -560,6 +569,8 @@ bli_get_parm_info (bool ellipsis, tree expr)
   return arg_info;
 }
 
+// not mirroring c-decl
+
 tree
 start_structure (
 		 enum tree_code code,
@@ -594,6 +605,8 @@ start_structure (
   //  TYPE_PACKED (ref) = flag_pack_struct;
   return ref;
 }
+
+// not mirroring c-decl
 
 tree
 finish_structure (

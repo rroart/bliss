@@ -2753,7 +2753,7 @@ K_CASE exp K_FROM
   cntrli++;
   cntrls[cntrli].c_break_label = create_artificial_label (input_location);
   cntrls[cntrli].block_value = create_tmp_var (long_integer_type_node, "loopval");
-  $<type_node_p>$ = c_start_switch (input_location, input_location, $2, 0);
+  $<type_node_p>$ = c_start_switch (input_location, input_location, $2, 0, 0); // TODO name
   // c_in_case_stmt++; // check
 }
 ctce K_TO ctce K_OF
