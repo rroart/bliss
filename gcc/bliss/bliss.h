@@ -10,7 +10,7 @@ struct dsc_dollar_descriptor {
   unsigned short        dsc_dollar_w_length;   
   unsigned char dsc_dollar_b_dtype;    
   unsigned char dsc_dollar_b_class;    
-  void          *dsc_dollar_a_pointer; 
+  const char    *dsc_dollar_a_pointer; 
 };
 // has not got descrip.h (yet)
 
@@ -23,7 +23,7 @@ struct mymacro {
   tree body;
 };
 
-tree find_field(char * s);
+tree find_field(const char * s);
 tree find_linkage_attr(tree);
 #if 0
 tree parser_build_binary_op (enum tree_code, tree, tree);
@@ -32,9 +32,9 @@ tree get_value(tree);
 tree give_char_array_type_node();
 tree start_structure (enum tree_code, tree);
 tree finish_structure (tree, tree, tree, tree, tree, tree, tree);
-tree parse_this_range (char * thiss, char * end);
-tree parse_this_n (char * thiss, int n);
-tree parse_this (char * thiss);
+tree parse_this_range (const char * thiss, const char * end);
+tree parse_this_n (const char * thiss, int n);
+tree parse_this (const char * thiss);
 tree mylast();
 tree build_external(tree, tree);
 
@@ -43,10 +43,10 @@ void my_substitute (tree, tree, tree);
 void my_fold (tree);
 void my_fold_p (tree *);
 tree parm_first_to_last (tree);
-void add_macro (char *,int,tree,tree,tree);
+void add_macro (const char *,int,tree,tree,tree);
 char * add_counted_string (tree, int);
 char * add_underscore (tree, int);
-void * find_macro(struct mymacro * s,char * name);
+void * find_macro(struct mymacro * s,const char * name);
 int make_macro_string(struct dsc_dollar_descriptor * dsc, struct mymacro * m, tree r);
 tree find_init_attr(tree t);
 tree find_structure_attr(tree);
@@ -78,8 +78,8 @@ int print_remain(struct dsc_dollar_descriptor *, tree);
 tree mytag(tree);
 int is_str_tag(tree);
 tree strip_literal(tree);
-tree find_linkage(char * name);
-void add_linkage (char *,tree);
+tree find_linkage(const char * name);
+void add_linkage (const char *,tree);
 tree convert_string_literal_to_integer(tree);
 tree is_symbol(tree);
 struct c_parm * build_parm_decl(tree,tree);

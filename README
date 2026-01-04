@@ -1,6 +1,6 @@
 GNU Bliss Compiler
 
-Now being updated to GCC 13.2.0 backend.
+Now being updated to GCC 15.1.0 backend.
 Code generation is not at the same level as the older for GCC 4.2.1.
 A major refactor and modernization is in the long time works.
 
