@@ -42,9 +42,9 @@
 #define my_isend(c) ((c) == '\n' || (c) == 0)
 
 //  void error(),warning(),inform();
-  tree parse_this (char * thiss);
-  tree parse_this_n (char * thiss, int n);
-  tree parse_this_range (char * thiss, char * end);
+  tree parse_this (const char * thiss);
+  tree parse_this_n (const char * thiss, int n);
+  tree parse_this_range (const char * thiss, const char * end);
   char * my_strcasestr(const char *, const char *);
   char * my_strstrend(const char *, const char *);
   char * my_strstrendbal(const char *, const char *, char , int);
@@ -116,7 +116,7 @@ extern int check_little_endian();
   static int ukeyword (char *);
   static void downcase (char *);
   void push_macro(struct dsc_dollar_descriptor *);
-  void push_req_stack(char *);
+  void push_req_stack(const char *);
   void pop_req_stack(void);
   void push_cond_stack(int);
   void pop_cond_stack(void);
@@ -225,7 +225,7 @@ extern int check_little_endian();
     }
 
   void
-    push_req_stack(char *neww)
+    push_req_stack(const char *neww)
     {
       include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
       include_stack_state[include_stack_ptr] = 0;
@@ -3002,7 +3002,7 @@ int something_that_uses_yyunput(void) {
   return 0;
 }
 
-tree parse_this (char * thiss) {
+tree parse_this (const char * thiss) {
   if (!quiet_flag) printf("parse this %s\n",thiss);
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
@@ -3020,7 +3020,7 @@ tree parse_this (char * thiss) {
   return mylast();
 }
 
-tree parse_this_n (char * thiss, int n) {
+tree parse_this_n (const char * thiss, int n) {
   expr_parse++;
   include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
   include_stack_state[include_stack_ptr] = 1;
@@ -3035,7 +3035,7 @@ tree parse_this_n (char * thiss, int n) {
   return mylast();
 }
 
-tree parse_this_range (char * thiss, char * end) {
+tree parse_this_range (const char * thiss, const char * end) {
   goto skip_me;
   if (yydebug) {
   skip_me: {}
@@ -3280,7 +3280,7 @@ pname_macro(char * src, int len)
   pname_len=len;
 }
 
-check_lib(char * s) 
+check_lib(const char * s) 
 {
   // lib.req is really compiled lib and seems to imply starlet, too
   downcase(s);

@@ -63,7 +63,7 @@ extern int   yyparse (void);
   extern tree fold (tree);
   extern void reset_symbol(tree t);
   extern void c_pushtag (location_t loc, tree name, tree type);
-  extern int is_opened(const char * file);
+  extern int is_opened(char * file);
   extern void check_lib(const char * s);
   extern void push_req_stack(const char *neww);
   extern int s_str_attr(tree t);
@@ -6440,13 +6440,13 @@ parm_first_to_last_new(struct c_arg_info * myargs)
 }
 
 void
-add_macro(char * name, int type, tree param, tree param2, tree body) {
+add_macro(const char * name, int type, tree param, tree param2, tree body) {
   tree i = get_identifier(name);
   tree t = build_nt(MACRO_DEF, type, param, param2, body);
   bli_pushtag(input_location, i, t);
 }
 
-void *find_macro(struct mymacro * s,char * name) {
+void *find_macro(struct mymacro * s,const char * name) {
   tree id=maybe_get_identifier(name);
 
   if (id==0)
@@ -7686,14 +7686,14 @@ strip_literal(tree t)
 }
 
 void
-add_linkage(char * name, tree type) {
+add_linkage(const char * name, tree type) {
   tree i = get_identifier(name);
   tree t = build_nt(LINKAGE, type);
   c_pushtag(input_location, i, t);
 }
 
 tree
-find_linkage(char * name) {
+find_linkage(const char * name) {
   tree id=maybe_get_identifier(name);
 
   if (id==0)
