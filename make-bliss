@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERS=15.1.0
+VERS=16.1.0
 
 LIBS=
 
@@ -18,7 +18,7 @@ if [ -d /usr/lib/i386-linux-gnu/ ]; then
 export LIBRARY_PATH=/usr/lib/i386-linux-gnu/
 fi
 fi
-
+unset LIBRARY_PATH
 CFLAGS=
 CPPFLAGS=
 CC=
