@@ -207,7 +207,7 @@ bli_pop_scope (void)
 	case VAR_DECL:
 	  /* Warnings for unused variables.  */
 	  if ((!TREE_USED (p) || !DECL_READ_P (p))
-	      && !warning_suppressed_p (p, OPT_Wunused_but_set_variable)
+	      && !warning_suppressed_p (p, OPT_Wunused_but_set_variable_)
 	      && !DECL_IN_SYSTEM_HEADER (p)
 	      && DECL_NAME (p)
 	      && !DECL_ARTIFICIAL (p)
@@ -221,7 +221,7 @@ bli_pop_scope (void)
 		}
 	      else if (DECL_CONTEXT (p) == current_function_decl)
 		warning_at (DECL_SOURCE_LOCATION (p),
-			    OPT_Wunused_but_set_variable,
+			    OPT_Wunused_but_set_variable_,
 			    "variable %qD set but not used", p);
 	    }
 
@@ -370,8 +370,8 @@ bli_pushtag (location_t loc, tree name, tree type)
 	{
 	  auto_diagnostic_group d;
 	  if (warning_at (loc, OPT_Wc___compat,
-			  ("using %qD as both a typedef and a tag is "
-			   "invalid in C++"), b->decl)
+			  "using %qD as both a typedef and a tag is "
+			  "invalid in C++", b->decl)
 	      && b->locus != UNKNOWN_LOCATION)
 	    inform (b->locus, "originally defined here");
 	}
