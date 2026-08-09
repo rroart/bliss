@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERS=16.1.0
+VERS=16.2.0
 
 LIBS=
 
