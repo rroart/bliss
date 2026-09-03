@@ -7830,7 +7830,10 @@ build_specs(tree type)
   struct c_typespec typespec;
   typespec.kind = ctsk_tagdef; // TODO
   typespec.spec = type;
+  typespec.expr = NULL_TREE;
   specs = declspecs_add_type(input_location, specs, typespec);
+  if (specs && specs->expr && specs->expr->typed.type == NULL_TREE)
+      specs->expr->typed.type = type;
   return specs;
 }
 
