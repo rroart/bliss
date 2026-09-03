@@ -179,7 +179,7 @@ int
   // need this way or it will not execute
   // if return yyparse(), it just disappeared
   int parse = yyparse();
-  printf("Parsing complete.\n");
+  //printf("Parsing complete.\n");
   return parse;
 }
 
@@ -611,7 +611,7 @@ save_location
  start_block K_ELUDOM
 {
   $$=$6;
-  if (1) inform (input_location, "\n%%BLS-I-PARSED-OK-That's a module alright\n");
+  if (0) inform (input_location, "\n%%BLS-I-PARSED-OK-That's a module alright\n");
 #if 0
   while (! global_bindings_p ())
     bli_pop_scope();
