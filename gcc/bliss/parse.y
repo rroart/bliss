@@ -2425,24 +2425,24 @@ infix_expression: op_exp infix_operator op_exp { abort(); }
  | '^' { $$="^";} 
  |*/
 infix_operator:  
-K_EQL   { $$ = build_nt (MYSIGN, EQ_EXPR, 0); }
-| K_EQLA   { $$ = build_nt (MYSIGN, EQ_EXPR, 1); }
-| K_EQLU  { $$ = build_nt (MYSIGN, EQ_EXPR, 1); }
-| K_NEQ   { $$ = build_nt (MYSIGN, NE_EXPR, 0); }
-| K_NEQA   { $$ = build_nt (MYSIGN, NE_EXPR, 1); }
-| K_NEQU   { $$ = build_nt (MYSIGN, NE_EXPR, 1); }
-| K_LSS   { $$ = build_nt (MYSIGN, LT_EXPR, 0); }
-| K_LSSA   { $$ = build_nt (MYSIGN, LT_EXPR, 1); }
-| K_LSSU   { $$ = build_nt (MYSIGN, LT_EXPR, 1); }
-| K_LEQ  { $$ = build_nt (MYSIGN, LE_EXPR, 0); }
-| K_LEQA   { $$ = build_nt (MYSIGN, LE_EXPR, 1); }
-| K_LEQU   { $$ = build_nt (MYSIGN, LE_EXPR, 1); }
-| K_GTR   { $$ = build_nt (MYSIGN, GT_EXPR, 0); }
-| K_GTRA   { $$ = build_nt (MYSIGN, GT_EXPR, 1); }
-| K_GTRU   { $$ = build_nt (MYSIGN, GT_EXPR, 1); }
-| K_GEQ   { $$ = build_nt (MYSIGN, GE_EXPR, 0); }
-| K_GEQA  { $$ = build_nt (MYSIGN, GE_EXPR, 1); }
-| K_GEQU   { $$ = build_nt (MYSIGN, GE_EXPR, 1); }
+K_EQL   { $$ = build_nt (COMPOUND_EXPR, EQ_EXPR, 0); }
+| K_EQLA   { $$ = build_nt (COMPOUND_EXPR, EQ_EXPR, 1); }
+| K_EQLU  { $$ = build_nt (COMPOUND_EXPR, EQ_EXPR, 1); }
+| K_NEQ   { $$ = build_nt (COMPOUND_EXPR, NE_EXPR, 0); }
+| K_NEQA   { $$ = build_nt (COMPOUND_EXPR, NE_EXPR, 1); }
+| K_NEQU   { $$ = build_nt (COMPOUND_EXPR, NE_EXPR, 1); }
+| K_LSS   { $$ = build_nt (COMPOUND_EXPR, LT_EXPR, 0); }
+| K_LSSA   { $$ = build_nt (COMPOUND_EXPR, LT_EXPR, 1); }
+| K_LSSU   { $$ = build_nt (COMPOUND_EXPR, LT_EXPR, 1); }
+| K_LEQ  { $$ = build_nt (COMPOUND_EXPR, LE_EXPR, 0); }
+| K_LEQA   { $$ = build_nt (COMPOUND_EXPR, LE_EXPR, 1); }
+| K_LEQU   { $$ = build_nt (COMPOUND_EXPR, LE_EXPR, 1); }
+| K_GTR   { $$ = build_nt (COMPOUND_EXPR, GT_EXPR, 0); }
+| K_GTRA   { $$ = build_nt (COMPOUND_EXPR, GT_EXPR, 1); }
+| K_GTRU   { $$ = build_nt (COMPOUND_EXPR, GT_EXPR, 1); }
+| K_GEQ   { $$ = build_nt (COMPOUND_EXPR, GE_EXPR, 0); }
+| K_GEQA  { $$ = build_nt (COMPOUND_EXPR, GE_EXPR, 1); }
+| K_GEQU   { $$ = build_nt (COMPOUND_EXPR, GE_EXPR, 1); }
 /* | K_AND  
  | K_OR  
  | K_EQV  
