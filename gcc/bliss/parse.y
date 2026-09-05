@@ -2920,12 +2920,12 @@ K_OF K_SET select_line_list K_TES
 ;
 
 select_type: 
-K_SELECT { $$ = build_nt (MYSIGN, $1, 0); }
-| K_SELECTA { $$ = build_nt (MYSIGN, $1, 1); }
-| K_SELECTU { $$ = build_nt (MYSIGN, $1, 1); }
-| K_SELECTONE { $$ = build_nt (MYSIGN, $1, 0); }
-| K_SELECTONEA { $$ = build_nt (MYSIGN, $1, 1); }
-| K_SELECTONEU { $$ = build_nt (MYSIGN, $1, 1); }
+K_SELECT { $$ = build_nt (COMPOUND_EXPR, $1, 0); }
+| K_SELECTA { $$ = build_nt (COMPOUND_EXPR, $1, 1); }
+| K_SELECTU { $$ = build_nt (COMPOUND_EXPR, $1, 1); }
+| K_SELECTONE { $$ = build_nt (COMPOUND_EXPR, $1, 0); }
+| K_SELECTONEA { $$ = build_nt (COMPOUND_EXPR, $1, 1); }
+| K_SELECTONEU { $$ = build_nt (COMPOUND_EXPR, $1, 1); }
 ;
 
 select_index:
