@@ -2079,6 +2079,7 @@ address maybe_field_selector
 /*address '<' position_exp ',' size_exp '>'*/
 {
   tree t, op0=0, op1=0, op2=0; 
+  // TODO not really BIT_FIELD_REF
   tree pos = convert (bitsizetype, TREE_OPERAND($2, 0)); // check was u-
   tree size = TREE_OPERAND($2, 1);
   tree ext = TREE_OPERAND($2, 2);
@@ -2144,7 +2145,8 @@ field_selector
 field_selector:
 '<' position_exp ',' size_exp maybe_sign_ext_flag '>'
 {
-  $$ = build_nt(FIELD_SELECTOR, $2, $4, $5);
+  // TODO not really BIT_FIELD_REF
+  $$ = build_nt(BIT_FIELD_REF, $2, $4, $5);
 }
 ;
 
