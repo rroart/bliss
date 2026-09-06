@@ -4669,6 +4669,8 @@ routine_definition
 
 routine_definition: routine_name
 {
+  // scope moved from io_list
+  push_scope();
 }
 io_list routine_attributes 
 {
@@ -4713,7 +4715,11 @@ io_list routine_attributes
   }
 #endif
   struct c_arg_info * arg_info = build_arg_info();
+  // TODO use when using more modern variant?
+  //arg_info -> types = io_list;
   if (io_list != 0) arg_info = bli_get_parm_info(1, 0);
+  // scope moved from io_list
+  bli_pop_scope();
   // check. why CALL_EXPR?
   fn = build_nt (FUNCTION_DECL, $1, arg_info, NULL_TREE);
   fn = $1;
@@ -4755,15 +4761,17 @@ io_list ':' routine_attribute_list
 
 io_list: { $$=0; }
 | {
-  push_scope();
+  // scope moved from io_list
+  //push_scope();
   // check: needs mark_forward_parm_decls (); maybe?
   declare_parm_level ();
 }
 '(' formal_item_list ')'
 { 
   $$ = $3;
-  struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
-  bli_pop_scope();
+  //struct c_arg_info * arg_info = bli_get_parm_info(1, 0);
+  // scope moved from io_list
+  //bli_pop_scope();
 }
 /*  |'(' formal_item_list ';' formal_item_list ')' 
     |'(' ';' formal_item_list ')' */
