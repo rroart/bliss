@@ -2350,6 +2350,7 @@ opexp9 infix_operator opexp9
   tree left = $1;
   tree right = $3;
   tree myop = $2;
+  // TODO don't use COMPOUND_EXPR
   int op = (int) (long) TREE_OPERAND(myop, 0);
   int unsign = (int) (long) TREE_OPERAND(myop, 1);
   if (unsign) {
@@ -2850,6 +2851,7 @@ select_type select_index
 #endif
   cntrls[cntrli].block_value = create_tmp_var (long_integer_type_node, "loopval");
   cntrls[cntrli].myselect = fold($2);
+  // TODO don't use COMPOUND_EXPR
   tree d1 = $1;
   cntrls[cntrli].unsign = TREE_OPERAND(d1, 1) ? 1 : 0;
   if (cntrls[cntrli].unsign)
