@@ -3255,11 +3255,16 @@ exp
   tree block, cond, body;
   $$ = c_end_compound_stmt (input_location, $<type_node_p>6, 1);
   cond = $<type_node_p>4;
+  cond = c_common_truthvalue_conversion (input_location, cond); // 64-bit
+  cond = c_fully_fold (cond, false, NULL);
   block = $<type_node_p>2;
   tree block_value = $7;
   body = $$;
   c_cont_label = 0;
-  // TODO c_finish_loop (input_location, cond, NULL, body, cntrls[cntrli].c_break_label, c_cont_label, true, cntrls[cntrli].block_value, block_value);
+  // DONE? TODO c_finish_loop (input_location, cond, NULL, body, cntrls[cntrli].c_break_label, c_cont_label, true, cntrls[cntrli].block_value, block_value);
+  tree loop_name = NULL;
+  add_stmt (build_stmt (input_location, WHILE_STMT, cond, body, loop_name, NULL_TREE,
+			NULL_TREE));
   add_stmt (c_end_compound_stmt (input_location, block, 1));
   $$ = cntrls[cntrli].block_value;
   cntrli--;
