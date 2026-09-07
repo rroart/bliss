@@ -84,6 +84,10 @@ extern int   yyparse (void);
   extern void bli_pop_scope();
   extern struct c_arg_info * bli_get_parm_info (bool ellipsis, tree expr);
 
+  // bli-typeck.c
+  extern tree bli_convert_lvalue_to_rvalue (location_t loc, tree val,
+					    bool convert_p, bool read_p, bool for_init = false);
+  
   static short *malloced_yyss;
  static void *malloced_yyvs;
 
@@ -2688,7 +2692,11 @@ pushlevel exp poplevel
 #if 0
   $$=bli_pop_scope();
 #endif
-  $3 = c_common_truthvalue_conversion (input_location, build_binary_op(input_location, BIT_AND_EXPR,convert(integer_type_node,$3),build_int_cst (long_integer_type_node, 1), 1)); // 64-bit
+  tree expr = build_binary_op(input_location, BIT_AND_EXPR,convert(integer_type_node,$3),build_int_cst (long_integer_type_node, 1), 1);
+  expr = bli_convert_lvalue_to_rvalue (input_location, expr, true, false);
+  expr = c_common_truthvalue_conversion (input_location, expr); // 64-bit
+  expr = c_fully_fold (expr, false, NULL);
+  $3 = expr;
   $$ = c_end_compound_stmt (input_location, $<type_node_p>4, 1);
   $$ = build_tree_list ($$, build_tree_list ($<type_node_p>2, $3));
 }
@@ -7902,4 +7910,20 @@ build_type_name(tree t)
   ret->specs = specs;
   ret->declarator = declarator;
   return ret;
+}
+
+extern struct c_expr
+convert_lvalue_to_rvalue (location_t loc, struct c_expr exp,
+			  bool convert_p, bool read_p, bool for_init);
+
+
+tree
+bli_convert_lvalue_to_rvalue (location_t loc, tree val,
+			  bool convert_p, bool read_p, bool for_init = false)
+{
+	struct c_expr expr;
+	memset (&expr, 0, sizeof (expr));
+	expr.value = val;
+	expr = convert_lvalue_to_rvalue (loc, expr, convert_p, read_p, for_init);
+	return expr.value;
 }
